@@ -29,11 +29,10 @@ import com.google.zxing.qrcode.QRCodeWriter;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
-import haveno.common.file.CorruptedStorageFileHandler;
-import haveno.common.persistence.PersistenceManager;
-import haveno.common.proto.persistable.PersistableEnvelope;
+import haveno.common.file.FileUtil;
 import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
@@ -152,6 +151,7 @@ import javax.annotation.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -162,7 +162,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -230,21 +229,32 @@ public class GUIUtil {
     public static void exportAccounts(ArrayList<PaymentAccount> accounts,
                                       String fileName,
                                       Preferences preferences,
-                                      Stage stage,
-                                      PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
+                                      Stage stage) {
         if (!accounts.isEmpty()) {
             String directory = getDirectoryFromChooser(preferences, stage);
             if (!directory.isEmpty()) {
-                PersistenceManager<PersistableEnvelope> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, null);
-                PaymentAccountList paymentAccounts = new PaymentAccountList(accounts);
-                persistenceManager.initialize(paymentAccounts, fileName, PersistenceManager.Source.PRIVATE_LOW_PRIO);
-                persistenceManager.persistNow(() -> {
-                    persistenceManager.shutdown();
-                    new Popup().feedback(Res.get("guiUtil.accountExport.savedToPath",
-                            Paths.get(directory, fileName).toAbsolutePath()))
-                            .show();
-                });
+                File file = new File(directory, fileName);
+                byte[] serialized;
+                try {
+                    // snapshot mutable accounts on the user thread before queuing the write
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    new PaymentAccountList(accounts).toProtoMessage().writeDelimitedTo(outputStream);
+                    serialized = outputStream.toByteArray();
+                } catch (Exception e) {
+                    log.error("Exporting accounts to {} failed", file, e);
+                    new Popup().warning(Res.get("guiUtil.accountExport.saveFailed", file.getAbsolutePath(), e.getMessage())).show();
+                    return;
+                }
+                ThreadUtils.execute(() -> {
+                    try {
+                        FileUtil.writeAtomically(file.toPath(), serialized);
+                    } catch (Exception e) {
+                        log.error("Exporting accounts to {} failed", file, e);
+                        UserThread.execute(() -> new Popup().warning(Res.get("guiUtil.accountExport.saveFailed", file.getAbsolutePath(), e.getMessage())).show());
+                        return;
+                    }
+                    UserThread.execute(() -> new Popup().feedback(Res.get("guiUtil.accountExport.savedToPath", file.getAbsolutePath())).show());
+                }, "PaymentAccountIO");
             }
         } else {
             new Popup().warning(Res.get("guiUtil.accountExport.noAccountSetup")).show();
@@ -255,8 +265,7 @@ public class GUIUtil {
                                       String fileName,
                                       Preferences preferences,
                                       Stage stage,
-                                      PersistenceProtoResolver persistenceProtoResolver,
-                                      CorruptedStorageFileHandler corruptedStorageFileHandler) {
+                                      PersistenceProtoResolver persistenceProtoResolver) {
         FileChooser fileChooser = new FileChooser();
         File initDir = new File(preferences.getDirectoryChooserPath());
         if (initDir.isDirectory()) {
@@ -266,30 +275,35 @@ public class GUIUtil {
         File file = fileChooser.showOpenDialog(stage.getOwner());
         if (file != null) {
             String path = file.getAbsolutePath();
-            if (Paths.get(path).getFileName().toString().equals(fileName)) {
-                String directory = Paths.get(path).getParent().toString();
-                preferences.setDirectoryChooserPath(directory);
-                PersistenceManager<PaymentAccountList> persistenceManager = new PersistenceManager<>(new File(directory), persistenceProtoResolver, corruptedStorageFileHandler, null);
-                persistenceManager.readPersisted(fileName, persisted -> {
-                            StringBuilder msg = new StringBuilder();
-                            HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
-                            synchronized (persisted.getList()) {
-                                persisted.getList().forEach(paymentAccount -> {
-                                    String id = paymentAccount.getId();
-                                    if (user.getPaymentAccount(id) == null) {
-                                        paymentAccounts.add(paymentAccount);
-                                        msg.append(Res.get("guiUtil.accountExport.tradingAccount", id));
-                                    } else {
-                                        msg.append(Res.get("guiUtil.accountImport.noImport", id));
-                                    }
-                                });
-                            }
-                            user.addImportedPaymentAccounts(paymentAccounts);
-                            new Popup().feedback(Res.get("guiUtil.accountImport.imported", path, msg)).show();
-                        },
-                        () -> {
-                            new Popup().warning(Res.get("guiUtil.accountImport.noAccountsFound", path, fileName)).show();
-                        });
+            if (file.getName().equals(fileName)) {
+                preferences.setDirectoryChooserPath(file.getParent());
+                ThreadUtils.execute(() -> {
+                    PaymentAccountList persisted;
+                    try (FileInputStream inputStream = new FileInputStream(file)) {
+                        persisted = (PaymentAccountList) persistenceProtoResolver.fromProto(protobuf.PersistableEnvelope.parseDelimitedFrom(inputStream));
+                    } catch (Exception e) {
+                        log.error("Importing accounts from {} failed", path, e);
+                        UserThread.execute(() -> new Popup().warning(Res.get("guiUtil.accountImport.failed", path, e.getMessage())).show());
+                        return;
+                    }
+                    UserThread.execute(() -> {
+                        StringBuilder msg = new StringBuilder();
+                        HashSet<PaymentAccount> paymentAccounts = new HashSet<>();
+                        synchronized (persisted.getList()) {
+                            persisted.getList().forEach(paymentAccount -> {
+                                String id = paymentAccount.getId();
+                                if (user.getPaymentAccount(id) == null) {
+                                    paymentAccounts.add(paymentAccount);
+                                    msg.append(Res.get("guiUtil.accountExport.tradingAccount", id));
+                                } else {
+                                    msg.append(Res.get("guiUtil.accountImport.noImport", id));
+                                }
+                            });
+                        }
+                        user.addImportedPaymentAccounts(paymentAccounts);
+                        new Popup().feedback(Res.get("guiUtil.accountImport.imported", path, msg)).show();
+                    });
+                }, "PaymentAccountIO");
             } else {
                 log.error("The selected file is not the expected file for import. The expected file name is: " + fileName + ".");
             }

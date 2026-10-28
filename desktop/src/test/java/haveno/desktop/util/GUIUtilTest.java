@@ -17,6 +17,7 @@
 
 package haveno.desktop.util;
 
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -27,12 +28,18 @@ import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
+import haveno.core.payment.CryptoCurrencyAccount;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountList;
+import haveno.core.payment.RevolutAccount;
 import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.proto.persistable.CorePersistenceProtoResolver;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.user.Preferences;
+import haveno.core.user.User;
 import haveno.desktop.common.UITimer;
 import haveno.desktop.main.account.content.traditionalaccounts.TraditionalAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -45,30 +52,56 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -82,6 +115,206 @@ import static org.mockito.Mockito.withSettings;
 
 
 public class GUIUtilTest {
+
+    @Test
+    public void testPaymentAccountExportSnapshotsAndRoundTrips(@TempDir Path dir) throws Exception {
+        RevolutAccount fiat = new RevolutAccount();
+        fiat.init();
+        fiat.setAccountName("fiat account");
+        fiat.setUsername("username");
+        fiat.setSingleTradeCurrency(new TraditionalCurrency("EUR"));
+        CryptoCurrencyAccount crypto = new CryptoCurrencyAccount();
+        crypto.init();
+        crypto.setAccountName("crypto account");
+        crypto.setAddress("address");
+        crypto.setSingleTradeCurrency(new CryptoCurrency("BTC", "Bitcoin"));
+
+        try (PaymentAccountIOFixture fixture = new PaymentAccountIOFixture(dir)) {
+            for (PaymentAccount account : List.of(fiat, crypto)) {
+                fixture.file = dir.resolve(account == fiat ? "FiatPaymentAccounts" : "CryptoPaymentAccounts");
+                byte[] expected = paymentAccountBytes(account);
+                byte[] previous = "previous export".getBytes(StandardCharsets.UTF_8);
+                Files.write(fixture.file, previous);
+                CountDownLatch release = new CountDownLatch(1);
+                Future<?> blocker = ThreadUtils.execute(() -> {
+                    try {
+                        assertTrue(release.await(10, TimeUnit.SECONDS));
+                    } catch (InterruptedException e) {
+                        throw new AssertionError(e);
+                    }
+                }, "PaymentAccountIO");
+                try {
+                    GUIUtil.exportAccounts(new ArrayList<>(List.of(account)), fixture.file.getFileName().toString(), fixture.preferences, fixture.stage);
+                    account.setAccountName("changed after export");
+                    assertArrayEquals(previous, Files.readAllBytes(fixture.file));
+                    assertTrue(fixture.callbacks.isEmpty());
+                } finally {
+                    release.countDown();
+                    blocker.get(10, TimeUnit.SECONDS);
+                }
+                fixture.runCallback();
+                assertArrayEquals(expected, Files.readAllBytes(fixture.file));
+                verify(fixture.lastPopup()).feedback(Res.get("guiUtil.accountExport.savedToPath", fixture.file.toString()));
+                verify(fixture.lastPopup(), never()).warning(any(String.class));
+                if (Files.getFileStore(fixture.file).supportsFileAttributeView(PosixFileAttributeView.class)) {
+                    assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(fixture.file));
+                }
+
+                User user = mock(User.class);
+                Thread caller = Thread.currentThread();
+                AtomicReference<Collection<PaymentAccount>> imported = new AtomicReference<>();
+                doAnswer(invocation -> {
+                    assertSame(caller, Thread.currentThread());
+                    imported.set(invocation.getArgument(0));
+                    return null;
+                }).when(user).addImportedPaymentAccounts(any());
+                GUIUtil.importAccounts(user, fixture.file.getFileName().toString(), fixture.preferences, fixture.stage, fixture.resolver);
+                verifyNoInteractions(user);
+                fixture.runCallback();
+                assertEquals(1, imported.get().size());
+                PaymentAccount restored = imported.get().iterator().next();
+                assertArrayEquals(expected, paymentAccountBytes(restored));
+                when(user.getPaymentAccount(restored.getId())).thenReturn(restored);
+                GUIUtil.importAccounts(user, fixture.file.getFileName().toString(), fixture.preferences, fixture.stage, fixture.resolver);
+                fixture.runCallback();
+                assertTrue(imported.get().isEmpty());
+            }
+        }
+    }
+
+    @Test
+    public void testPaymentAccountSerializationFailurePreservesExport(@TempDir Path dir) throws Exception {
+        try (PaymentAccountIOFixture fixture = new PaymentAccountIOFixture(dir)) {
+            Files.writeString(fixture.file, "previous export");
+            PaymentAccount account = mock(PaymentAccount.class);
+            when(account.toProtoMessage()).thenThrow(new IllegalStateException("serialization failed"));
+
+            GUIUtil.exportAccounts(new ArrayList<>(List.of(account)), fixture.file.getFileName().toString(), fixture.preferences, fixture.stage);
+
+            assertEquals("previous export", Files.readString(fixture.file));
+            verify(fixture.lastPopup()).warning(Res.get("guiUtil.accountExport.saveFailed", fixture.file.toString(), "serialization failed"));
+            verify(fixture.lastPopup(), never()).feedback(any(String.class));
+        }
+    }
+
+    @Test
+    public void testPaymentAccountReplacementFailurePreservesExport(@TempDir Path dir) throws Exception {
+        try (PaymentAccountIOFixture fixture = new PaymentAccountIOFixture(dir)) {
+            Files.writeString(fixture.file, "previous export");
+            PaymentAccount account = mock(PaymentAccount.class);
+            when(account.toProtoMessage()).thenReturn(protobuf.PaymentAccount.getDefaultInstance());
+            AtomicReference<MockedStatic<Files>> workerFiles = new AtomicReference<>();
+            ThreadUtils.execute(() -> {
+                workerFiles.set(mockStatic(Files.class, CALLS_REAL_METHODS));
+                workerFiles.get().when(() -> Files.move(any(Path.class), eq(fixture.file), eq(StandardCopyOption.ATOMIC_MOVE), eq(StandardCopyOption.REPLACE_EXISTING)))
+                        .thenThrow(new IOException("replacement failed"));
+            }, "PaymentAccountIO").get(10, TimeUnit.SECONDS);
+            try {
+                GUIUtil.exportAccounts(new ArrayList<>(List.of(account)), fixture.file.getFileName().toString(), fixture.preferences, fixture.stage);
+                fixture.runCallback();
+                assertEquals("previous export", Files.readString(fixture.file));
+                verify(fixture.lastPopup()).warning(Res.get("guiUtil.accountExport.saveFailed", fixture.file.toString(), "replacement failed"));
+                verify(fixture.lastPopup(), never()).feedback(any(String.class));
+                try (Stream<Path> remaining = Files.list(dir)) {
+                    assertEquals(List.of(fixture.file), remaining.toList());
+                }
+            } finally {
+                ThreadUtils.execute(() -> workerFiles.get().close(), "PaymentAccountIO").get(10, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
+    public void testInvalidPaymentAccountImportsPreserveFileAndUser(@TempDir Path dir) throws Exception {
+        ByteArrayOutputStream wrongType = new ByteArrayOutputStream();
+        protobuf.PersistableEnvelope.newBuilder().setNavigationPath(protobuf.NavigationPath.getDefaultInstance()).build().writeDelimitedTo(wrongType);
+        try (PaymentAccountIOFixture fixture = new PaymentAccountIOFixture(dir)) {
+            for (byte[] bytes : List.of(new byte[0], new byte[]{127, 1, 2, 3}, wrongType.toByteArray())) {
+                Files.write(fixture.file, bytes);
+                User user = mock(User.class);
+
+                GUIUtil.importAccounts(user, fixture.file.getFileName().toString(), fixture.preferences, fixture.stage, fixture.resolver);
+                fixture.runCallback();
+
+                assertArrayEquals(bytes, Files.readAllBytes(fixture.file));
+                verifyNoInteractions(user);
+                verify(fixture.lastPopup()).warning(any(String.class));
+                verify(fixture.lastPopup(), never()).feedback(any(String.class));
+                try (Stream<Path> remaining = Files.list(dir)) {
+                    assertEquals(List.of(fixture.file), remaining.toList());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testPaymentAccountImportParsesOffUserThread(@TempDir Path dir) throws Exception {
+        try (PaymentAccountIOFixture fixture = new PaymentAccountIOFixture(dir)) {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            new PaymentAccountList(List.of()).toProtoMessage().writeDelimitedTo(bytes);
+            Files.write(fixture.file, bytes.toByteArray());
+            Thread caller = Thread.currentThread();
+            CorePersistenceProtoResolver resolver = mock(CorePersistenceProtoResolver.class);
+            when(resolver.fromProto(any(protobuf.PersistableEnvelope.class))).thenAnswer(invocation -> {
+                assertNotSame(caller, Thread.currentThread());
+                return new PaymentAccountList(List.of());
+            });
+            User user = mock(User.class);
+
+            GUIUtil.importAccounts(user, fixture.file.getFileName().toString(), fixture.preferences, fixture.stage, resolver);
+            verifyNoInteractions(user);
+            fixture.runCallback();
+
+            verify(resolver).fromProto(any(protobuf.PersistableEnvelope.class));
+            verify(user).addImportedPaymentAccounts(Set.of());
+        }
+    }
+
+    private static byte[] paymentAccountBytes(PaymentAccount account) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        new PaymentAccountList(List.of(account)).toProtoMessage().writeDelimitedTo(bytes);
+        return bytes.toByteArray();
+    }
+
+    private static class PaymentAccountIOFixture implements AutoCloseable {
+        private Path file;
+        private final Preferences preferences = mock(Preferences.class);
+        private final Stage stage = mock(Stage.class);
+        private final CorePersistenceProtoResolver resolver = new CorePersistenceProtoResolver(() -> null, () -> null, null);
+        private final BlockingQueue<Runnable> callbacks = new LinkedBlockingQueue<>();
+        private final Executor originalExecutor = UserThread.getExecutor();
+        private final MockedConstruction<DirectoryChooser> directories;
+        private final MockedConstruction<FileChooser> files;
+        private final MockedConstruction<Popup> popups;
+
+        private PaymentAccountIOFixture(Path dir) {
+            file = dir.resolve("FiatPaymentAccounts");
+            when(preferences.getDirectoryChooserPath()).thenReturn(dir.toString());
+            directories = mockConstruction(DirectoryChooser.class, (chooser, context) -> when(chooser.showDialog(any())).thenReturn(dir.toFile()));
+            files = mockConstruction(FileChooser.class, (chooser, context) -> when(chooser.showOpenDialog(any())).thenAnswer(invocation -> file.toFile()));
+            popups = mockConstruction(Popup.class, withSettings().defaultAnswer(RETURNS_SELF));
+            UserThread.setExecutor(callbacks::add);
+        }
+
+        private void runCallback() throws InterruptedException {
+            Runnable callback = callbacks.poll(10, TimeUnit.SECONDS);
+            assertNotNull(callback);
+            callback.run();
+        }
+
+        private Popup lastPopup() {
+            return popups.constructed().get(popups.constructed().size() - 1);
+        }
+
+        @Override
+        public void close() {
+            ThreadUtils.shutDown("PaymentAccountIO", 10000L);
+            UserThread.setExecutor(originalExecutor);
+            popups.close();
+            files.close();
+            directories.close();
+        }
+    }
 
     @Test
     public void testRestoreRepaintsCurrentSceneWithoutChangingColor() {
