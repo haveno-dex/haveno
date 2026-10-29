@@ -2590,7 +2590,7 @@ textfield */
 .tx-status {
     -fx-background-color: rgba(194, 124, 14, 0.12);
     -fx-background-radius: 999;
-    -fx-padding: 1 10 3 7;
+    -fx-padding: 2 10 2 7;
     -fx-graphic-text-gap: 6;
     -fx-font-size: 0.923em;
     -fx-text-fill: #c27c0e;
@@ -2598,6 +2598,7 @@ textfield */
 
 .tx-status .progress-indicator {
     -fx-progress-color: #c27c0e;
+    -fx-translate-y: -0.5; /* ring art sits half a pixel low in its box */
 }
 .tx-status:confirmed {
     -fx-background-color: rgba(62, 163, 74, 0.12);
