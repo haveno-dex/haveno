@@ -28,6 +28,7 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 /**
@@ -64,16 +65,21 @@ public class UserThread {
         });
     }
 
+    /**
+     * Runs the command on the user thread and blocks until it completes, rethrowing its failure on the caller.
+     * Never call while holding a lock the user thread may need, since the two threads then wait on each other.
+     */
     public static void await(Runnable command) {
         if (isUserThread(Thread.currentThread())) {
             command.run();
         } else {
             CountDownLatch latch = new CountDownLatch(1);
+            AtomicReference<Throwable> failure = new AtomicReference<>();
             execute(() -> {
                 try {
                     command.run();
-                } catch (Exception e) {
-                    throw e;
+                } catch (Throwable t) {
+                    failure.set(t);
                 } finally {
                     latch.countDown();
                 }
@@ -81,8 +87,12 @@ public class UserThread {
             try {
                 latch.await();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
+            if (failure.get() instanceof RuntimeException e) throw e;
+            if (failure.get() instanceof Error e) throw e;
+            if (failure.get() != null) throw new RuntimeException(failure.get());
         }
     }
 
