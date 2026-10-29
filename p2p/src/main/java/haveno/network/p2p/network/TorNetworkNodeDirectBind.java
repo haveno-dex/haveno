@@ -8,8 +8,10 @@ import haveno.common.proto.network.NetworkProtoResolver;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
+
 import java.net.Socket;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 
 import java.io.IOException;
@@ -25,16 +27,23 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Slf4j
 public class TorNetworkNodeDirectBind extends TorNetworkNode {
 
-    private static final int TOR_DATA_PORT = 9050;  // TODO: config option?
+    private static final int TOR_DATA_PORT = 9050;  // default SocksPort, used without a control port
     private final String serviceAddress;
+    private final String torHost;
+    @Nullable private final RunningTor runningTor;
+    private volatile Socks5Proxy socksProxy;
 
     public TorNetworkNodeDirectBind(int servicePort,
                                     NetworkProtoResolver networkProtoResolver,
                                     @Nullable BanFilter banFilter,
                                     int maxConnections,
-                                    String hiddenServiceAddress) {
+                                    String hiddenServiceAddress,
+                                    String torHost,
+                                    @Nullable RunningTor runningTor) {
         super(servicePort, networkProtoResolver, banFilter, maxConnections);
         this.serviceAddress = hiddenServiceAddress;
+        this.torHost = torHost;
+        this.runningTor = runningTor;
     }
 
     @Override
@@ -43,13 +52,13 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
             log.info("TorNetworkNodeDirectBind shutdown completed");
             if (shutDownCompleteHandler != null) shutDownCompleteHandler.run();
         });
+        executor.shutdownNow(); // abort a pending SOCKS port lookup
     }
 
+    // null until the SOCKS port is resolved at startup
     @Override
     public Socks5Proxy getSocksProxy() {
-        Socks5Proxy proxy = new Socks5Proxy(InetAddress.getLoopbackAddress(), TOR_DATA_PORT);
-        proxy.resolveAddrLocally(false);
-        return proxy;
+        return socksProxy;
     }
 
     @Override
@@ -57,7 +66,9 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
         // https://datatracker.ietf.org/doc/html/rfc1928 SOCKS5 Protocol
         try {
             checkArgument(peerNodeAddress.getHostName().endsWith(".onion"), "PeerAddress is not an onion address");
-            Socket sock = new Socket(InetAddress.getLoopbackAddress(), TOR_DATA_PORT);
+            Socks5Proxy proxy = socksProxy;
+            if (proxy == null) throw new IOException("Tor SOCKS proxy is not available");
+            Socket sock = new Socket(proxy.getInetAddress(), proxy.getPort());
             sock.setSoTimeout(CREATE_SOCKET_TIMEOUT); // bound the handshake reads; Connection sets its own timeout later
             sock.getOutputStream().write(Hex.decode("050100"));
             String response = Hex.encode(sock.getInputStream().readNBytes(2));
@@ -91,6 +102,10 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
     protected void createTorAndHiddenService() {
         executor.submit(() -> {
             try {
+                socksProxy = resolveSocksProxy();
+                if (isShutDownStarted()) return null;
+                log.info("Using Tor SOCKS proxy at {}:{}", torHost, socksProxy.getPort());
+
                 // listener for incoming messages at the hidden service
                 ServerSocket socket = new ServerSocket(servicePort);
                 nodeAddressProperty.set(new NodeAddress(serviceAddress + ":" + servicePort));
@@ -105,11 +120,21 @@ public class TorNetworkNodeDirectBind extends TorNetworkNode {
                     setupListeners.forEach(SetupListener::onHiddenServicePublished);
                 }, 3);
                 return null;
-            } catch (IOException e) {
-                log.error("Could not connect to external Tor", e);
-                UserThread.execute(() -> setupListeners.forEach(s -> s.onSetupFailed(new RuntimeException(e.getMessage()))));
+            } catch (IOException | TorCtlException e) {
+                if (isShutDownStarted()) return null;
+                log.error("Could not initialize external Tor", e);
+                String errorMessage = e.getMessage() != null ? e.getMessage() : "Could not initialize external Tor; see logs for details";
+                UserThread.execute(() -> setupListeners.forEach(s -> s.onSetupFailed(new RuntimeException(errorMessage, e))));
             }
             return null;
         });
+    }
+
+    // a running tor reports its SocksPort over the control port, otherwise the default port is assumed
+    private Socks5Proxy resolveSocksProxy() throws IOException, TorCtlException {
+        if (runningTor == null) return Tor.getProxy(torHost, TOR_DATA_PORT);
+        Tor tor = runningTor.getTor();
+        if (tor == null) throw new IOException("Could not initialize Tor through the control port; see logs for details");
+        return tor.getProxy(torHost);
     }
 }

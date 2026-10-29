@@ -77,7 +77,8 @@ public class NetworkNodeProvider implements Provider<NetworkNode> {
             if (torMode instanceof NewTor || torMode instanceof RunningTor) {
                 networkNode = new TorNetworkNodeNetlayer(port, networkProtoResolver, torMode, banFilter, maxConnections, streamIsolation, hiddenServiceFlags, hiddenServiceParams, controlHost);
             } else {
-                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress);
+                RunningTor runningTor = controlPort == Config.UNSPECIFIED_PORT ? null : new RunningTor(torDir, controlHost, controlPort, password, cookieFile, useSafeCookieAuthentication);
+                networkNode = new TorNetworkNodeDirectBind(port, networkProtoResolver, banFilter, maxConnections, hiddenServiceAddress, controlHost, runningTor);
             }
         }
     }

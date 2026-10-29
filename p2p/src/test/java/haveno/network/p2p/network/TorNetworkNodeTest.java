@@ -25,9 +25,11 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
+import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.mocks.MockPayload;
 import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorCtlException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -39,7 +41,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.BindException;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -53,6 +57,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -77,6 +84,140 @@ public class TorNetworkNodeTest {
     private static final Logger log = LoggerFactory.getLogger(TorNetworkNodeTest.class);
     private CountDownLatch latch;
 
+
+    @Test
+    public void testDirectBindUsesControlSocksPort() throws Throwable {
+        RunningTor runningTor = mock(RunningTor.class);
+        Tor tor = mock(Tor.class);
+        when(runningTor.getTor()).thenReturn(tor);
+        when(tor.getProxy("127.0.0.2")).thenReturn(Tor.getProxy("127.0.0.2", 19050));
+        assertDirectBindStartup(runningTor, 19050);
+        verify(runningTor).getTor();
+        verify(tor).getProxy("127.0.0.2");
+    }
+
+    @Test
+    public void testDirectBindUsesDefaultSocksPortWithoutControlPort() throws Exception {
+        assertDirectBindStartup(null, 9050);
+    }
+
+    private void assertDirectBindStartup(RunningTor runningTor, int expectedPort) throws Exception {
+        TorNetworkNodeDirectBind node = new TorNetworkNodeDirectBind(0, TestUtils.getNetworkProtoResolver(),
+                null, 2, "static.onion", "127.0.0.2", runningTor);
+        setField(TorNetworkNode.class, node, "executor", MoreExecutors.newDirectExecutorService());
+        SetupListener listener = mock(SetupListener.class);
+        doAnswer(invocation -> {
+            assertEquals(expectedPort, node.getSocksProxy().getPort());
+            return null;
+        }).when(listener).onTorNodeReady();
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                invocation.<Runnable>getArgument(0).run();
+                return null;
+            });
+            ArgumentCaptor<Runnable> publish = ArgumentCaptor.forClass(Runnable.class);
+            userThread.when(() -> UserThread.runAfter(publish.capture(), eq(3L))).thenReturn(mock(Timer.class));
+            assertNull(node.getSocksProxy());
+            assertThrows(IOException.class, () -> node.createSocket(new NodeAddress("static.onion", 9999)));
+            node.start(listener);
+            verify(listener).onTorNodeReady();
+            verify(listener, never()).onHiddenServicePublished();
+            assertEquals("127.0.0.2", node.getSocksProxy().getInetAddress().getHostAddress());
+            assertEquals(expectedPort, node.getSocksProxy().getPort());
+            assertFalse(node.getSocksProxy().resolveAddrLocally());
+            publish.getValue().run();
+            verify(listener).onHiddenServicePublished();
+            assertEquals("static.onion", node.getNodeAddress().getHostName());
+            verify(listener, never()).onSetupFailed(any(Throwable.class));
+        } finally {
+            node.shutDown(null);
+        }
+    }
+
+    @Test
+    public void testDirectBindFailsWithoutFallingBackToDefaultProxy() throws Exception {
+        Throwable failure = assertDirectBindFailure(mock(RunningTor.class), 0);
+        assertEquals("Could not initialize Tor through the control port; see logs for details", failure.getMessage());
+        assertTrue(failure.getCause() instanceof IOException);
+    }
+
+    @Test
+    public void testDirectBindReportsTorFailureWithoutMessage() throws Throwable {
+        RunningTor runningTor = mock(RunningTor.class);
+        Tor tor = mock(Tor.class);
+        TorCtlException failure = new TorCtlException(null, new UnknownHostException("tor-host"));
+        when(runningTor.getTor()).thenReturn(tor);
+        when(tor.getProxy("127.0.0.1")).thenThrow(failure);
+        Throwable reported = assertDirectBindFailure(runningTor, 0);
+        assertEquals("Could not initialize external Tor; see logs for details", reported.getMessage());
+        assertSame(failure, reported.getCause());
+    }
+
+    @Test
+    public void testDirectBindPreservesLocalBindFailureMessage() throws Exception {
+        try (ServerSocket occupied = new ServerSocket(0)) {
+            Throwable failure = assertDirectBindFailure(null, occupied.getLocalPort());
+            assertTrue(failure.getCause() instanceof BindException);
+            assertEquals(failure.getCause().getMessage(), failure.getMessage());
+        }
+    }
+
+    private Throwable assertDirectBindFailure(RunningTor runningTor, int servicePort) throws Exception {
+        TorNetworkNodeDirectBind node = new TorNetworkNodeDirectBind(servicePort, TestUtils.getNetworkProtoResolver(),
+                null, 2, "static.onion", "127.0.0.1", runningTor);
+        setField(TorNetworkNode.class, node, "executor", MoreExecutors.newDirectExecutorService());
+        SetupListener listener = mock(SetupListener.class);
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            userThread.when(() -> UserThread.execute(any(Runnable.class))).thenAnswer(invocation -> {
+                invocation.<Runnable>getArgument(0).run();
+                return null;
+            });
+            node.start(listener);
+            ArgumentCaptor<Throwable> failure = ArgumentCaptor.forClass(Throwable.class);
+            verify(listener).onSetupFailed(failure.capture());
+            verify(listener, never()).onTorNodeReady();
+            verify(listener, never()).onHiddenServicePublished();
+            if (runningTor != null) assertNull(node.getSocksProxy());
+            return failure.getValue();
+        } finally {
+            node.shutDown(null);
+        }
+    }
+
+    @Test
+    public void testDirectBindShutdownInterruptsPendingLookup() throws Throwable {
+        RunningTor runningTor = mock(RunningTor.class);
+        CountDownLatch lookupStarted = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        CountDownLatch releaseLookup = new CountDownLatch(1);
+        when(runningTor.getTor()).thenAnswer(invocation -> {
+            lookupStarted.countDown();
+            try {
+                assertTrue(releaseLookup.await(5, TimeUnit.SECONDS));
+            } catch (InterruptedException e) {
+                interrupted.countDown();
+                Thread.currentThread().interrupt();
+            }
+            return null;
+        });
+        TorNetworkNodeDirectBind node = new TorNetworkNodeDirectBind(0, TestUtils.getNetworkProtoResolver(),
+                null, 2, "static.onion", "127.0.0.1", runningTor);
+        SetupListener listener = mock(SetupListener.class);
+        try {
+            node.start(listener);
+            assertTrue(lookupStarted.await(2, TimeUnit.SECONDS));
+            node.shutDown(null);
+            assertTrue(interrupted.await(2, TimeUnit.SECONDS));
+            assertTrue(node.executor.awaitTermination(2, TimeUnit.SECONDS));
+            verify(listener, never()).onTorNodeReady();
+            verify(listener, never()).onHiddenServicePublished();
+            verify(listener, never()).onSetupFailed(any(Throwable.class));
+            assertNull(node.getSocksProxy());
+        } finally {
+            releaseLookup.countDown();
+            node.shutDown(null);
+        }
+    }
 
     @Test
     public void testSocketClosePrecedesTorShutdownWithoutBlockingCaller() throws Exception {
