@@ -841,7 +841,7 @@ tree-table-view:focused {
 
 .wallet-seed-words .content,
 .wallet-seed-words:focused .content {
-    -fx-padding: 12;
+    -fx-padding: 12 6;
 }
 
 .jfx-date-picker {
