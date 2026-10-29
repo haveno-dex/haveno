@@ -225,6 +225,8 @@ Users are encouraged to experiment with options before use to determine which op
 
   This option configures a *static* Hidden Service Address to listen on  
 
+  Outbound connections use the SOCKS port reported by the `tor` at `--torControlPort` (the first `SocksPort` if there are several, which must be a TCP listener), or port 9050 on `--torControlHost` (default `127.0.0.1`) when no control port is given
+
 * Expected Input Format:
 
   `<String>`
@@ -315,7 +317,7 @@ Users are encouraged to experiment with options before use to determine which op
 
 * Default Value
 
-  `null`
+  `127.0.0.1`
 
 #### `--torControlPort`
 + Function
@@ -463,4 +465,9 @@ $ /opt/haveno/bin/Haveno --torControlPort='9051' --torControlCookieFile='/var/ru
 ### Static Onion Assignment via `--hiddenServiceAddress`
 ```shell
 $ /opt/haveno/bin/Haveno --socks5ProxyXmrAddress='127.0.0.1:9050' --useTorForXmr='on' --hiddenServiceAddress='2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion'
+```
+
+With `--torControlPort`, Haveno looks up the SOCKS port from `tor` and waits for its bootstrap as in dynamic onion mode:
+```shell
+$ /opt/haveno/bin/Haveno --hiddenServiceAddress='2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion' --torControlPort='9051' --torControlCookieFile='/var/run/tor/control.authcookie' --torControlUseSafeCookieAuth --useTorForXmr='on'
 ```

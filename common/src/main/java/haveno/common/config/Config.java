@@ -324,7 +324,8 @@ public class Config {
                         .defaultsTo(9999);
 
         ArgumentAcceptingOptionSpec<String> hiddenServiceAddressOpt =
-                parser.accepts(HIDDEN_SERVICE_ADDRESS, "Hidden Service Address to listen on")
+                parser.accepts(HIDDEN_SERVICE_ADDRESS, "Hidden Service Address to listen on. Outbound connections use the " +
+                        "SOCKS port reported by the Tor at --torControlPort, or port 9050 on --torControlHost when no control port is given.")
                         .withRequiredArg()
                         .ofType(String.class)
                         .defaultsTo("");
