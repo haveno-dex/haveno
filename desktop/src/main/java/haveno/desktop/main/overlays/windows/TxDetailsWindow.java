@@ -111,13 +111,16 @@ public class TxDetailsWindow extends TxHeroWindow<TxDetailsWindow> {
         MoneroTxWallet cachedTx = xmrWalletService.getTx(tx.getHash());
         memoEditor = new MemoEditor(tx.getHash(), cachedTx == null ? tx.getNote() : cachedTx.getNote(), onMemoSaved);
         groups.add(memoEditor);
+        VBox sheet = sheet(groups.toArray(new Node[0]));
+        // the add note hover tint replaces the divider above it
+        sheet.getChildren().get(sheet.getChildren().indexOf(memoEditor) - 1).visibleProperty().bind(memoEditor.addButton.hoverProperty().not());
 
         String fiat = GUIUtil.getFiatText(amount, priceFeedService, preferences);
         addHeroContent(
                 isOutgoing
                         ? hero(MaterialDesignIcon.SEND, "confirm-send-icon", Res.get("funds.withdrawal.sent.headline"), amount, fiat)
                         : hero(MaterialDesignIcon.ARROW_DOWN, "tx-sent-icon", Res.get("txDetailsWindow.received"), amount, fiat),
-                sheet(groups.toArray(new Node[0])));
+                sheet);
     }
 
     @Override
