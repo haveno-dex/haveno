@@ -148,6 +148,11 @@ public class ArbitratorManagerTest {
                         ((Runnable) invocation.getArgument(0)).run();
                         return null;
                     });
+            userThread.when(() -> UserThread.await(any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        ((Runnable) invocation.getArgument(0)).run();
+                        return null;
+                    });
             userThread.when(() -> UserThread.runPeriodically(any(Runnable.class), anyLong(), eq(TimeUnit.MILLISECONDS)))
                     .thenReturn(periodicTimer);
             userThread.when(() -> UserThread.runAfter(any(Runnable.class), eq(60L)))
@@ -191,6 +196,11 @@ public class ArbitratorManagerTest {
 
         try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
             userThread.when(() -> UserThread.execute(any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        ((Runnable) invocation.getArgument(0)).run();
+                        return null;
+                    });
+            userThread.when(() -> UserThread.await(any(Runnable.class)))
                     .thenAnswer(invocation -> {
                         ((Runnable) invocation.getArgument(0)).run();
                         return null;
