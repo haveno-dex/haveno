@@ -125,6 +125,11 @@ public abstract class DisputeAgentManager<T extends DisputeAgent> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void onAllServicesInitialized() {
+        // domain services initialize off the user thread, which owns the observable map
+        UserThread.await(this::initOnUserThread);
+    }
+
+    private void initOnUserThread() {
         // network callbacks arrive on connection threads, so update the observable map on the user thread
         disputeAgentService.addHashSetChangedListener(new HashMapChangedListener() {
             @Override
