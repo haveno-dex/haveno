@@ -86,7 +86,8 @@ public abstract class OfferDataModel extends ActivatableDataModel {
                         balanceListener = new XmrBalanceListener(entry.getSubaddressIndex()) {
                             @Override
                             public void onBalanceChanged(BigInteger balance) {
-                                updateBalances();
+                                // fires on the wallet poll thread under the wallet lock, so hop to the user thread instead of blocking on it
+                                UserThread.execute(() -> updateBalances());
                             }
                         };
                         // register only while active, else an abandoned view would leak the listener
