@@ -36,11 +36,13 @@ package haveno.core.trade.protocol.tasks;
 
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.TaskRunner;
+import haveno.core.account.witness.AccountAgeWitness;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.trade.ArbitratorTrade;
+import haveno.core.trade.MakerTrade;
 import haveno.core.trade.Trade;
 import haveno.core.trade.protocol.TradePeer;
 import lombok.extern.slf4j.Slf4j;
@@ -95,7 +97,15 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
                     signature,
                     errorMsg::set);
             if (isValid) {
-                trade.getTradePeer().setAccountAgeWitness(processModel.getAccountAgeWitnessService().findWitness(trade.getTradePeer().getPaymentAccountPayload(), trade.getTradePeer().getPubKeyRing()).orElse(null));
+                AccountAgeWitness peersWitness = accountAgeWitnessService.findWitness(peersPaymentAccountPayload, peersPubKeyRing).orElse(null);
+
+                // the buyer's actual account is only revealed after funding; verify it rather than the claimed witness
+                if (offer.requiresSignedTaker() && trade instanceof MakerTrade &&
+                        (peersWitness == null || !accountAgeWitnessService.isPeersSignedWitness(peersWitness, peersPubKeyRing.getSignaturePubKey()))) {
+                    failed("The buyer's payment account is not signed, but the offer requires a signed payment account. Payment received cannot be confirmed while this check fails, so the trade may need to be resolved through arbitration.");
+                    return;
+                }
+                tradePeer.setAccountAgeWitness(peersWitness);
                 log.info("{} {} verified witness data of peer {}", trade.getClass().getSimpleName(), trade.getId(), tradePeer.getNodeAddress());
                 complete();
             } else {

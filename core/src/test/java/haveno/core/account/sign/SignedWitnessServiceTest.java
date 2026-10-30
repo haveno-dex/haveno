@@ -317,6 +317,29 @@ public class SignedWitnessServiceTest {
     }
 
     @Test
+    public void testIsSignedAccountAgeWitnessByOwner() {
+        SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        signedWitnessService.addToMap(sw1);
+
+        assertTrue(signedWitnessService.isSignedAccountAgeWitness(aew1, witnessOwner1PubKey));
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew1, witnessOwner2PubKey));
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew2, witnessOwner2PubKey));
+
+        SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey,
+                witnessOwner2PubKey, getTodayMinusNDays(1), tradeAmount2);
+        signedWitnessService.addToMap(sw2);
+        assertTrue(signedWitnessService.isSignedAccountAgeWitness(aew2, witnessOwner2PubKey));
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew2));
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew2, witnessOwner1PubKey));
+
+        signedWitnessService.removeSignedWitness(sw1);
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew2, witnessOwner2PubKey));
+        signedWitnessService.addToMap(sw1);
+        when(filterManager.isWitnessSignerPubKeyBanned(Utilities.bytesAsHexString(witnessOwner2PubKey))).thenReturn(true);
+        assertFalse(signedWitnessService.isSignedAccountAgeWitness(aew2, witnessOwner2PubKey));
+    }
+
+    @Test
     public void testIsValidAccountAgeWitnessOk() {
         SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
         SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);

@@ -438,6 +438,11 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return Optional.empty();
     }
 
+    public boolean requiresSignedTaker() {
+        Map<String, String> extraDataMap = getExtraDataMap();
+        return extraDataMap != null && OfferPayload.REQUIRE_SIGNED_TAKER_ENABLED_VALUE.equals(extraDataMap.get(OfferPayload.REQUIRE_SIGNED_TAKER));
+    }
+
     public String getF2FCity() {
         if (getExtraDataMap() != null && getExtraDataMap().containsKey(OfferPayload.F2F_CITY))
             return getExtraDataMap().get(OfferPayload.F2F_CITY);

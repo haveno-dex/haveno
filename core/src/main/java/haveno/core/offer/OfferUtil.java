@@ -43,6 +43,8 @@ import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.PAYPAL_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.REFERRAL_ID;
+import static haveno.core.offer.OfferPayload.REQUIRE_SIGNED_TAKER;
+import static haveno.core.offer.OfferPayload.REQUIRE_SIGNED_TAKER_ENABLED_VALUE;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF;
 import static haveno.core.offer.OfferPayload.XMR_AUTO_CONF_ENABLED_VALUE;
 import static haveno.core.offer.OfferPayload.BLIK_EXTRA_INFO;
@@ -180,7 +182,8 @@ public class OfferUtil {
 
     public Map<String, String> getExtraDataMap(PaymentAccount paymentAccount,
                                                String currencyCode,
-                                               OfferDirection direction) {
+                                               OfferDirection direction,
+                                               boolean requireSignedTaker) {
         Map<String, String> extraDataMap = new HashMap<>();
         if (CurrencyUtil.isTraditionalCurrency(currencyCode)) {
             String myWitnessHashAsHex = accountAgeWitnessService
@@ -228,6 +231,10 @@ public class OfferUtil {
                     .filter(e -> e.getCurrencyCode().equals("XMR"))
                     .filter(AutoConfirmSettings::isEnabled)
                     .forEach(e -> extraDataMap.put(XMR_AUTO_CONF, XMR_AUTO_CONF_ENABLED_VALUE));
+        }
+
+        if (requireSignedTaker) {
+            extraDataMap.put(REQUIRE_SIGNED_TAKER, REQUIRE_SIGNED_TAKER_ENABLED_VALUE);
         }
 
         return extraDataMap.isEmpty() ? null : extraDataMap;

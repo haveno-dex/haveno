@@ -31,7 +31,8 @@ public enum AvailabilityResult {
     UNCONF_TX_LIMIT_HIT("cannot take offer because you have too many unconfirmed transactions at this moment"),
     MAKER_DENIED_API_USER("cannot take offer because maker is api user"),
     PRICE_CHECK_FAILED("cannot take offer because trade price check failed"),
-    MAKER_DENIED_TAKER("cannot take offer because maker denied taker");
+    MAKER_DENIED_TAKER("cannot take offer because maker denied taker"),
+    UNSIGNED_TAKER_ACCOUNT("cannot take offer because the offer requires a signed payment account");
 
     private final String description;
 

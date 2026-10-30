@@ -104,6 +104,7 @@ public class CreateOfferService {
                                    PaymentAccount paymentAccount,
                                    boolean isPrivateOffer,
                                    boolean buyerAsTakerWithoutDeposit,
+                                   boolean requireSignedTaker,
                                    String extraInfo) {
         log.info("Create and get offer with offerId={}, " +
                         "currencyCode={}, " +
@@ -116,6 +117,7 @@ public class CreateOfferService {
                         "securityDepositPct={}, " +
                         "isPrivateOffer={}, " +
                         "buyerAsTakerWithoutDeposit={}, " + 
+                        "requireSignedTaker={}, " +
                         "extraInfo={}",
                 offerId,
                 currencyCode,
@@ -128,6 +130,7 @@ public class CreateOfferService {
                 securityDepositPct,
                 isPrivateOffer,
                 buyerAsTakerWithoutDeposit,
+                requireSignedTaker,
                 extraInfo == null ? null : "\"" + extraInfo + "\"");
 
         // must nullify empty string so contracts match
@@ -143,6 +146,11 @@ public class CreateOfferService {
         // reject private offer with a buyer deposit if disabled
         if (isPrivateOffer && !buyerAsTakerWithoutDeposit && !HavenoUtils.isGeneralPrivateOffersEnabled()) {
             throw new IllegalArgumentException("Private offers with a buyer deposit are not enabled on this network");
+        }
+
+        // signed takers can only be required where account signing protects the maker
+        if (requireSignedTaker && !OfferRestrictions.canRequireSignedTaker(direction, paymentAccount.getPaymentMethod(), currencyCode)) {
+            throw new IllegalArgumentException("Signed takers can only be required for sell offers with chargeback risk");
         }
 
         // verify payment account supports trade currency
@@ -203,7 +211,7 @@ public class CreateOfferService {
         boolean useReOpenAfterAutoClose = false;
         long lowerClosePrice = 0;
         long upperClosePrice = 0;
-        Map<String, String> extraDataMap = offerUtil.getExtraDataMap(paymentAccount, currencyCode, direction);
+        Map<String, String> extraDataMap = offerUtil.getExtraDataMap(paymentAccount, currencyCode, direction, requireSignedTaker);
 
         offerUtil.validateOfferData(
                 securityDepositPct,
@@ -293,6 +301,7 @@ public class CreateOfferService {
                 paymentAccount,
                 sourceOfferPayload.isPrivateOffer(),
                 sourceOfferPayload.isBuyerAsTakerWithoutDeposit(),
+                sourceOffer.requiresSignedTaker() && OfferRestrictions.canRequireSignedTaker(sourceOfferPayload.getDirection(), paymentAccount.getPaymentMethod(), currencyCode),
                 extraInfo);
 
         // maker fee cannot change

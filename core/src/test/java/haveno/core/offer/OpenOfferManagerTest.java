@@ -13,8 +13,10 @@ import haveno.common.file.CorruptedStorageFileHandler;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.common.persistence.PersistenceManager;
+import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreContext;
 import haveno.core.api.CoreNotificationService;
+import haveno.core.api.CoreOffersService;
 import haveno.core.api.XmrConnectionService;
 import haveno.core.api.XmrKeyImagePoller;
 import haveno.core.filter.Filter;
@@ -90,9 +92,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static com.natpryce.makeiteasy.MakeItEasy.make;
 import static com.natpryce.makeiteasy.MakeItEasy.with;
 import static haveno.core.offer.OfferMaker.btcUsdOffer;
+import static haveno.core.offer.OfferMaker.pubKeyRing;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -119,6 +124,61 @@ public class OpenOfferManagerTest {
     private CoreContext coreContext;
     private KeyRing keyRing;
     private FilterManager filterManager;
+
+    // extra data follows the edited payment account, so a restriction the edit no longer sets must not survive the merge
+    @Test
+    public void testEditedOfferTakesExtraDataFromEditedPayload() {
+        PubKeyRing keys = new PubKeyRing(Sig.generateKeyPair().getPublic(), Encryption.generateKeyPair().getPublic());
+        protobuf.OfferPayload proto = make(btcUsdOffer.but(with(pubKeyRing, keys))).getOfferPayload().toProtoMessage().getOfferPayload().toBuilder()
+                .setMakerFeePct(HavenoUtils.getMakerFeePct("USD", false)).build();
+        OfferPayload unrestricted = OfferPayload.fromProto(proto);
+        OfferPayload restricted = OfferPayload.fromProto(proto.toBuilder()
+                .putExtraData(OfferPayload.REQUIRE_SIGNED_TAKER, OfferPayload.REQUIRE_SIGNED_TAKER_ENABLED_VALUE).build());
+        CoreOffersService service = new CoreOffersService(null, null, null, null, null, null, null, null, null, null, null);
+
+        assertFalse(service.getEditedOffer(new OpenOffer(new Offer(restricted)), unrestricted).requiresSignedTaker());
+        assertTrue(service.getEditedOffer(new OpenOffer(new Offer(unrestricted)), restricted).requiresSignedTaker());
+    }
+
+    @Test
+    public void testSignedTakerDenialUsesAuthenticatedKeyAndFailsClosed() throws Exception {
+        try (SigningRequestContext context = new SigningRequestContext()) {
+            Offer offer = mock(Offer.class);
+            when(offer.requiresSignedTaker()).thenReturn(true);
+            OfferAvailabilityRequest request = mock(OfferAvailabilityRequest.class);
+            InitTradeRequest tradeRequest = mock(InitTradeRequest.class);
+            PublicKey takerKey = Sig.generateKeyPair().getPublic();
+            var denial = OpenOfferManager.class.getDeclaredMethod("getTakerDenial", OfferAvailabilityRequest.class, Offer.class, PublicKey.class);
+            denial.setAccessible(true);
+            assertEquals(AvailabilityResult.MAKER_DENIED_TAKER, denial.invoke(context.manager, request, offer, takerKey));
+            when(request.getTradeRequest()).thenReturn(tradeRequest);
+            assertEquals(AvailabilityResult.UNSIGNED_TAKER_ACCOUNT, denial.invoke(context.manager, request, offer, takerKey));
+            byte[] hash = new byte[20];
+            when(tradeRequest.getAccountAgeWitnessHash()).thenReturn(hash);
+            assertEquals(AvailabilityResult.UNSIGNED_TAKER_ACCOUNT, denial.invoke(context.manager, request, offer, takerKey));
+            when(context.witnesses.isPeersSignedWitness(hash, takerKey)).thenReturn(true);
+            assertNull(denial.invoke(context.manager, request, offer, takerKey));
+            assertEquals(AvailabilityResult.UNSIGNED_TAKER_ACCOUNT,
+                    denial.invoke(context.manager, request, offer, Sig.generateKeyPair().getPublic()));
+            when(offer.requiresSignedTaker()).thenReturn(false);
+            when(tradeRequest.getAccountAgeWitnessHash()).thenReturn(null);
+            assertNull(denial.invoke(context.manager, request, offer, takerKey));
+        }
+    }
+
+    @Test
+    public void testInitTradeRequestPreservesWitnessHashAndAcceptsLegacyMessage() {
+        NodeAddress maker = new NodeAddress("maker.onion", 9999);
+        NodeAddress taker = new NodeAddress("taker.onion", 9999);
+        byte[] hash = new byte[20];
+        PubKeyRing keys = new PubKeyRing(Sig.generateKeyPair().getPublic(), Encryption.generateKeyPair().getPublic());
+        InitTradeRequest request = new InitTradeRequest(TradeProtocolVersion.MULTISIG_2_3, "offer", 1, 1, "SEPA", null,
+                "taker", "maker-payment", "taker-payment", keys, "uid", "1", null, hash, 1,
+                maker, taker, null, null, null, null, null, null);
+        protobuf.InitTradeRequest proto = request.toProtoNetworkEnvelope().getInitTradeRequest();
+        assertArrayEquals(hash, InitTradeRequest.fromProto(proto, null, "1").getAccountAgeWitnessHash());
+        assertNull(InitTradeRequest.fromProto(proto.toBuilder().clearAccountAgeWitnessHash().build(), null, "1").getAccountAgeWitnessHash());
+    }
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -1392,6 +1452,7 @@ public class OpenOfferManagerTest {
     }
 
     private class SigningRequestContext implements AutoCloseable {
+        private final AccountAgeWitnessService witnesses = mock(AccountAgeWitnessService.class);
         private final NodeAddress maker = new NodeAddress("maker.onion", 9999);
         private final NodeAddress arbitrator = new NodeAddress("arbitrator.onion", 9999);
         private final PubKeyRing makerKeys = keys();
@@ -1416,7 +1477,7 @@ public class OpenOfferManagerTest {
             manager = new OpenOfferManager(coreContext, keyRing, user, p2p, connectionService, null, walletService,
                     null, offerBook, mock(ClosedTradableManager.class), null, null, null,
                     null, null, mock(FilterManager.class), mock(Broadcaster.class), persistenceManager,
-                    signedOfferPersistenceManager, null);
+                    signedOfferPersistenceManager, witnesses);
             var field = OpenOfferManager.class.getDeclaredField("signOfferRequestExecutor");
             field.setAccessible(true);
             executor = (ThreadPoolExecutor) field.get(manager);
@@ -1519,7 +1580,7 @@ public class OpenOfferManagerTest {
 
         private InitTradeRequest request(String id, NodeAddress arbitratorAddress) {
             return new InitTradeRequest(TradeProtocolVersion.MULTISIG_2_3, id, 1, 1, "SEPA", null,
-                    "taker", "maker-payment", "taker-payment", takerKeys, "uid", "1", null, 1,
+                    "taker", "maker-payment", "taker-payment", takerKeys, "uid", "1", null, null, 1,
                     maker, taker, arbitratorAddress, null, null, null, null, null);
         }
 

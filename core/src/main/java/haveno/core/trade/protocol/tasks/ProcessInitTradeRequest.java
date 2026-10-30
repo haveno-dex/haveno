@@ -81,6 +81,14 @@ public class ProcessInitTradeRequest extends TradeTask {
                     failed(e.getMessage());
                     return;
                 }
+
+                // require a signed payment account from the taker if the offer demands it
+                if (offer.requiresSignedTaker()) {
+                    byte[] witnessHash = request.getAccountAgeWitnessHash();
+                    if (witnessHash == null || !processModel.getAccountAgeWitnessService().isPeersSignedWitness(witnessHash, request.getTakerPubKeyRing().getSignaturePubKey())) {
+                        throw new RuntimeException("Offer can only be taken with a signed payment account");
+                    }
+                }
             }
 
             // handle request as arbitrator

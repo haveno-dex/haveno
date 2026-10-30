@@ -138,6 +138,7 @@ public class PaymentAccountUtil {
         result.addAll(paymentAccounts.stream()
                 .filter(paymentAccount -> isPaymentAccountValidForOffer(offer, paymentAccount))
                 .filter(paymentAccount -> isAmountValidForOffer(offer, paymentAccount, accountAgeWitnessService))
+                .filter(paymentAccount -> !offer.requiresSignedTaker() || accountAgeWitnessService.isMyAccountSigned(paymentAccount))
                 .collect(Collectors.toList()));
         return result;
     }

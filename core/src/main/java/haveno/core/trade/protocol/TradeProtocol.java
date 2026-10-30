@@ -705,7 +705,13 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                                                 unlatchTrade();
                                                 return;
                                             }
-            
+
+                                            // record the error on the trade if the state already advanced, since the message is not reprocessed
+                                            if (trade.isPaymentSentMessageProcessed()) {
+                                                trade.setErrorMessage(errorMessage);
+                                                trade.requestPersistence();
+                                            }
+
                                             // schedule to reprocess message unless deleted
                                             if (trade.getBuyer().getPaymentSentMessage() != null) {
                                                 UserThread.runAfter(() -> {

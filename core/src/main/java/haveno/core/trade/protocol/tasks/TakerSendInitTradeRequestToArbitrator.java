@@ -68,6 +68,7 @@ public class TakerSendInitTradeRequestToArbitrator extends TradeTask {
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     null,
+                    null,
                     sourceRequest.getCurrentDate(),
                     trade.getMaker().getNodeAddress(),
                     trade.getTaker().getNodeAddress(),
