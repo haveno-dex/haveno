@@ -127,6 +127,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -156,6 +157,7 @@ public class EncryptionTest {
     private XmrWalletService previousWalletService;
     private TradeManager previousTradeManager;
     private final List<CoreAccountService> accounts = new ArrayList<>();
+    private static final long TIMEOUT_SECONDS = 60; // background file work runs far slower on CI runners
 
     @BeforeEach
     public void setup() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, CryptoException {
@@ -704,19 +706,19 @@ public class EncryptionTest {
         CoreApi api = seedRestoreApi(account, wallet, offers);
         CompletableFuture<Void> restore = CompletableFuture.runAsync(() -> api.restoreXmrWalletFromSeed("  seed\n words  ", 12345L, null, null));
         try {
-            Runnable removed = removal.get(10, TimeUnit.SECONDS);
+            Runnable removed = removal.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             verify(wallet, never()).restoreWalletFromSeed(any(), any(), any());
             verify(listener, never()).onWalletRestored(any());
             removed.run();
-            restore.get(10, TimeUnit.SECONDS);
+            restore.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             verify(wallet).restoreWalletFromSeed("seed words", 12345L, null);
             verify(listener).onWalletRestored(null);
             verify(listener, never()).onAccountRestored(any());
             assertThrows(IllegalStateException.class, account::closeAccount);
             assertThrows(IllegalStateException.class, () -> account.changePassword(null, "new-password"));
         } finally {
-            removal.get(10, TimeUnit.SECONDS).run();
-            restore.get(10, TimeUnit.SECONDS);
+            removal.get(TIMEOUT_SECONDS, TimeUnit.SECONDS).run();
+            restore.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 
@@ -748,16 +750,16 @@ public class EncryptionTest {
         CountDownLatch proceed = new CountDownLatch(1);
         CompletableFuture<Void> restore = CompletableFuture.runAsync(() -> account.withWalletRestore(() -> {
             started.countDown();
-            assertDoesNotThrow(() -> assertTrue(proceed.await(10, TimeUnit.SECONDS)));
+            assertDoesNotThrow(() -> assertTrue(proceed.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)));
             throw new IllegalStateException("restore failed");
         }, null));
         try {
-            assertTrue(started.await(10, TimeUnit.SECONDS));
+            assertTrue(started.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             CompletableFuture<Void> shutdown = account.onShutDownStarted();
             assertFalse(shutdown.isDone());
             proceed.countDown();
-            assertThrows(ExecutionException.class, () -> restore.get(10, TimeUnit.SECONDS));
-            shutdown.get(10, TimeUnit.SECONDS);
+            assertThrows(ExecutionException.class, () -> restore.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            shutdown.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertThrows(IllegalStateException.class, () -> account.withWalletRestore(() -> {}, null));
         } finally {
             proceed.countDown();
@@ -1139,7 +1141,7 @@ public class EncryptionTest {
         CountDownLatch backupStarted = new CountDownLatch(1);
         CompletableFuture<Void> startup = CompletableFuture.runAsync(() -> {
             try {
-                assertTrue(backupStarted.await(10, TimeUnit.SECONDS));
+                assertTrue(backupStarted.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException(e);
@@ -1151,13 +1153,13 @@ public class EncryptionTest {
         try {
             account.withAccountBackup(() -> {
                 backupStarted.countDown();
-                assertDoesNotThrow(() -> startup.get(10, TimeUnit.SECONDS));
+                assertDoesNotThrow(() -> startup.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                 assertTrue(changed.isEmpty());
                 assertNull(account.getPassword());
             });
         } finally {
             backupStarted.countDown();
-            startup.get(10, TimeUnit.SECONDS);
+            startup.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
 
         account.changePassword(null, "new-password");
@@ -1188,13 +1190,13 @@ public class EncryptionTest {
         CountDownLatch resumeCleanup = new CountDownLatch(1);
         doAnswer(invocation -> {
             mainChanged.countDown();
-            assertTrue(resumeWallets.await(10, TimeUnit.SECONDS));
+            assertTrue(resumeWallets.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             return null;
         }).when(mainWallet).changePassword(any(), any());
         AccountServiceListener listener = mock(AccountServiceListener.class);
         doAnswer(invocation -> {
             cleanupStarted.countDown();
-            assertTrue(resumeCleanup.await(10, TimeUnit.SECONDS));
+            assertTrue(resumeCleanup.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             return null;
         }).when(listener).onPasswordChanged(any(), any());
         account.addListener(listener);
@@ -1227,7 +1229,7 @@ public class EncryptionTest {
         });
         try {
             changing.start();
-            assertTrue(mainChanged.await(10, TimeUnit.SECONDS));
+            awaitCountDown(mainChanged, changing, failure);
             executable.gracefulShutDown(callbacks::countDown, false);
             executable.gracefulShutDown(callbacks::countDown, false);
             assertTrue(executable.isShutDownStarted());
@@ -1238,18 +1240,18 @@ public class EncryptionTest {
             verify(tradeWallet, never()).changePassword(any(), any());
 
             resumeWallets.countDown();
-            assertTrue(cleanupStarted.await(10, TimeUnit.SECONDS));
+            awaitCountDown(cleanupStarted, changing, failure);
             assertFalse(completion.isDone());
             assertFalse(service.isShutDownStarted());
             resumeCleanup.countDown();
-            completion.get(10, TimeUnit.SECONDS);
-            assertTrue(shutdownStarted.await(10, TimeUnit.SECONDS));
+            completion.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            assertTrue(shutdownStarted.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             assertTrue(service.isShutDownStarted());
             assertEquals(2, callbacks.getCount());
             Method complete = HavenoExecutable.class.getDeclaredMethod("notifyGracefulShutDownComplete");
             complete.setAccessible(true);
             complete.invoke(executable);
-            assertTrue(callbacks.await(10, TimeUnit.SECONDS));
+            assertTrue(callbacks.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             AtomicInteger lateCallback = new AtomicInteger();
             executable.gracefulShutDown(lateCallback::incrementAndGet, false);
             assertEquals(1, lateCallback.get());
@@ -1257,7 +1259,7 @@ public class EncryptionTest {
         } finally {
             resumeWallets.countDown();
             resumeCleanup.countDown();
-            changing.join(10000);
+            changing.join(TIMEOUT_SECONDS * 1000);
         }
         assertFalse(changing.isAlive());
         assertNull(failure.get());
@@ -1314,15 +1316,15 @@ public class EncryptionTest {
         });
         try {
             changing.start();
-            assertTrue(changingWallets.await(10, TimeUnit.SECONDS));
+            awaitCountDown(changingWallets, changing, failure);
             CompletableFuture<Void> completion = account.onShutDownStarted();
             assertSame(completion, account.onShutDownStarted());
             assertFalse(completion.isDone());
             resume.complete(null);
-            completion.get(10, TimeUnit.SECONDS);
+            completion.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } finally {
             resume.complete(null);
-            changing.join(10000);
+            changing.join(TIMEOUT_SECONDS * 1000);
         }
         assertFalse(changing.isAlive());
         assertTrue(failure.get() instanceof IllegalStateException);
@@ -1365,7 +1367,7 @@ public class EncryptionTest {
         EncryptedConnectionList list = new EncryptedConnectionList(persistence, account);
         CountDownLatch initialized = new CountDownLatch(1);
         list.readPersisted(initialized::countDown);
-        assertTrue(initialized.await(10, TimeUnit.SECONDS));
+        assertTrue(initialized.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         return list;
     }
 
@@ -1389,7 +1391,7 @@ public class EncryptionTest {
                 doAnswer(invocation -> {
                     derivationThread.set(Thread.currentThread());
                     deriving.countDown();
-                    assertTrue(resume.await(10, TimeUnit.SECONDS));
+                    assertTrue(resume.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                     if (fail) throw new IllegalStateException("injected derivation failure");
                     return new KeyParameter(new byte[32]);
                 }).when(crypter).deriveKey(any());
@@ -1406,17 +1408,17 @@ public class EncryptionTest {
                         callbacks.incrementAndGet();
                         initialized.complete(Thread.currentThread());
                     }));
-                    assertTrue(deriving.await(10, TimeUnit.SECONDS));
+                    assertTrue(deriving.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                     CompletableFuture<Thread> heartbeat = CompletableFuture.supplyAsync(() -> {
                         assertTrue(list.getConnections().isEmpty());
                         return Thread.currentThread();
                     }, userExecutor);
-                    Thread userThread = heartbeat.get(10, TimeUnit.SECONDS);
+                    Thread userThread = heartbeat.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
                     assertFalse(userThread == derivationThread.get());
                     assertFalse(initialized.isDone());
                     verify(account, never()).addPasswordChangeHandler(any(), any());
                     resume.countDown();
-                    assertSame(userThread, initialized.get(10, TimeUnit.SECONDS));
+                    assertSame(userThread, initialized.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                     assertEquals(1, callbacks.get());
                     verify(account, times(fail ? 0 : 1)).addPasswordChangeHandler(eq(CoreAccountService.PasswordChangeTarget.CONNECTIONS), any());
                 } finally {
@@ -1653,11 +1655,20 @@ public class EncryptionTest {
         }, task -> new Thread(task).start());
     }
 
+    // waits for a background thread to count down, failing with its error if it finishes first
+    private static void awaitCountDown(CountDownLatch latch, Thread thread, AtomicReference<Throwable> failure) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        while (!latch.await(10, TimeUnit.MILLISECONDS)) {
+            if (!thread.isAlive() && latch.getCount() > 0) fail("Thread finished before counting down", failure.get());
+            if (System.nanoTime() > deadline && latch.getCount() > 0) fail("Thread did not count down: " + Arrays.toString(thread.getStackTrace()));
+        }
+    }
+
     private void awaitWalletLifecycleLock(XmrWalletService service, Thread thread) throws Exception {
         Field field = XmrWalletService.class.getDeclaredField("walletLifecycleLock");
         field.setAccessible(true);
         ReentrantReadWriteLock lock = (ReentrantReadWriteLock) field.get(service);
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         while (!lock.hasQueuedThread(thread) && thread.isAlive() && System.nanoTime() < deadline) Thread.sleep(10);
         assertTrue(lock.hasQueuedThread(thread));
     }
@@ -1686,7 +1697,7 @@ public class EncryptionTest {
                 MoneroWalletConfig config = invocation.getArgument(0);
                 assertEquals("password", config.getPassword());
                 creating.countDown();
-                assertTrue(finishCreation.await(10, TimeUnit.SECONDS));
+                assertTrue(finishCreation.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                 Files.write(Path.of(config.getPath() + ".keys"), new byte[] {1});
                 Files.write(Path.of(config.getPath()), new byte[] {2});
                 return wallet;
@@ -1696,10 +1707,10 @@ public class EncryptionTest {
         FutureTask<List<String>> change = new FutureTask<>(() -> account.changePassword(null, "new-password"));
         Thread changing = new Thread(change);
         try {
-            assertTrue(creating.await(5, TimeUnit.SECONDS));
+            assertTrue(creating.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             // deleting another wallet can finish while both creations are still running
             for (String suffix : List.of("", ".keys", ".address.txt")) Files.write(walletDir.toPath().resolve("deleted" + suffix), new byte[] {3});
-            CompletableFuture.runAsync(() -> service.deleteWalletAndRetainBackup("deleted")).get(5, TimeUnit.SECONDS);
+            CompletableFuture.runAsync(() -> service.deleteWalletAndRetainBackup("deleted")).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertFalse(service.walletExists("deleted"));
             assertArrayEquals(new byte[] {3}, Files.readAllBytes(FileUtil.getLatestBackupFile(walletDir, "deleted.keys").toPath()));
             changing.start();
@@ -1707,10 +1718,10 @@ public class EncryptionTest {
             assertEquals("password", service.getWalletPassword("first"));
         } finally {
             finishCreation.countDown();
-            for (CompletableFuture<MoneroWallet> creation : creations) creation.get(10, TimeUnit.SECONDS);
-            changing.join(10000);
+            for (CompletableFuture<MoneroWallet> creation : creations) creation.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            changing.join(TIMEOUT_SECONDS * 1000);
         }
-        change.get(10, TimeUnit.SECONDS);
+        change.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         for (MoneroWalletFull wallet : wallets) verify(wallet).changePassword("password", "new-password");
         assertFalse(account.isPasswordRecoveryRequired());
         assertEquals("new-password", account("new-password").getPassword());
@@ -1727,7 +1738,7 @@ public class EncryptionTest {
         doReturn(List.of(trade)).when(HavenoUtils.tradeManager).getAllTrades();
         doAnswer(invocation -> {
             changingWallets.countDown();
-            assertTrue(finishChange.await(10, TimeUnit.SECONDS));
+            assertTrue(finishChange.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             return null;
         }).when(trade).changeWalletPassword("new-password");
         CountDownLatch backingUp = new CountDownLatch(1);
@@ -1736,7 +1747,7 @@ public class EncryptionTest {
         doReturn(new MoneroRpcConnection("http://127.0.0.1:18081")).when(wallet).getDaemonConnection();
         doAnswer(invocation -> {
             backingUp.countDown();
-            assertTrue(finishBackup.await(10, TimeUnit.SECONDS));
+            assertTrue(finishBackup.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             return new byte[][] {new byte[] {1}, new byte[] {2}};
         }).when(wallet).getData();
         FutureTask<List<String>> change = new FutureTask<>(() -> account.changePassword(null, "new-password"));
@@ -1744,7 +1755,7 @@ public class EncryptionTest {
         CompletableFuture<MoneroWallet> creation = null;
         try {
             changing.start();
-            assertTrue(changingWallets.await(5, TimeUnit.SECONDS));
+            assertTrue(changingWallets.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             creation = createWalletAsync(service, "new-trade", invocation -> {
                 MoneroWalletConfig config = invocation.getArgument(0);
                 assertEquals("new-password", config.getPassword());
@@ -1752,16 +1763,16 @@ public class EncryptionTest {
                 Files.write(Path.of(config.getPath()), new byte[] {2});
                 return wallet;
             });
-            assertTrue(backingUp.await(5, TimeUnit.SECONDS));
+            assertTrue(backingUp.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             finishChange.countDown();
             awaitWalletLifecycleLock(service, changing);
         } finally {
             finishChange.countDown();
             finishBackup.countDown();
-            if (creation != null) creation.get(10, TimeUnit.SECONDS);
-            changing.join(10000);
+            if (creation != null) creation.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            changing.join(TIMEOUT_SECONDS * 1000);
         }
-        change.get(10, TimeUnit.SECONDS);
+        change.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertFalse(account.isPasswordRecoveryRequired());
         assertEquals("new-password", service.getWalletPassword("new-trade"));
         try (var backups = Files.list(walletDir.toPath().resolve("backup"))) {
@@ -1778,8 +1789,8 @@ public class EncryptionTest {
         CompletableFuture<MoneroWallet> creation = createWalletAsync(service, "failed", invocation -> {
             throw new MoneroError("injected creation failure");
         });
-        assertThrows(ExecutionException.class, () -> creation.get(10, TimeUnit.SECONDS));
-        CompletableFuture.supplyAsync(() -> account.changePassword(null, "new-password")).get(10, TimeUnit.SECONDS);
+        assertThrows(ExecutionException.class, () -> creation.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        CompletableFuture.supplyAsync(() -> account.changePassword(null, "new-password")).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertFalse(account.isPasswordRecoveryRequired());
         assertEquals("new-password", account("new-password").getPassword());
     }
@@ -2012,7 +2023,7 @@ public class EncryptionTest {
                                         }
                                         checkThread.set(Thread.currentThread());
                                         checking.countDown();
-                                        assertTrue(resume.await(10, TimeUnit.SECONDS));
+                                        assertTrue(resume.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                                         if (outcome.startsWith("check")) throw failure;
                                         return null;
                                     case "loginAccount":
@@ -2042,9 +2053,9 @@ public class EncryptionTest {
                             try (var setup = mockStatic(CommonSetup.class); var havenoSetup = mockStatic(HavenoSetup.class)) {
                                 assertDoesNotThrow(() -> launch.invoke(executable));
                             }
-                        }, userExecutor).get(10, TimeUnit.SECONDS);
-                        assertTrue(checking.await(10, TimeUnit.SECONDS));
-                        Thread userThread = CompletableFuture.supplyAsync(Thread::currentThread, userExecutor).get(10, TimeUnit.SECONDS);
+                        }, userExecutor).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                        assertTrue(checking.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                        Thread userThread = CompletableFuture.supplyAsync(Thread::currentThread, userExecutor).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
                         assertFalse(userThread == checkThread.get());
                         assertEquals(0, logins.get());
                         assertEquals(0, reads.get());
@@ -2053,14 +2064,14 @@ public class EncryptionTest {
                         CompletableFuture.runAsync(() -> {
                             if (stop.equals("shutdown")) assertDoesNotThrow(() -> shutdown.invoke(executable, mock(ResultHandler.class)));
                             if (stop.equals("restart")) assertDoesNotThrow(() -> restart.invoke(executable, null, true));
-                        }, userExecutor).get(10, TimeUnit.SECONDS);
+                        }, userExecutor).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
                         resume.countDown();
-                        checkThread.get().join(10000);
+                        checkThread.get().join(TIMEOUT_SECONDS * 1000);
                         assertFalse(checkThread.get().isAlive());
-                        userExecutor.submit(() -> {}).get(10, TimeUnit.SECONDS);
+                        userExecutor.submit(() -> {}).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
                         if (stop.equals("none")) {
-                            assertSame(userThread, completed.get(10, TimeUnit.SECONDS));
+                            assertSame(userThread, completed.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
                             assertSame(outcome.equals("success") ? null : failure, reportedFailure.get());
                         } else {
                             assertFalse(completed.isDone());
@@ -2072,7 +2083,7 @@ public class EncryptionTest {
                         assertEquals(expectedLogins == 1 && !outcome.equals("recheck failure") ? 1 : 0, reads.get());
                     } finally {
                         resume.countDown();
-                        if (checkThread.get() != null) checkThread.get().join(10000);
+                        if (checkThread.get() != null) checkThread.get().join(TIMEOUT_SECONDS * 1000);
                     }
                 }
             }
@@ -2260,7 +2271,7 @@ public class EncryptionTest {
         doReturn(List.of(trade)).when(HavenoUtils.tradeManager).getAllTrades();
         doAnswer(invocation -> {
             // protocol error cleanup deletes and unregisters the trade after the disk snapshot
-            CompletableFuture.runAsync(() -> service.deleteWalletAndRetainBackup("trade")).get(10, TimeUnit.SECONDS);
+            CompletableFuture.runAsync(() -> service.deleteWalletAndRetainBackup("trade")).get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             doReturn(List.of()).when(HavenoUtils.tradeManager).getAllTrades();
             return null;
         }).when(mainWallet).changePassword("password", "new-password");
@@ -2338,7 +2349,7 @@ public class EncryptionTest {
                 // restore has removed the old main wallet and is about to move the replacement into place
                 Path restoreKeys = Files.createFile(walletDir.toPath().resolve("haveno_XMR_restore.keys"));
                 changing.start();
-                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
                 while (changing.getState() != Thread.State.BLOCKED && changing.isAlive() && System.nanoTime() < deadline) {
                     Thread.sleep(10);
                 }
@@ -2347,7 +2358,7 @@ public class EncryptionTest {
                 setField(XmrWalletBase.class, service, "wallet", restored);
             }
         } finally {
-            changing.join(10000);
+            changing.join(TIMEOUT_SECONDS * 1000);
         }
         assertFalse(changing.isAlive());
         assertNull(failure.get());
@@ -3096,7 +3107,7 @@ public class EncryptionTest {
         doAnswer(invocation -> {
             boolean success = (boolean) invocation.callRealMethod();
             copied.countDown();
-            assertTrue(allowDelete.await(5, TimeUnit.SECONDS));
+            assertTrue(allowDelete.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
             return success;
         }).when(service).backupWallet("trade");
         Field listeners = CoreAccountService.class.getDeclaredField("listeners");
@@ -3118,13 +3129,13 @@ public class EncryptionTest {
         });
         try {
             deleting.start();
-            assertTrue(copied.await(5, TimeUnit.SECONDS));
+            awaitCountDown(copied, deleting, failure);
             cleaning.start();
             awaitWalletLifecycleLock(service, cleaning);
         } finally {
             allowDelete.countDown();
-            deleting.join(10000);
-            cleaning.join(10000);
+            deleting.join(TIMEOUT_SECONDS * 1000);
+            cleaning.join(TIMEOUT_SECONDS * 1000);
         }
         assertFalse(deleting.isAlive());
         assertFalse(cleaning.isAlive());

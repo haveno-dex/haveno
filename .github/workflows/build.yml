@@ -66,11 +66,6 @@ jobs:
           intentionally skipped for linux/aarch64 builds as JavaFX 21.x.x ships with x86_64 \
           shared objects, causing tests to fail. \
           This should be revisited when JavaFX is next updated."
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: error-reports-${{ matrix.os }}
-          path: ${{ github.workspace }}/desktop/build/reports
       - name: cache nodes dependencies
         uses: actions/upload-artifact@v4
         with:
@@ -112,6 +107,11 @@ jobs:
       - name: Build Daemon JAR
         run: ./gradlew :daemon:shadowJar
         working-directory: .
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: error-reports-${{ matrix.os }}
+          path: ${{ github.workspace }}/*/build/reports
 
       # get version from jar
       - name: Set Version Unix
