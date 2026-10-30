@@ -82,6 +82,7 @@ import haveno.desktop.common.view.View;
 import haveno.desktop.common.view.ViewPath;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.funds.transactions.TransactionsListItem;
+import haveno.desktop.main.settings.network.MoneroNetworkListItem;
 import haveno.desktop.main.settings.network.NetworkSettingsView;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
 import haveno.desktop.main.overlays.notifications.Notification;
@@ -178,6 +179,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
 import monero.common.MoneroRpcConnection;
+import monero.daemon.model.MoneroDaemonInfo;
 import monero.daemon.model.MoneroTx;
 import monero.wallet.model.MoneroTxWallet;
 import monero.wallet.model.MoneroWalletListener;
@@ -964,6 +966,55 @@ public class OverlayTest {
             assertEquals("another.example:18081: " + Res.get("settings.net.serviceNotRunning"), ((Label) controls.get("addHint")).getText());
             assertFalse(input.isDisabled());
             verify(connections, never()).probeConnection(any());
+        }
+
+        @Test
+        void oldRemoteFailuresShowAsUncheckedWithoutRechecking() {
+            long now = System.currentTimeMillis();
+            live.get(0).setOnline(false);
+            live.get(0).setAttribute("lastChecked", now - 900000);
+            MoneroRpcConnection old = addNode("old.example", false, now - 900000);
+            MoneroRpcConnection recent = addNode("recent.example", false, now - 540000);
+            MoneroRpcConnection local = addNode("127.0.0.1", false, now - 900000);
+            MoneroRpcConnection peerless = addNode("peerless.example", false, now - 900000);
+            peerless.setAttribute("lastInfo", new MoneroDaemonInfo());
+            MoneroRpcConnection login = addNode("login.example", true, now - 900000);
+            login.setAuthenticated(false);
+            when(connections.isConnected()).thenReturn(false);
+
+            view.deactivate();
+            view.activate();
+
+            assertTrue(background.isEmpty());
+            verify(connections, never()).probeConnection(any());
+            assertTrue(nodeRow(old).isUnchecked());
+            assertEquals(Res.get("settings.net.notChecked"), nodeRow(old).getStatus());
+            assertFalse(nodeRow(recent).isUnchecked());
+            assertEquals(Res.get("settings.net.notReachable"), nodeRow(recent).getStatus());
+            assertEquals(Res.get("settings.net.notRunning"), nodeRow(local).getStatus());
+            assertEquals(Res.get("settings.net.noNodePeers"), nodeRow(peerless).getStatus());
+            assertEquals(Res.get("settings.net.requiresLogin"), nodeRow(login).getStatus());
+            assertEquals(Res.get("settings.net.notResponding"), nodeRow(live.get(0)).getStatus());
+
+            recent.setAttribute("lastChecked", now - 660000);
+            refresh.run();
+            assertTrue(nodeRow(recent).isUnchecked());
+            assertEquals(Res.get("settings.net.notChecked"), nodeRow(recent).getStatus());
+            assertTrue(background.isEmpty());
+        }
+
+        private MoneroRpcConnection addNode(String host, Boolean online, Long checked) {
+            MoneroRpcConnection connection = new MoneroRpcConnection("http://" + host + ":18081");
+            connection.setOnline(online);
+            connection.setAttribute("lastChecked", checked);
+            live.add(connection);
+            return connection;
+        }
+
+        @SuppressWarnings("unchecked")
+        private MoneroNetworkListItem nodeRow(MoneroRpcConnection connection) {
+            TableView<MoneroNetworkListItem> table = (TableView<MoneroNetworkListItem>) controls.get("moneroConnectionsTableView");
+            return table.getItems().stream().filter(item -> item.getConnection().getUri().equals(connection.getUri())).findFirst().orElseThrow();
         }
 
         @SuppressWarnings("unchecked")
