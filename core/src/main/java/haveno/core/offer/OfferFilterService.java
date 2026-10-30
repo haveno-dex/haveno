@@ -82,7 +82,8 @@ public class OfferFilterService {
         IS_MY_INSUFFICIENT_TRADE_LIMIT,
         ARBITRATOR_NOT_VALIDATED,
         SIGNATURE_NOT_VALIDATED,
-        RESERVE_FUNDS_SPENT;
+        RESERVE_FUNDS_SPENT,
+        HAS_NO_SIGNED_PAYMENT_ACCOUNT;
 
         @Getter
         private final boolean isValid;
@@ -139,6 +140,9 @@ public class OfferFilterService {
         if (!isAnyPaymentAccountValidForOffer(offer)) {
             return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
         }
+        if (hasNoSignedPaymentAccount(offer)) {
+            return Result.HAS_NO_SIGNED_PAYMENT_ACCOUNT;
+        }
 
         return Result.VALID;
     }
@@ -146,6 +150,12 @@ public class OfferFilterService {
     public boolean isAnyPaymentAccountValidForOffer(Offer offer) {
         return user.getPaymentAccounts() != null &&
                 PaymentAccountUtil.isAnyPaymentAccountValidForOffer(offer, user.getPaymentAccounts());
+    }
+
+    // signed taker offers can only be taken with a signed payment account that also meets the offer's limits
+    public boolean hasNoSignedPaymentAccount(Offer offer) {
+        return offer.requiresSignedTaker() &&
+                PaymentAccountUtil.getPossiblePaymentAccounts(offer, user.getPaymentAccounts(), accountAgeWitnessService).isEmpty();
     }
 
     public boolean hasSameProtocolVersion(Offer offer) {

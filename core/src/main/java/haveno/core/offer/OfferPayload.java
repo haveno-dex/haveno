@@ -112,6 +112,9 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     // If maker is seller and has xmrAutoConf enabled it is set to "1" otherwise it is not set
     public static final String XMR_AUTO_CONF = "xmrAutoConf";
     public static final String XMR_AUTO_CONF_ENABLED_VALUE = "1";
+    // If maker only allows takers with a signed payment account it is set to "1" otherwise it is not set
+    public static final String REQUIRE_SIGNED_TAKER = "requireSignedTaker";
+    public static final String REQUIRE_SIGNED_TAKER_ENABLED_VALUE = "1";
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////

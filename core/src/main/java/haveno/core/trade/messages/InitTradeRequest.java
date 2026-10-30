@@ -45,6 +45,8 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
     private final PubKeyRing takerPubKeyRing;
     @Nullable
     private final byte[] accountAgeWitnessSignatureOfOfferId;
+    @Nullable
+    private final byte[] accountAgeWitnessHash;
     private final long currentDate;
     private final NodeAddress makerNodeAddress;
     private final NodeAddress takerNodeAddress;
@@ -74,6 +76,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                                     String uid,
                                     String messageVersion,
                                     @Nullable byte[] accountAgeWitnessSignatureOfOfferId,
+                                    @Nullable byte[] accountAgeWitnessHash,
                                     long currentDate,
                                     NodeAddress makerNodeAddress,
                                     NodeAddress takerNodeAddress,
@@ -94,6 +97,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
         this.takerPubKeyRing = takerPubKeyRing;
         this.paymentMethodId = paymentMethodId;
         this.accountAgeWitnessSignatureOfOfferId = accountAgeWitnessSignatureOfOfferId;
+        this.accountAgeWitnessHash = accountAgeWitnessHash;
         this.currentDate = currentDate;
         this.makerNodeAddress = makerNodeAddress;
         this.takerNodeAddress = takerNodeAddress;
@@ -135,6 +139,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
         Optional.ofNullable(payoutAddress).ifPresent(e -> builder.setPayoutAddress(payoutAddress));
         Optional.ofNullable(challenge).ifPresent(e -> builder.setChallenge(challenge));
         Optional.ofNullable(accountAgeWitnessSignatureOfOfferId).ifPresent(e -> builder.setAccountAgeWitnessSignatureOfOfferId(ByteString.copyFrom(e)));
+        Optional.ofNullable(accountAgeWitnessHash).ifPresent(e -> builder.setAccountAgeWitnessHash(ByteString.copyFrom(e)));
         builder.setCurrentDate(currentDate);
 
         return getNetworkEnvelopeBuilder().setInitTradeRequest(builder).build();
@@ -156,6 +161,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 proto.getUid(),
                 messageVersion,
                 ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessSignatureOfOfferId()),
+                ProtoUtil.byteArrayOrNullFromProto(proto.getAccountAgeWitnessHash()),
                 proto.getCurrentDate(),
                 NodeAddress.fromProto(proto.getMakerNodeAddress()),
                 NodeAddress.fromProto(proto.getTakerNodeAddress()),
@@ -181,6 +187,7 @@ public final class InitTradeRequest extends TradeMessage implements DirectMessag
                 ",\n     takerPaymentAccountId=" + takerPaymentAccountId +
                 ",\n     takerPubKeyRing=" + takerPubKeyRing +
                 ",\n     accountAgeWitnessSignatureOfOfferId=" + Utilities.bytesAsHexString(accountAgeWitnessSignatureOfOfferId) +
+                ",\n     accountAgeWitnessHash=" + Utilities.bytesAsHexString(accountAgeWitnessHash) +
                 ",\n     currentDate=" + currentDate +
                 ",\n     makerNodeAddress=" + makerNodeAddress +
                 ",\n     takerNodeAddress=" + takerNodeAddress +

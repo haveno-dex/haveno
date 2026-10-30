@@ -649,6 +649,14 @@ public class SignedWitnessService {
         return isSignerAccountAgeWitness(accountAgeWitness, new Date().getTime() + SIGNER_AGE);
     }
 
+    // Like isSignedAccountAgeWitness, but only counts signatures naming ownerPubKey as the witness owner
+    public boolean isSignedAccountAgeWitness(AccountAgeWitness accountAgeWitness, byte[] ownerPubKey) {
+        long time = new Date().getTime() + SIGNER_AGE;
+        return getSignedWitnessSet(accountAgeWitness).stream()
+                .filter(signedWitness -> Arrays.equals(signedWitness.getWitnessOwnerPubKey(), ownerPubKey))
+                .anyMatch(isValidSignerWitness(time, null));
+    }
+
     public boolean isSignerAccountAgeWitness(AccountAgeWitness accountAgeWitness) {
         return isSignerAccountAgeWitness(accountAgeWitness, new Date().getTime());
     }

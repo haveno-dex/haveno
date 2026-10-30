@@ -551,6 +551,7 @@ message PostOfferRequest {
     bool buyer_as_taker_without_deposit = 13;
     string extra_info = 14;
     string source_offer_id = 15;
+    bool require_signed_taker = 16;
 }
 
 message PostOfferReply {
@@ -631,6 +632,7 @@ message OfferInfo {
     repeated string accepted_country_codes = 35;
     string accepted_countries_string = 36;
     string city = 37;
+    bool require_signed_taker = 38;
 }
 
 message AvailabilityResultWithDescription {

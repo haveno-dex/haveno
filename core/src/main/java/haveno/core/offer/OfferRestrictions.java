@@ -21,6 +21,7 @@ import haveno.common.app.Capabilities;
 import haveno.common.app.Capability;
 import haveno.common.config.Config;
 import haveno.common.util.Utilities;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 
 import java.math.BigInteger;
@@ -41,6 +42,11 @@ public class OfferRestrictions {
         if (direction == OfferDirection.BUY) return margin >= -1 && margin < 1;
         if (direction == OfferDirection.SELL) return margin > -1 && margin <= 1;
         return false;
+    }
+
+    // signed accounts only protect against chargebacks, so takers can only be required to have one on sell offers with chargeback risk
+    public static boolean canRequireSignedTaker(OfferDirection direction, PaymentMethod paymentMethod, String currencyCode) {
+        return direction == OfferDirection.SELL && PaymentMethod.hasChargebackRisk(paymentMethod, currencyCode);
     }
 
     public static BigInteger TOLERATED_SMALL_TRADE_AMOUNT = HavenoUtils.xmrToAtomicUnits(3);

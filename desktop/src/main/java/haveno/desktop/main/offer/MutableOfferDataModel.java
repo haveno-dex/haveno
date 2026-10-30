@@ -32,6 +32,7 @@ import haveno.core.monetary.Volume;
 import haveno.core.offer.CreateOfferService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -112,6 +113,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     // Whether the offer is passphrase protected (private). A no-deposit offer is a subset of this.
     protected final BooleanProperty isPrivateOffer = new SimpleBooleanProperty();
     protected final BooleanProperty buyerAsTakerWithoutDeposit = new SimpleBooleanProperty();
+    protected final BooleanProperty requireSignedTaker = new SimpleBooleanProperty();
 
     protected final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
 
@@ -304,6 +306,7 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
                 paymentAccount,
                 isPrivateOffer.get() || buyerAsTakerWithoutDeposit.get(), // no-deposit offers are always private
                 buyerAsTakerWithoutDeposit.get(),
+                requireSignedTaker.get() && canRequireSignedTaker(),
                 extraInfo.get());
     }
 
@@ -435,6 +438,15 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     protected void setBuyerAsTakerWithoutDeposit(boolean buyerAsTakerWithoutDeposit) {
         this.buyerAsTakerWithoutDeposit.set(buyerAsTakerWithoutDeposit);
+    }
+
+    protected void setRequireSignedTaker(boolean requireSignedTaker) {
+        this.requireSignedTaker.set(requireSignedTaker);
+    }
+
+    // the option only applies while selling XMR for a payment method with chargeback risk
+    boolean canRequireSignedTaker() {
+        return paymentAccount != null && OfferRestrictions.canRequireSignedTaker(direction, paymentAccount.getPaymentMethod(), tradeCurrencyCode.get());
     }
 
     public ObservableList<PaymentAccount> getPaymentAccounts() {
@@ -615,6 +627,10 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public ReadOnlyBooleanProperty getBuyerAsTakerWithoutDeposit() {
         return buyerAsTakerWithoutDeposit;
+    }
+
+    public ReadOnlyBooleanProperty getRequireSignedTaker() {
+        return requireSignedTaker;
     }
 
     public ReadOnlyStringProperty getTradeCurrencyCode() {

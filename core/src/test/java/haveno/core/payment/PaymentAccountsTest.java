@@ -30,6 +30,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.payload.PopmoneyAccountPayload;
@@ -48,6 +49,7 @@ import haveno.core.util.validation.RegexValidator;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -70,6 +72,35 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PaymentAccountsTest {
+    @Test
+    public void testSignedOffersRequireOneMatchingSignedAccountWithSufficientLimit() {
+        Offer offer = mock(Offer.class);
+        when(offer.getPaymentMethod()).thenReturn(PaymentMethod.REVOLUT);
+        when(offer.getCounterCurrencyCode()).thenReturn("USD");
+        when(offer.getMirroredDirection()).thenReturn(OfferDirection.BUY);
+        when(offer.getMinAmount()).thenReturn(BigInteger.TEN);
+        when(offer.requiresSignedTaker()).thenReturn(true);
+        AccountAgeWitnessService witnesses = mock(AccountAgeWitnessService.class);
+        PaymentAccount signed = new RevolutAccount();
+        signed.setId("signed");
+        signed.setSingleTradeCurrency(new TraditionalCurrency("USD"));
+        PaymentAccount unsigned = new RevolutAccount();
+        unsigned.setId("unsigned");
+        unsigned.setSingleTradeCurrency(new TraditionalCurrency("USD"));
+        Set<PaymentAccount> accounts = Set.of(signed, unsigned);
+        when(witnesses.isMyAccountSigned(signed)).thenReturn(true);
+        when(witnesses.getMyTradeLimit(unsigned, "USD", OfferDirection.BUY, false)).thenReturn(100L);
+        when(witnesses.getMyTradeLimit(signed, "USD", OfferDirection.BUY, false)).thenReturn(9L);
+        assertTrue(PaymentAccountUtil.getPossiblePaymentAccounts(offer, accounts, witnesses).isEmpty());
+
+        when(witnesses.getMyTradeLimit(signed, "USD", OfferDirection.BUY, false)).thenReturn(10L);
+        assertEquals(List.of(signed), PaymentAccountUtil.getPossiblePaymentAccounts(offer, accounts, witnesses));
+        signed.setSingleTradeCurrency(new TraditionalCurrency("EUR"));
+        assertTrue(PaymentAccountUtil.getPossiblePaymentAccounts(offer, accounts, witnesses).isEmpty());
+        when(offer.requiresSignedTaker()).thenReturn(false);
+        assertEquals(List.of(unsigned), PaymentAccountUtil.getPossiblePaymentAccounts(offer, accounts, witnesses));
+    }
+
     @Test
     public void testFormFieldRequiredPresenceRoundTrip() {
         protobuf.PaymentAccountFormField legacy = protobuf.PaymentAccountFormField.newBuilder()
