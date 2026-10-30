@@ -89,6 +89,7 @@ class DuplicateOfferDataModel extends MutableOfferDataModel {
         }
         setPrivateOffer(offer.isPrivateOffer());
         setBuyerAsTakerWithoutDeposit(offer.hasBuyerAsTakerWithoutDeposit());
+        setRequireSignedTaker(offer.requiresSignedTaker());
         setSecurityDepositPct(offer.getSellerSecurityDepositPct());
         setExtraInfo(offer.getOfferExtraInfo());
 

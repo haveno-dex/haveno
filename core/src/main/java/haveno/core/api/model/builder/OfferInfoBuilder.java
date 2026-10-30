@@ -66,6 +66,7 @@ public final class OfferInfoBuilder {
     private String splitOutputTxHash;
     private long splitOutputTxFee;
     private boolean isPrivateOffer;
+    private boolean requireSignedTaker;
     private String challenge;
     private String extraInfo;
     private List<String> acceptedCountryCodes;
@@ -244,6 +245,11 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withIsPrivateOffer(boolean isPrivateOffer) {
         this.isPrivateOffer = isPrivateOffer;
+        return this;
+    }
+
+    public OfferInfoBuilder withRequireSignedTaker(boolean requireSignedTaker) {
+        this.requireSignedTaker = requireSignedTaker;
         return this;
     }
 

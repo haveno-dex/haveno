@@ -252,6 +252,7 @@ message InitTradeRequest {
     string reserve_tx_key = 19;
     string payout_address = 20;
     string challenge = 21;
+    bytes account_age_witness_hash = 22;
 }
 
 message InitMultisigRequest {
@@ -838,6 +839,7 @@ enum AvailabilityResult {
     MAKER_DENIED_API_USER = 12;
     PRICE_CHECK_FAILED = 13;
     MAKER_DENIED_TAKER = 14;
+    UNSIGNED_TAKER_ACCOUNT = 15;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

@@ -1215,6 +1215,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
                 user,
                 mediatorManager,
                 tradeStatisticsManager,
+                processModelServiceProvider.getAccountAgeWitnessService(),
                 isTakerApiUser,
                 paymentAccountId,
                 tradeAmount,

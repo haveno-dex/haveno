@@ -79,6 +79,7 @@ public class OfferInfo implements Payload {
     private final String splitOutputTxHash;
     private final long splitOutputTxFee;
     private final boolean isPrivateOffer;
+    private final boolean requireSignedTaker;
     private final String challenge;
     private final String extraInfo;
     private final List<String> acceptedCountryCodes;
@@ -118,6 +119,7 @@ public class OfferInfo implements Payload {
         this.splitOutputTxHash = builder.getSplitOutputTxHash();
         this.splitOutputTxFee = builder.getSplitOutputTxFee();
         this.isPrivateOffer = builder.isPrivateOffer();
+        this.requireSignedTaker = builder.isRequireSignedTaker();
         this.challenge = builder.getChallenge();
         this.extraInfo = builder.getExtraInfo();
         this.acceptedCountryCodes = builder.getAcceptedCountryCodes();
@@ -197,6 +199,7 @@ public class OfferInfo implements Payload {
                 .withProtocolVersion(offer.getOfferPayload().getProtocolVersion())
                 .withArbitratorSigner(offer.getOfferPayload().getArbitratorSigner() == null ? null : offer.getOfferPayload().getArbitratorSigner().getFullAddress())
                 .withIsPrivateOffer(offer.isPrivateOffer())
+                .withRequireSignedTaker(offer.requiresSignedTaker())
                 .withChallenge(offer.getChallenge())
                 .withExtraInfo(offer.getCombinedExtraInfo())
                 .withAcceptedCountryCodes(hasAcceptedCountries ? offer.getAcceptedCountryCodes() : null)
@@ -240,7 +243,8 @@ public class OfferInfo implements Payload {
                 .setVersionNr(versionNumber)
                 .setProtocolVersion(protocolVersion)
                 .setSplitOutputTxFee(splitOutputTxFee)
-                .setIsPrivateOffer(isPrivateOffer);
+                .setIsPrivateOffer(isPrivateOffer)
+                .setRequireSignedTaker(requireSignedTaker);
         Optional.ofNullable(arbitratorSigner).ifPresent(builder::setArbitratorSigner);
         Optional.ofNullable(splitOutputTxHash).ifPresent(builder::setSplitOutputTxHash);
         Optional.ofNullable(challenge).ifPresent(builder::setChallenge);
@@ -286,6 +290,7 @@ public class OfferInfo implements Payload {
                 .withSplitOutputTxHash(proto.getSplitOutputTxHash())
                 .withSplitOutputTxFee(proto.getSplitOutputTxFee())
                 .withIsPrivateOffer(proto.getIsPrivateOffer())
+                .withRequireSignedTaker(proto.getRequireSignedTaker())
                 .withChallenge(proto.getChallenge())
                 .withExtraInfo(proto.getExtraInfo())
                 .withAcceptedCountryCodes(proto.getAcceptedCountryCodesList())

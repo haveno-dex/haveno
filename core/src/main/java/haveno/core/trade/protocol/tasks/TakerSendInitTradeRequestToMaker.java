@@ -62,6 +62,9 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
             // taker signs offer using offer id as nonce to avoid challenge protocol
             byte[] sig = HavenoUtils.sign(p2PService.getKeyRing(), offer.getId());
 
+            // taker identifies its payment account witness if the offer requires a signed account
+            byte[] accountAgeWitnessHash = offer.requiresSignedTaker() ? processModel.getAccountAgeWitnessService().getMyWitnessHash(processModel.getPaymentAccountPayload(trade.getSelf().getPaymentAccountId())) : null;
+
             // create request to maker
             InitTradeRequest makerRequest = new InitTradeRequest(
                     TradeProtocolVersion.MULTISIG_2_3, // TODO: use processModel.getTradeProtocolVersion(), select one of maker's supported versions
@@ -77,6 +80,7 @@ public class TakerSendInitTradeRequestToMaker extends TradeTask {
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     sig,
+                    accountAgeWitnessHash,
                     new Date().getTime(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),

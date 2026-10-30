@@ -19,6 +19,7 @@ package haveno.core.offer.availability;
 
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.taskrunner.Model;
+import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.messages.OfferAvailabilityResponse;
@@ -51,6 +52,8 @@ public class OfferAvailabilityModel implements Model {
     private final MediatorManager mediatorManager;
     @Getter
     private final TradeStatisticsManager tradeStatisticsManager;
+    @Getter
+    private final AccountAgeWitnessService accountAgeWitnessService;
     private NodeAddress peerNodeAddress;  // maker
     private OfferAvailabilityResponse message;
     @Getter
@@ -81,6 +84,7 @@ public class OfferAvailabilityModel implements Model {
                                   User user,
                                   MediatorManager mediatorManager,
                                   TradeStatisticsManager tradeStatisticsManager,
+                                  AccountAgeWitnessService accountAgeWitnessService,
                                   boolean isTakerApiUser,
                                   String paymentAccountId,
                                   BigInteger tradeAmount,
@@ -92,6 +96,7 @@ public class OfferAvailabilityModel implements Model {
         this.user = user;
         this.mediatorManager = mediatorManager;
         this.tradeStatisticsManager = tradeStatisticsManager;
+        this.accountAgeWitnessService = accountAgeWitnessService;
         this.isTakerApiUser = isTakerApiUser;
         this.paymentAccountId = paymentAccountId;
         this.tradeAmount = tradeAmount;

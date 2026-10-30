@@ -18,11 +18,15 @@
 package haveno.core.account.witness;
 
 import haveno.common.crypto.CryptoException;
+import haveno.common.crypto.Encryption;
 import haveno.common.crypto.Hash;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.Sig;
+import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
+import haveno.common.taskrunner.TaskRunner;
 import haveno.common.util.Utilities;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.sign.SignedWitnessService;
@@ -44,6 +48,12 @@ import haveno.core.support.dispute.arbitration.TraderDataItem;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.SellerAsMakerTrade;
+import haveno.core.trade.Trade;
+import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import haveno.network.p2p.P2PService;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import org.bitcoinj.core.ECKey;
@@ -70,7 +80,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
@@ -87,6 +101,49 @@ public class AccountAgeWitnessServiceTest {
     private File dir1;
     private File dir2;
     private File dir3;
+
+    @Test
+    public void testSignedOfferChecksRevealedAccountInsteadOfClaimedWitness() {
+        AccountAgeWitnessService witnesses = mock(AccountAgeWitnessService.class);
+        Trade trade = mock(SellerAsMakerTrade.class);
+        ProcessModel model = mock(ProcessModel.class);
+        TradePeer peer = new TradePeer();
+        PubKeyRing keys = new PubKeyRing(publicKey, Encryption.generateKeyPair().getPublic());
+        PaymentAccountPayload payload = mock(PaymentAccountPayload.class);
+        peer.setPubKeyRing(keys);
+        peer.setPaymentAccountPayload(payload);
+        peer.setAccountAgeWitnessNonce(new byte[]{1});
+        peer.setAccountAgeWitnessSignature(new byte[]{2});
+        AccountAgeWitness claimed = new AccountAgeWitness(new byte[20], 1);
+        AccountAgeWitness actual = new AccountAgeWitness(new byte[]{3}, 1);
+        peer.setAccountAgeWitness(claimed);
+        when(witnesses.isPeersSignedWitness(claimed, publicKey)).thenReturn(true);
+        when(witnesses.findWitness(payload, keys)).thenReturn(Optional.of(actual));
+        when(witnesses.verifyAccountAgeWitness(any(), any(), any(), any(), any(), any())).thenReturn(true);
+        when(trade.getTradePeer()).thenReturn(peer);
+        when(trade.getProcessModel()).thenReturn(model);
+        when(model.getAccountAgeWitnessService()).thenReturn(witnesses);
+        when(model.getTradeManager()).thenReturn(mock(TradeManager.class));
+        Offer offer = mock(Offer.class);
+        when(offer.getCounterCurrencyCode()).thenReturn("USD");
+        when(offer.requiresSignedTaker()).thenReturn(true);
+        when(trade.getOffer()).thenReturn(offer);
+        for (boolean signed : List.of(false, true)) {
+            when(witnesses.isPeersSignedWitness(actual, publicKey)).thenReturn(signed);
+            ResultHandler result = mock(ResultHandler.class);
+            ErrorMessageHandler error = mock(ErrorMessageHandler.class);
+            TaskRunner<Trade> runner = new TaskRunner<>(trade, Trade.class, result, error);
+            runner.addTasks(VerifyPeersAccountAgeWitness.class);
+            runner.run();
+            if (signed) {
+                verify(result).handleResult();
+                verify(error, never()).handleErrorMessage(anyString());
+            } else {
+                verify(error).handleErrorMessage(contains("payment account is not signed"));
+                verify(result, never()).handleResult();
+            }
+        }
+    }
 
     @BeforeEach
     public void setup() throws IOException {
