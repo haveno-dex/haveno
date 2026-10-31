@@ -804,6 +804,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             case RESERVE_FUNDS_SPENT:
                 new Popup().warning(Res.get("offerbook.warning.reserveFundsSpent")).show();
                 break;
+            case HAS_NO_SIGNED_PAYMENT_ACCOUNT:
+                new Popup().warning(Res.get("offerbook.warning.requireSignedTaker")).show();
+                break;
             case VALID:
                 break;
             default:

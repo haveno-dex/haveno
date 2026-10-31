@@ -54,6 +54,7 @@ import static haveno.core.offer.OfferDirection.BUY;
 import haveno.core.offer.OfferFilterService;
 import haveno.core.offer.OfferFilterService.Result;
 import haveno.core.offer.OfferPayload;
+import haveno.core.offer.OfferRestrictions;
 import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
@@ -143,7 +144,8 @@ public class CoreOffersService {
                 .filter(o -> !o.isMyOffer(keyRing))
                 .filter(o -> {
                     Result result = offerFilter.canTakeOffer(o, coreContext.isApiUser());
-                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
+                    return result.isValid() || result == Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER ||
+                            result == Result.HAS_NO_SIGNED_PAYMENT_ACCOUNT;
                 })
                 .collect(Collectors.toList());
         return offers;
@@ -196,6 +198,7 @@ public class CoreOffersService {
                              String paymentAccountId,
                              boolean isPrivateOffer,
                              boolean buyerAsTakerWithoutDeposit,
+                             boolean requireSignedTaker,
                              String extraInfo,
                              String sourceOfferId,
                              Consumer<Offer> resultHandler,
@@ -246,6 +249,7 @@ public class CoreOffersService {
                 paymentAccount,
                 isPrivateOffer,
                 buyerAsTakerWithoutDeposit,
+                requireSignedTaker,
                 extraInfo);
 
         verifyPaymentAccountIsValidForNewOffer(offer, paymentAccount);
@@ -371,6 +375,7 @@ public class CoreOffersService {
                     paymentAccount,
                     offerPayload.isPrivateOffer(),
                     offer.hasBuyerAsTakerWithoutDeposit(),
+                    offer.requiresSignedTaker() && OfferRestrictions.canRequireSignedTaker(offer.getDirection(), paymentAccount.getPaymentMethod(), upperCaseCurrencyCode),
                     extraInfo).getOfferPayload();
             Offer editedOffer = getEditedOffer(openOffer, newOfferPayload);
 
@@ -447,7 +452,7 @@ public class CoreOffersService {
                 offerPayload.getUpperClosePrice(),
                 offerPayload.isPrivateOffer(),
                 offerPayload.getChallengeHash(),
-                offerPayload.getExtraDataMap(),
+                newOfferPayload.getExtraDataMap(),
                 offerPayload.getProtocolVersion(),
                 offerPayload.getArbitratorSigner(),
                 offerPayload.getArbitratorSignature(),

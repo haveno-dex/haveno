@@ -409,6 +409,8 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
                         offerWarning.set(Res.get("takeOffer.failed.userIgnored"));
                     else if (availabilityResult == AvailabilityResult.MAKER_DENIED_TAKER)
                         offerWarning.set(Res.get("takeOffer.failed.makerDeniedTaker"));
+                    else if (availabilityResult == AvailabilityResult.UNSIGNED_TAKER_ACCOUNT)
+                        offerWarning.set(Res.get("takeOffer.failed.unsignedTakerAccount"));
                     else if (availabilityResult != null && availabilityResult != AvailabilityResult.OFFER_TAKEN)
                         offerWarning.set(Res.get("takeOffer.failed.availabilityResult", availabilityResult.description()));
                     else if (takeOfferRequested)

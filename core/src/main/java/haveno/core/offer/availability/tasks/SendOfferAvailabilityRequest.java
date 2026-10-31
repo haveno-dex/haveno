@@ -60,6 +60,9 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
             // taker signs offer using offer id as nonce to avoid challenge protocol
             byte[] sig = HavenoUtils.sign(model.getP2PService().getKeyRing(), offer.getId());
 
+            // taker identifies its payment account witness if the offer requires a signed account
+            byte[] accountAgeWitnessHash = offer.requiresSignedTaker() ? model.getAccountAgeWitnessService().getMyWitnessHash(user.getPaymentAccount(takerPaymentAccountId).getPaymentAccountPayload()) : null;
+
             // get price
             Price price = offer.getPrice();
             if (price == null) throw new RuntimeException(Offer.PRICE_NOT_AVAILABLE_MSG);
@@ -79,6 +82,7 @@ public class SendOfferAvailabilityRequest extends Task<OfferAvailabilityModel> {
                     UUID.randomUUID().toString(),
                     Version.getP2PMessageVersion(),
                     sig,
+                    accountAgeWitnessHash,
                     new Date().getTime(),
                     offer.getMakerNodeAddress(),
                     P2PService.getMyNodeAddress(),

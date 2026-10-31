@@ -304,6 +304,15 @@ public class AccountAgeWitnessService {
                 Optional.empty();
     }
 
+    // Whether the witness is signed with the peer's signature key as its owner
+    public boolean isPeersSignedWitness(AccountAgeWitness witness, PublicKey peersSignaturePubKey) {
+        return signedWitnessService.isSignedAccountAgeWitness(witness, Sig.getPublicKeyBytes(peersSignaturePubKey));
+    }
+
+    public boolean isPeersSignedWitness(byte[] witnessHash, PublicKey peersSignaturePubKey) {
+        return getWitnessByHash(witnessHash).map(witness -> isPeersSignedWitness(witness, peersSignaturePubKey)).orElse(false);
+    }
+
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
         if (trade instanceof ArbitratorTrade) return Optional.empty();  // TODO (woodser): arbitrator trade has two peers
         TradePeer tradePeer = trade.getTradePeer();
@@ -484,7 +493,7 @@ public class AccountAgeWitnessService {
         return accountAgeWitnessOptional.orElseGet(() -> getNewWitness(paymentAccountPayload, keyRing.getPubKeyRing()));
     }
 
-    private byte[] getMyWitnessHash(PaymentAccountPayload paymentAccountPayload) {
+    public byte[] getMyWitnessHash(PaymentAccountPayload paymentAccountPayload) {
         return getMyWitness(paymentAccountPayload).getHash();
     }
 
@@ -859,6 +868,10 @@ public class AccountAgeWitnessService {
                         sellerPubKeyRing.getSignaturePubKey()))
                 .orElse(null);
         return Stream.of(buyerData, sellerData);
+    }
+
+    public boolean isMyAccountSigned(PaymentAccount paymentAccount) {
+        return isPeersSignedWitness(getMyWitness(paymentAccount.getPaymentAccountPayload()), keyRing.getPubKeyRing().getSignaturePubKey());
     }
 
     public boolean hasSignedWitness(Offer offer) {

@@ -101,7 +101,7 @@ public class OfferTest {
         when(wallet.getOrCreateAddressEntry("offer", XmrAddressEntry.Context.TRADE_PAYOUT))
                 .thenReturn(new XmrAddressEntry(1, "payout-address", XmrAddressEntry.Context.TRADE_PAYOUT, "offer", null));
         OfferAvailabilityModel model = new OfferAvailabilityModel(offer, null, wallet, p2p,
-                null, null, null, false, null, null, null);
+                null, null, null, null, false, null, null, null);
         OfferAvailabilityResponse response = new OfferAvailabilityResponse("offer", AvailabilityResult.OFFER_TAKEN, null);
         doAnswer(invocation -> {
             DecryptedDirectMessageListener listener = invocation.getArgument(0);
@@ -343,7 +343,7 @@ public class OfferTest {
             when(account.getPaymentAccountPayload()).thenReturn(payment);
             when(user.getPaymentAccount("taker")).thenReturn(account);
             model = new OfferAvailabilityModel(offer, keys.getPubKeyRing(), wallet, p2p, user,
-                    null, null, false, "taker", BigInteger.ONE, null);
+                    null, null, null, false, "taker", BigInteger.ONE, null);
             protocol = new OfferAvailabilityProtocol(model, success, failure);
         }
 

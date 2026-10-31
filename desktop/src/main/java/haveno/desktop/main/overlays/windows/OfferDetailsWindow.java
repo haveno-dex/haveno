@@ -200,6 +200,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         boolean showAcceptedCountryCodes = acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty();
         boolean isF2F = offer.getPaymentMethod().equals(PaymentMethod.F2F);
         boolean showOfferExtraInfo = offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty();
+        boolean requiresSignedTaker = offer.requiresSignedTaker();
         if (!takeOfferHandlerOptional.isPresent())
             rows++;
         if (showAcceptedBanks)
@@ -209,6 +210,8 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (showOfferExtraInfo)
             rows++;
         if (isF2F)
+            rows++;
+        if (requiresSignedTaker)
             rows++;
 
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("shared.Offer"));
@@ -333,6 +336,11 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (isF2F) {
             addSeparator(gridPane, ++rowIndex);
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("payment.f2f.city"), offer.getF2FCity());
+        }
+        if (requiresSignedTaker) {
+            addSeparator(gridPane, ++rowIndex);
+            addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.takerRequirement"),
+                    Res.get("offerDetailsWindow.takerRequirement.signedAccount"));
         }
         if (showOfferExtraInfo) {
             addSeparator(gridPane, ++rowIndex);

@@ -165,6 +165,7 @@ class GrpcOffersService extends OffersImplBase {
                     req.getPaymentAccountId(),
                     req.getIsPrivateOffer(),
                     req.getBuyerAsTakerWithoutDeposit(),
+                    req.getRequireSignedTaker(),
                     req.getExtraInfo(),
                     req.getSourceOfferId(),
                     offer -> {

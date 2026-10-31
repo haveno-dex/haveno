@@ -77,6 +77,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradableList;
 import haveno.core.trade.handlers.TransactionResultHandler;
+import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.core.user.Preferences;
@@ -422,7 +423,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         } if (networkEnvelope instanceof SignOfferResponse) {
             handleSignOfferResponse((SignOfferResponse) networkEnvelope, peerNodeAddress);
         } else if (networkEnvelope instanceof OfferAvailabilityRequest) {
-            handleOfferAvailabilityRequest((OfferAvailabilityRequest) networkEnvelope, peerNodeAddress);
+            handleOfferAvailabilityRequest((OfferAvailabilityRequest) networkEnvelope, peerNodeAddress, decryptedMessageWithPubKey.getSignaturePubKey());
         } else if (networkEnvelope instanceof AckMessage) {
             AckMessage ackMessage = (AckMessage) networkEnvelope;
             if (ackMessage.getSourceType() == AckMessageSourceType.OFFER_MESSAGE) {
@@ -2221,7 +2222,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
     // OfferPayload Availability
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void handleOfferAvailabilityRequest(OfferAvailabilityRequest request, NodeAddress peer) {
+    private void handleOfferAvailabilityRequest(OfferAvailabilityRequest request, NodeAddress peer, PublicKey takerSignaturePubKey) {
         log.info("Received OfferAvailabilityRequest from {} with offerId {} and uid {}",
                 peer, request.getOfferId(), request.getUid());
 
@@ -2274,8 +2275,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             byte[] makerSignature = null;
             if (openOfferOptional.isPresent()) {
                 OpenOffer openOffer = openOfferOptional.get();
+                AvailabilityResult takerDenial = getTakerDenial(request, openOffer.getOffer(), takerSignaturePubKey);
                 if (!apiUserDeniedByOffer(request)) {
-                    if (!takerDeniedByMaker(request)) {
+                    if (takerDenial == null) {
                         if (openOffer.getState() == OpenOffer.State.AVAILABLE) {
                             Offer offer = openOffer.getOffer();
                             if (preferences.getIgnoreTradersList().stream().noneMatch(fullAddress -> fullAddress.equals(peer.getFullAddress()))) {
@@ -2311,7 +2313,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                             availabilityResult = AvailabilityResult.OFFER_TAKEN;
                         }
                     } else {
-                        availabilityResult = AvailabilityResult.MAKER_DENIED_TAKER;
+                        availabilityResult = takerDenial;
                     }
                 } else {
                     availabilityResult = AvailabilityResult.MAKER_DENIED_API_USER;
@@ -2363,9 +2365,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         return preferences.isDenyApiTaker() && request.isTakerApiUser();
     }
 
-    private boolean takerDeniedByMaker(OfferAvailabilityRequest request) {
-        if (request.getTradeRequest() == null) return true;
-        return false; // TODO (woodser): implement taker verification here, doing work of ApplyFilter and VerifyPeersAccountAgeWitness
+    // returns the result to deny the taker with, or null if the taker is accepted
+    private AvailabilityResult getTakerDenial(OfferAvailabilityRequest request, Offer offer, PublicKey takerSignaturePubKey) {
+        InitTradeRequest tradeRequest = request.getTradeRequest();
+        if (tradeRequest == null) return AvailabilityResult.MAKER_DENIED_TAKER;
+        if (offer.requiresSignedTaker() && (tradeRequest.getAccountAgeWitnessHash() == null ||
+                !accountAgeWitnessService.isPeersSignedWitness(tradeRequest.getAccountAgeWitnessHash(), takerSignaturePubKey))) {
+            return AvailabilityResult.UNSIGNED_TAKER_ACCOUNT;
+        }
+        return null; // TODO (woodser): verify taker like ApplyFilter and VerifyPeersAccountAgeWitness
     }
 
     private void sendAckMessage(Class<?> reqClass,
