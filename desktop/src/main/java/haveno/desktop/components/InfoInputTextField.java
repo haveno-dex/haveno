@@ -49,11 +49,14 @@ public class InfoInputTextField extends AnchorPane {
         super();
 
         inputTextField = new InputTextField(inputLineExtension);
-        AnchorPane.setRightAnchor(inputTextField, 0.0);
+        AnchorPane.setTopAnchor(inputTextField, 0.0);
+        AnchorPane.setBottomAnchor(inputTextField, 0.0);
         AnchorPane.setLeftAnchor(inputTextField, 0.0);
+        AnchorPane.setRightAnchor(inputTextField, 0.0);
 
         icon = new Label();
-        icon.setLayoutY(3);
+        AnchorPane.setTopAnchor(icon, 0.0);
+        AnchorPane.setBottomAnchor(icon, 0.0);
         AnchorPane.setLeftAnchor(icon, 7.0);
         icon.setOnMouseEntered(e -> {
             if (node != null) {
@@ -108,12 +111,8 @@ public class InfoInputTextField extends AnchorPane {
     }
 
     public void setIconsRightAligned() {
-        AnchorPane.clearConstraints(icon);
-        AnchorPane.clearConstraints(inputTextField);
-
+        AnchorPane.setLeftAnchor(icon, null);
         AnchorPane.setRightAnchor(icon, 7.0);
-        AnchorPane.setLeftAnchor(inputTextField, 0.0);
-        AnchorPane.setRightAnchor(inputTextField, 0.0);
     }
 
 
