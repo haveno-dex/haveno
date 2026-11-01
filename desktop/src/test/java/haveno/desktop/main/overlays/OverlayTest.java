@@ -62,6 +62,7 @@ import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.support.messages.ChatMessage;
 import haveno.core.support.traderchat.TraderChatManager;
 import haveno.core.trade.Contract;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.BuyerTrade;
@@ -132,6 +133,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.collections.FXCollections;
@@ -3243,6 +3245,7 @@ public class OverlayTest {
             MediationManager mediationManager = mock(MediationManager.class);
             RefundManager refundManager = mock(RefundManager.class);
             when(preferences.getUseAnimationsProperty()).thenReturn(new SimpleBooleanProperty());
+            when(preferences.getRepeatNotificationSoundSecondsProperty()).thenReturn(new SimpleIntegerProperty());
             when(preferences.getDontShowAgainMapAsObservable()).thenReturn(seenUpdates);
             when(preferences.showAgain(anyString())).thenAnswer(invocation -> !Boolean.TRUE.equals(seenUpdates.get(invocation.getArgument(0))));
             doAnswer(invocation -> {
@@ -3263,6 +3266,91 @@ public class OverlayTest {
             if (backgroundTasks != null) backgroundTasks.close();
             if (mainView != null) mainView.close();
             UserThread.setExecutor(originalExecutor);
+        }
+
+        @Test
+        void repeatSoundTimerFollowsPreferenceChanges() {
+            try (MockedStatic<UserThread> scheduler = mockStatic(UserThread.class)) {
+                scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenCallRealMethod();
+                notificationCenter.onAllServicesAndViewsInitialized();
+                scheduler.verify(() -> UserThread.runPeriodically(any(Runnable.class), anyLong()), never());
+                Timer previous = null;
+                for (int seconds : List.of(900, 3600, 10800, 43200)) {
+                    Timer timer = mock(Timer.class);
+                    scheduler.when(() -> UserThread.runPeriodically(any(Runnable.class), eq((long) seconds))).thenReturn(timer);
+                    preferences.getRepeatNotificationSoundSecondsProperty().set(seconds);
+                    scheduler.verify(() -> UserThread.runPeriodically(any(Runnable.class), eq((long) seconds)));
+                    if (previous != null) verify(previous).stop();
+                    verify(timer, never()).stop();
+                    previous = timer;
+                }
+                preferences.getRepeatNotificationSoundSecondsProperty().set(0);
+                verify(previous).stop();
+                scheduler.verify(() -> UserThread.runPeriodically(any(Runnable.class), anyLong()), times(4));
+            }
+        }
+
+        @Test
+        void repeatSoundRequiresUnseenActivityInAnOpenTraderTrade() {
+            preferences.getRepeatNotificationSoundSecondsProperty().set(900);
+            when(preferences.getRepeatNotificationSoundSeconds()).thenAnswer(invocation ->
+                    preferences.getRepeatNotificationSoundSecondsProperty().get());
+            Trade maker = addTrade(true);
+            Trade taker = addTrade(false);
+            Trade arbitrator = addTrade(true);
+            when(arbitrator.isArbitrator()).thenReturn(true);
+            arbitrator.getChatMessages().add(message(arbitrator, true));
+            setPhase(maker, Trade.Phase.DEPOSITS_PUBLISHED);
+            try (MockedStatic<UserThread> scheduler = mockStatic(UserThread.class);
+                 MockedStatic<HavenoUtils> sounds = mockStatic(HavenoUtils.class)) {
+                scheduler.when(() -> UserThread.execute(any(Runnable.class))).thenCallRealMethod();
+                scheduler.when(() -> UserThread.runPeriodically(any(Runnable.class), eq(900L))).thenReturn(mock(Timer.class));
+                notificationCenter.onAllServicesAndViewsInitialized();
+                ArgumentCaptor<Runnable> callback = ArgumentCaptor.forClass(Runnable.class);
+                scheduler.verify(() -> UserThread.runPeriodically(callback.capture(), eq(900L)));
+                Runnable tick = callback.getValue();
+                sounds.verifyNoInteractions();
+                tick.run();
+                tick.run();
+                sounds.verify(HavenoUtils::playChimeSound, times(2));
+                sounds.clearInvocations();
+
+                viewTrade(maker);
+                tick.run();
+                sounds.verifyNoInteractions();
+                for (Trade trade : List.of(maker, taker)) {
+                    ChatMessage system = message(trade, true);
+                    system.setSystemMessage(true);
+                    trade.getChatMessages().addAll(message(trade, false), system);
+                    tick.run();
+                    sounds.verifyNoInteractions();
+                    trade.getChatMessages().add(message(trade, true));
+                    tick.run();
+                    sounds.verify(HavenoUtils::playChimeSound);
+                    sounds.clearInvocations();
+                    notificationCenter.onChatFocusChanged(trade.getChatMessages(), true, tradeManager::requestPersistence);
+                    tick.run();
+                    notificationCenter.onChatFocusChanged(trade.getChatMessages(), false, tradeManager::requestPersistence);
+                    tick.run();
+                    sounds.verifyNoInteractions();
+                }
+
+                maker.getChatMessages().add(message(maker, true));
+                when(maker.isPayoutPublished()).thenReturn(true);
+                tick.run();
+                sounds.verifyNoInteractions();
+                taker.getChatMessages().add(message(taker, true));
+                trades.remove(taker);
+                tick.run();
+                sounds.verifyNoInteractions();
+                when(maker.isPayoutPublished()).thenReturn(false);
+                tick.run();
+                sounds.verify(HavenoUtils::playChimeSound);
+                sounds.clearInvocations();
+                preferences.getRepeatNotificationSoundSecondsProperty().set(0);
+                tick.run();
+                sounds.verifyNoInteractions();
+            }
         }
 
         @Test

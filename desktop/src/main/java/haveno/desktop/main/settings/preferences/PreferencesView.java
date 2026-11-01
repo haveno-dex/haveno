@@ -113,6 +113,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private TextField xmrExplorerTextField;
     private ComboBox<String> userLanguageComboBox;
     private ComboBox<Country> userCountryComboBox;
+    private ComboBox<Integer> repeatNotificationSoundComboBox;
     private AutocompleteComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
 
     private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, useSoftwareRendering, sortMarketCurrenciesNumerically,
@@ -252,7 +253,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setValignment(optionsGridPane, VPos.TOP);
         root.add(optionsGridPane, 0, 0);
 
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 9 : 8;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 10 : 9;
         TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
@@ -314,9 +315,6 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     Res.get("setting.preferences.avoidStandbyMode"), 8);
         }
 
-        useSoundForNotifications = addSlideToggleButton(optionsGridPane, ++gridRow,
-                Res.get("setting.preferences.useSoundForNotifications"));
-
         useNativeXmrWallet = new AutoTooltipSlideToggleButton();
         useNativeXmrWallet.setText(Res.get("setting.preferences.useNativeXmrWallet"));
         InfoAutoTooltipLabel useNativeXmrWalletInfo = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT,
@@ -325,6 +323,28 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useNativeXmrWalletBox.setAlignment(Pos.CENTER_LEFT);
         GridPane.setRowIndex(useNativeXmrWalletBox, ++gridRow);
         optionsGridPane.getChildren().add(useNativeXmrWalletBox);
+
+        useSoundForNotifications = addSlideToggleButton(optionsGridPane, ++gridRow,
+                Res.get("setting.preferences.useSoundForNotifications"));
+
+        repeatNotificationSoundComboBox = addComboBox(optionsGridPane, ++gridRow,
+                Res.get("setting.preferences.repeatNotificationSound"));
+        repeatNotificationSoundComboBox.setItems(FXCollections.observableArrayList(0, 900, 3600, 10800, 43200));
+        repeatNotificationSoundComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Integer seconds) {
+                if (seconds == null || seconds == 0) return Res.get("setting.preferences.repeatNotificationSound.off");
+                if (seconds < 3600) return Res.get("setting.preferences.repeatNotificationSound.everyMinutes", seconds / 60);
+                if (seconds == 3600) return Res.get("setting.preferences.repeatNotificationSound.everyHour");
+                return Res.get("setting.preferences.repeatNotificationSound.everyHours", seconds / 3600);
+            }
+
+            @Override
+            public Integer fromString(String string) {
+                return null;
+            }
+        });
+        repeatNotificationSoundComboBox.disableProperty().bind(useSoundForNotifications.selectedProperty().not());
     }
 
     private void resetPriceDeviation() {
@@ -924,6 +944,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useSoundForNotifications.setSelected(preferences.isUseSoundForNotifications());
         useSoundForNotifications.setOnAction(e -> preferences.setUseSoundForNotifications(useSoundForNotifications.isSelected()));
 
+        repeatNotificationSoundComboBox.setValue(preferences.getRepeatNotificationSoundSeconds());
+        repeatNotificationSoundComboBox.setOnAction(e -> preferences.setRepeatNotificationSoundSeconds(repeatNotificationSoundComboBox.getValue()));
+
         useNativeXmrWallet.setSelected(preferences.isUseNativeXmrWallet());
         useNativeXmrWallet.setOnAction(e -> {
             boolean selected = useNativeXmrWallet.isSelected();
@@ -994,6 +1017,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             avoidStandbyMode.setOnAction(null);
         }
         useSoundForNotifications.setOnAction(null);
+        repeatNotificationSoundComboBox.setOnAction(null);
         useNativeXmrWallet.setOnAction(null);
     }
 
