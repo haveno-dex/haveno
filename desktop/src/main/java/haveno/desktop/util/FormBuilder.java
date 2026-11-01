@@ -44,6 +44,7 @@ import haveno.desktop.components.FundsTextField;
 import haveno.desktop.components.HavenoTextArea;
 import haveno.desktop.components.HavenoTextField;
 import haveno.desktop.components.HyperlinkWithIcon;
+import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.InfoInputTextField;
 import haveno.desktop.components.InfoTextField;
 import haveno.desktop.components.InputTextField;
@@ -1286,6 +1287,24 @@ public class FormBuilder {
         GridPane.setColumnIndex(toggleButton, 0);
         GridPane.setMargin(toggleButton, new Insets(top, 0, 0, 0));
         gridPane.getChildren().add(toggleButton);
+
+        return toggleButton;
+    }
+
+    // slide toggle followed by an info icon which shows the given text in a popover on hover
+    public static ToggleButton addSlideToggleButtonWithInfo(GridPane gridPane, int rowIndex, String title, String info) {
+        ToggleButton toggleButton = new AutoTooltipSlideToggleButton();
+        toggleButton.setText(title);
+        InfoAutoTooltipLabel infoIcon = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT, info, 420);
+        HBox hBox = new HBox(6, toggleButton, infoIcon);
+        hBox.setAlignment(Pos.CENTER_LEFT);
+        // the box follows the toggle so callers can show and hide the returned button directly
+        hBox.visibleProperty().bind(toggleButton.visibleProperty());
+        hBox.managedProperty().bind(toggleButton.managedProperty());
+        GridPane.setRowIndex(hBox, rowIndex);
+        GridPane.setColumnIndex(hBox, 0);
+        GridPane.setHalignment(hBox, HPos.LEFT);
+        gridPane.getChildren().add(hBox);
 
         return toggleButton;
     }

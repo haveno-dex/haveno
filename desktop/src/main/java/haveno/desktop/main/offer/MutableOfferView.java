@@ -1217,82 +1217,25 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         securityDepositAndFeeBox.getChildren().addAll(getSecurityDepositBox(), tradeFeeFieldsBox);
 
         // toggle to passphrase-protect any offer
-        isPrivateOfferSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.isPrivateOffer"));
+        isPrivateOfferSlider = FormBuilder.addSlideToggleButtonWithInfo(gridPane, ++gridRow,
+                Res.get("createOffer.isPrivateOffer"), Res.get("createOffer.isPrivateOffer.info"));
         isPrivateOfferSlider.setOnAction(event -> {
-
-            // popup info box
-            String key = "popup.info.isPrivateOffer";
-            if (isPrivateOfferSlider.isSelected() && DontShowAgainLookup.showAgain(key)) {
-                new Popup().headLine(Res.get(key + ".headline"))
-                        .information(Res.get(key))
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .actionButtonText(Res.get("shared.ok"))
-                        .onAction(() -> {
-                            model.dataModel.setPrivateOffer(true);
-                            updatePrivateOfferControls();
-                        })
-                        .onClose(() -> {
-                            isPrivateOfferSlider.setSelected(false);
-                            model.dataModel.setPrivateOffer(false);
-                            updatePrivateOfferControls();
-                        })
-                        .dontShowAgainId(key)
-                        .show();
-            } else {
-                model.dataModel.setPrivateOffer(isPrivateOfferSlider.isSelected());
-                updatePrivateOfferControls();
-            }
+            model.dataModel.setPrivateOffer(isPrivateOfferSlider.isSelected());
+            updatePrivateOfferControls();
         });
-        GridPane.setHalignment(isPrivateOfferSlider, HPos.LEFT);
 
         // toggle to waive the buyer deposit (no-deposit offer); only for sell offers.
         // enabling it also enables the private toggle, since a no-deposit offer requires a passphrase.
-        buyerAsTakerWithoutDepositSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.buyerAsTakerWithoutDeposit"));
-        buyerAsTakerWithoutDepositSlider.setOnAction(event -> {
-
-            // popup info box
-            String key = "popup.info.buyerAsTakerWithoutDeposit";
-            if (buyerAsTakerWithoutDepositSlider.isSelected() && DontShowAgainLookup.showAgain(key)) {
-                new Popup().headLine(Res.get(key + ".headline"))
-                        .information(Res.get(key))
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .actionButtonText(Res.get("shared.ok"))
-                        .onAction(() -> applyBuyerAsTakerWithoutDeposit(true))
-                        .onClose(() -> {
-                            buyerAsTakerWithoutDepositSlider.setSelected(false);
-                            applyBuyerAsTakerWithoutDeposit(false);
-                        })
-                        .dontShowAgainId(key)
-                        .show();
-            } else {
-                applyBuyerAsTakerWithoutDeposit(buyerAsTakerWithoutDepositSlider.isSelected());
-            }
-        });
-        GridPane.setHalignment(buyerAsTakerWithoutDepositSlider, HPos.LEFT);
+        buyerAsTakerWithoutDepositSlider = FormBuilder.addSlideToggleButtonWithInfo(gridPane, ++gridRow,
+                Res.get("createOffer.buyerAsTakerWithoutDeposit"), Res.get("createOffer.buyerAsTakerWithoutDeposit.info"));
+        buyerAsTakerWithoutDepositSlider.setOnAction(event ->
+                applyBuyerAsTakerWithoutDeposit(buyerAsTakerWithoutDepositSlider.isSelected()));
 
         // toggle to only allow takers with a signed payment account; only for sell offers with chargeback risk
-        requireSignedTakerSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("createOffer.requireSignedTaker"));
-        requireSignedTakerSlider.setOnAction(event -> {
-
-            // popup info box
-            String key = "popup.info.requireSignedTaker";
-            if (requireSignedTakerSlider.isSelected() && DontShowAgainLookup.showAgain(key)) {
-                new Popup().headLine(Res.get(key + ".headline"))
-                        .information(Res.get(key))
-                        .closeButtonText(Res.get("shared.cancel"))
-                        .actionButtonText(Res.get("shared.ok"))
-                        .onAction(() -> model.dataModel.setRequireSignedTaker(true))
-                        .onClose(() -> {
-                            requireSignedTakerSlider.setSelected(false);
-                            model.dataModel.setRequireSignedTaker(false);
-                        })
-                        .dontShowAgainId(key)
-                        .show();
-            } else {
-                model.dataModel.setRequireSignedTaker(requireSignedTakerSlider.isSelected());
-            }
-        });
-        GridPane.setHalignment(requireSignedTakerSlider, HPos.LEFT);
+        requireSignedTakerSlider = FormBuilder.addSlideToggleButtonWithInfo(gridPane, ++gridRow,
+                Res.get("createOffer.requireSignedTaker"), Res.get("createOffer.requireSignedTaker.info"));
+        requireSignedTakerSlider.setOnAction(event ->
+                model.dataModel.setRequireSignedTaker(requireSignedTakerSlider.isSelected()));
     }
 
     private void addExtraInfoGroup() {
