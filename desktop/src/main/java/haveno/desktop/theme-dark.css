@@ -436,6 +436,12 @@
     -fx-border-width: 0;
 }
 
+/* match the muted table selection */
+.list-view.preferences-currency-list {
+    -fx-selection-bar: #26374a;
+    -fx-selection-bar-non-focused: -fx-selection-bar;
+}
+
 .list-view, .list-view:focused {
     -fx-border-color: -bs-content-background-gray;
     -fx-border-width: 1;
