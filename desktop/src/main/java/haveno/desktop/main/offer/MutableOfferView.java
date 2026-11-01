@@ -1209,7 +1209,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         GridPane.setColumnIndex(securityDepositAndFeeBox, 0);
         GridPane.setHalignment(securityDepositAndFeeBox, HPos.LEFT);
         // bottom margin leaves room for the deposit field's error label
-        GridPane.setMargin(securityDepositAndFeeBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 16, 0));
+        GridPane.setMargin(securityDepositAndFeeBox, new Insets(Layout.SEPARATED_FIRST_ROW_AND_GROUP_DISTANCE, 0, 8, 0));
         gridPane.getChildren().add(securityDepositAndFeeBox);
 
         VBox tradeFeeFieldsBox = getTradeFeeFieldsBox();
