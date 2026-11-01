@@ -709,6 +709,15 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         placeOfferBox.managedProperty().bind(model.getDataModel().getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
         placeOfferButton.disableProperty().bind(model.isPlaceOfferButtonDisabled);
         cancelButton2.disableProperty().bind(model.cancelButtonDisabled);
+        // shown once the wallet can cover the offer, naming the available balance that switching off may lock, rounded up to 0.01 XMR
+        reserveExactAmountSlider.textProperty().bind(createStringBinding(() -> {
+            BigInteger balance = model.getDataModel().getWalletAvailableBalance().get();
+            BigInteger step = BigInteger.TEN.pow(10);
+            if (balance != null) balance = balance.add(step).subtract(BigInteger.ONE).divide(step).multiply(step);
+            return Res.get("shared.reserveExactAmount", HavenoUtils.formatXmr(balance, true));
+        }, model.getDataModel().getWalletAvailableBalance()));
+        reserveExactAmountSlider.visibleProperty().bind(model.getDataModel().getIsWalletAvailableBalanceSufficient().and(model.showPayFundsScreenDisplayed));
+        reserveExactAmountSlider.managedProperty().bind(reserveExactAmountSlider.visibleProperty());
 
         // trading account
         paymentAccountsComboBox.managedProperty().bind(paymentAccountsComboBox.visibleProperty());
@@ -765,6 +774,9 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         placeOfferBox.managedProperty().unbind();
         placeOfferButton.disableProperty().unbind();
         cancelButton2.disableProperty().unbind();
+        reserveExactAmountSlider.textProperty().unbind();
+        reserveExactAmountSlider.visibleProperty().unbind();
+        reserveExactAmountSlider.managedProperty().unbind();
 
         // trading account
         paymentTitledGroupBg.managedProperty().unbind();
@@ -1411,8 +1423,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         balanceTextField.setManaged(false);
         cancelButton2.setVisible(false);
         cancelButton2.setManaged(false);
-        reserveExactAmountSlider.setVisible(false);
-        reserveExactAmountSlider.setManaged(false);
     }
 
     protected void showFundingGroup() {
@@ -1428,8 +1438,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         balanceTextField.setManaged(true);
         cancelButton2.setVisible(true);
         cancelButton2.setManaged(true);
-        reserveExactAmountSlider.setVisible(true);
-        reserveExactAmountSlider.setManaged(true);
     }
 
     private VBox getSecurityDepositBox() {
@@ -1507,9 +1515,10 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             GridPane.setMargin(field, new Insets(margin.getTop(), 170, margin.getBottom(), margin.getLeft()));
         }
 
-        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("shared.reserveExactAmount"));
+        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, "");
         GridPane.setHalignment(reserveExactAmountSlider, HPos.LEFT);
         reserveExactAmountSlider.setVisible(false);
+        reserveExactAmountSlider.setManaged(false);
         reserveExactAmountSlider.setSelected(preferences.getSplitOfferOutput());
         reserveExactAmountSlider.setOnAction(event -> {
             boolean selected = reserveExactAmountSlider.isSelected();
