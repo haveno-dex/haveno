@@ -162,6 +162,40 @@ public class PreferencesTest {
     }
 
     @Test
+    public void testRepeatNotificationSoundDefaultsAndSurvivesReload() throws IOException {
+        // new payloads default to hourly, payloads persisted before the field stay off
+        assertEquals(3600, preferences.getRepeatNotificationSoundSeconds());
+        PreferencesPayload payload = PreferencesPayload.fromProto(protobuf.PreferencesPayload.newBuilder()
+                .setUserLanguage("en")
+                .setUserCountry((protobuf.Country) CountryUtil.getDefaultCountry().toProtoMessage())
+                .setPreferredTradeCurrency((protobuf.TradeCurrency) new TraditionalCurrency("USD").toProtoMessage())
+                .setBlockChainExplorerMainNet((protobuf.BlockChainExplorer) new BlockChainExplorer("main", "https://example.com/").toProtoMessage())
+                .setBlockChainExplorerTestNet((protobuf.BlockChainExplorer) new BlockChainExplorer("test", "https://example.com/").toProtoMessage())
+                .build(), null);
+        assertEquals(0, payload.getRepeatNotificationSoundSeconds());
+        for (int seconds : List.of(900, 3600, 10800, 43200, 0)) {
+            PersistenceManager<PreferencesPayload> manager = mock(PersistenceManager.class);
+            Preferences reloaded = new Preferences(manager, config, null, xmrNodes);
+            PreferencesPayload saved = payload;
+            doAnswer(invocation -> {
+                Consumer<PreferencesPayload> resultHandler = invocation.getArgument(1);
+                resultHandler.accept(saved);
+                return null;
+            }).when(manager).readPersisted(eq("PreferencesPayload"), any(), any());
+            reloaded.readPersisted(() -> {});
+            assertEquals(payload.getRepeatNotificationSoundSeconds(), reloaded.getRepeatNotificationSoundSecondsProperty().get());
+            reloaded.setRepeatNotificationSoundSeconds(seconds);
+            assertEquals(seconds, reloaded.getRepeatNotificationSoundSeconds());
+            assertEquals(seconds, reloaded.getRepeatNotificationSoundSecondsProperty().get());
+            assertEquals(seconds, payload.getRepeatNotificationSoundSeconds());
+            protobuf.PersistableEnvelope persisted = (protobuf.PersistableEnvelope) payload.toProtoMessage();
+            payload = PreferencesPayload.fromProto(
+                    protobuf.PersistableEnvelope.parseFrom(persisted.toByteArray()).getPreferencesPayload(), null);
+            assertEquals(seconds, payload.getRepeatNotificationSoundSeconds());
+        }
+    }
+
+    @Test
     public void testSavedNetworkSettingsBecomeEffectiveAfterReload() throws IOException {
         PreferencesPayload payload = PreferencesPayload.fromProto(protobuf.PreferencesPayload.newBuilder()
                 .setBlockChainExplorerMainNet((protobuf.BlockChainExplorer) new BlockChainExplorer("main", "https://example.com/").toProtoMessage())

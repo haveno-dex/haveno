@@ -157,6 +157,7 @@ public final class PreferencesPayload implements PersistableEnvelope {
     private boolean depositAddressesExpanded;
     private boolean useNativeXmrWallet;
     private int tacAcceptedVersion;
+    private int repeatNotificationSoundSeconds = 3600;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -234,7 +235,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 .setNotifyOnPreRelease(notifyOnPreRelease)
                 .setDepositAddressesExpanded(depositAddressesExpanded)
                 .setUseNativeXmrWallet(useNativeXmrWallet)
-                .setTacAcceptedVersion(tacAcceptedVersion);
+                .setTacAcceptedVersion(tacAcceptedVersion)
+                .setRepeatNotificationSoundSeconds(repeatNotificationSoundSeconds);
 
         Optional.ofNullable(backupDirectory).ifPresent(builder::setBackupDirectory);
         Optional.ofNullable(preferredTradeCurrency).ifPresent(e -> builder.setPreferredTradeCurrency((protobuf.TradeCurrency) e.toProtoMessage()));
@@ -362,7 +364,8 @@ public final class PreferencesPayload implements PersistableEnvelope {
                 XmrNodeSettings.fromProto(proto.getXmrNodeSettings()),
                 proto.getDepositAddressesExpanded(),
                 proto.getUseNativeXmrWallet(),
-                proto.getTacAcceptedVersion()
+                proto.getTacAcceptedVersion(),
+                proto.getRepeatNotificationSoundSeconds()
         );
     }
 }
