@@ -88,6 +88,13 @@ class DuplicateOfferViewModel extends MutableOfferViewModel<DuplicateOfferDataMo
         onTriggerPriceTextFieldChanged();
 
         triggerFocusOutOnAmountFields();
-        onFocusOutPriceAsPercentageTextField(true, false);
+        // the margin focus out derives the price from the market price, which would replace a fixed price
+        if (offer.isUseMarketBasedPrice()) onFocusOutPriceAsPercentageTextField(true, false);
+    }
+
+    public void onInvalidatePrice() {
+        if (dataModel.getPrice().get() == null) return;
+        price.set(FormattingUtils.formatPrice(null));
+        price.set(FormattingUtils.formatPrice(dataModel.getPrice().get()));
     }
 }

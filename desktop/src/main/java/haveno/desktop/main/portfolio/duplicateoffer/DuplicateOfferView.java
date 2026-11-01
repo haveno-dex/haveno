@@ -58,6 +58,9 @@ public class DuplicateOfferView extends MutableOfferView<DuplicateOfferViewModel
 
         updatePriceToggle();
 
+        // replay the price so a fixed price derives its market price margin for the toggle and deviation check
+        model.onInvalidatePrice();
+
         // To force re-validation of payment account validation
         onPaymentAccountsComboBoxSelected();
     }
