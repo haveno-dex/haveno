@@ -140,7 +140,7 @@ public class OfferFilterService {
         if (!isAnyPaymentAccountValidForOffer(offer)) {
             return Result.HAS_NO_PAYMENT_ACCOUNT_VALID_FOR_OFFER;
         }
-        if (hasNoSignedPaymentAccount(offer)) {
+        if (!isSignedTakerRequirementMet(offer)) {
             return Result.HAS_NO_SIGNED_PAYMENT_ACCOUNT;
         }
 
@@ -153,9 +153,9 @@ public class OfferFilterService {
     }
 
     // signed taker offers can only be taken with a signed payment account that also meets the offer's limits
-    public boolean hasNoSignedPaymentAccount(Offer offer) {
-        return offer.requiresSignedTaker() &&
-                PaymentAccountUtil.getPossiblePaymentAccounts(offer, user.getPaymentAccounts(), accountAgeWitnessService).isEmpty();
+    public boolean isSignedTakerRequirementMet(Offer offer) {
+        return !offer.requiresSignedTaker() ||
+                !PaymentAccountUtil.getPossiblePaymentAccounts(offer, user.getPaymentAccounts(), accountAgeWitnessService).isEmpty();
     }
 
     public boolean hasSameProtocolVersion(Offer offer) {
