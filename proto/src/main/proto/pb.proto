@@ -1965,6 +1965,7 @@ message PreferencesPayload {
     bool deposit_addresses_expanded = 78;
     int32 tac_accepted_version = 79;
     bool use_native_xmr_wallet = 80;
+    int32 repeat_notification_sound_seconds = 81;
 }
 
 message AutoConfirmSettings {

@@ -22,6 +22,7 @@ import com.google.inject.Singleton;
 
 import haveno.common.app.DevEnv;
 import haveno.common.ThreadUtils;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.core.api.NotificationListener;
@@ -34,6 +35,7 @@ import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.support.dispute.mediation.MediationManager;
 import haveno.core.support.dispute.refund.RefundManager;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.user.Preferences;
@@ -129,6 +131,7 @@ public class NotificationCenter {
     private Window mainWindow;
     @Nullable
     private String viewedTradeId;
+    private Timer repeatSoundTimer;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, initialisation
@@ -197,6 +200,14 @@ public class NotificationCenter {
                     snapshot(tradeManager.getObservableList()).forEach(trade -> refreshTradeNotification(trade, null));
                 });
             }
+        });
+
+        // replay the chime at the configured interval while open trade activity waits to be viewed
+        EasyBind.subscribe(preferences.getRepeatNotificationSoundSecondsProperty(), seconds -> {
+            if (repeatSoundTimer != null) repeatSoundTimer.stop();
+            repeatSoundTimer = seconds.intValue() <= 0 ? null : UserThread.runPeriodically(() -> {
+                if (preferences.getRepeatNotificationSoundSeconds() > 0 && hasUnseenOpenTradeActivity()) HavenoUtils.playChimeSound();
+            }, seconds.intValue());
         });
 
         // show popups for chat and error notifications
@@ -298,12 +309,8 @@ public class NotificationCenter {
         Set<ObservableList<ChatMessage>> currentChats = Collections.newSetFromMap(new IdentityHashMap<>());
         boolean hasUnreadTradeChat = false;
         for (Trade trade : snapshot(tradeManager.getObservableList())) {
-            ObservableList<ChatMessage> messages = trade.getChatMessages();
-            observeChat(messages, currentChats);
-            if (!trade.isArbitrator() && !isChatFocused(messages) &&
-                    snapshot(messages).stream().anyMatch(message -> isUnreadChat(message, trade.isMaker()))) {
-                hasUnreadTradeChat = true;
-            }
+            observeChat(trade.getChatMessages(), currentChats);
+            if (hasUnreadChat(trade)) hasUnreadTradeChat = true;
         }
         for (DisputeManager<? extends DisputeList<Dispute>> manager : getDisputeManagers()) {
             for (Dispute dispute : snapshot(manager.getDisputesAsObservableList())) {
@@ -444,6 +451,18 @@ public class NotificationCenter {
     private boolean isTradeVisible(Trade trade) {
         return mainWindow != null && mainWindow.isFocused() && trade.getId().equals(viewedTradeId) && navigation.getCurrentPath() != null &&
                 navigation.getCurrentPath().contains(PendingTradesView.class);
+    }
+
+    private boolean hasUnreadChat(Trade trade) {
+        ObservableList<ChatMessage> messages = trade.getChatMessages();
+        return !trade.isArbitrator() && !isChatFocused(messages) &&
+                snapshot(messages).stream().anyMatch(message -> isUnreadChat(message, trade.isMaker()));
+    }
+
+    // completed trades keep their dot but need no action
+    private boolean hasUnseenOpenTradeActivity() {
+        return snapshot(tradeManager.getObservableList()).stream().anyMatch(trade -> !trade.isPayoutPublished() &&
+                (unseenTradeUpdates.containsKey(trade.getId()) || hasUnreadChat(trade)));
     }
 
     private String tradeNotificationKey(Trade trade, String event) {
