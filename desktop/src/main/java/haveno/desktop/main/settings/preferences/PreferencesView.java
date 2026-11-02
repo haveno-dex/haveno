@@ -75,6 +75,7 @@ import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Layout;
 import java.io.File;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -655,7 +656,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         autoConfRequiredConfirmationsTf.setValidator(new IntegerValidator(1, DevEnv.isDevMode() ? 100000000 : 1000));
 
         autoConfTradeLimitTf = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("setting.preferences.autoConfirmMaxTradeSize"));
-        autoConfTradeLimitTf.setValidator(new XmrValidator());
+        XmrValidator autoConfTradeLimitValidator = new XmrValidator();
+        autoConfTradeLimitValidator.setMaxValue(BigInteger.valueOf(Long.MAX_VALUE)); // the limit is stored as a long
+        autoConfTradeLimitTf.setValidator(autoConfTradeLimitValidator);
 
         autoConfServiceAddressTf = addInputTextField(autoConfirmGridPane, ++localRowIndex, Res.get("setting.preferences.autoConfirmServiceAddresses"));
         GridPane.setHgrow(autoConfServiceAddressTf, Priority.ALWAYS);
