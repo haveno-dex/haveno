@@ -19,6 +19,7 @@ package haveno.core.user;
 
 import com.google.protobuf.Message;
 import haveno.common.proto.persistable.PersistablePayload;
+import haveno.core.trade.HavenoUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
@@ -44,7 +45,6 @@ public final class AutoConfirmSettings implements PersistablePayload {
 
     @SuppressWarnings("SameParameterValue")
     static Optional<AutoConfirmSettings> getDefault(List<String> serviceAddresses, String currencyCode) {
-        //noinspection SwitchStatementWithTooFewBranches
         switch (currencyCode) {
             case "XMR":
                 return Optional.of(new AutoConfirmSettings(
@@ -53,9 +53,44 @@ public final class AutoConfirmSettings implements PersistablePayload {
                         Coin.COIN.value,
                         serviceAddresses,
                         "XMR"));
+            case "BTC":
+            case "LTC":
+            case "ETH":
+            case "USDT-ERC20":
+            case "USDC-ERC20":
+            case "DAI-ERC20":
+                return Optional.of(new AutoConfirmSettings(
+                        false,
+                        getDefaultRequiredConfirmations(currencyCode),
+                        HavenoUtils.xmrToAtomicUnits(1).longValueExact(),
+                        serviceAddresses,
+                        currencyCode));
             default:
                 log.error("No AutoConfirmSettings supported yet for currency {}", currencyCode);
                 return Optional.empty();
+        }
+    }
+
+    // crypto payment proofs are verified with the user's own node by default
+    public static List<String> getDefaultCryptoServiceAddresses(String currencyCode) {
+        switch (currencyCode) {
+            case "BTC":
+                return List.of("http://127.0.0.1:3000"); // electrs esplora api
+            case "LTC":
+                return List.of("http://127.0.0.1:3001"); // electrs esplora api
+            default:
+                return List.of("http://127.0.0.1:8545"); // ethereum json-rpc
+        }
+    }
+
+    private static int getDefaultRequiredConfirmations(String currencyCode) {
+        switch (currencyCode) {
+            case "BTC":
+                return 2;
+            case "LTC":
+                return 6;
+            default:
+                return 12;
         }
     }
 
