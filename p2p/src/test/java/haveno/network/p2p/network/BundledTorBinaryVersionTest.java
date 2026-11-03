@@ -48,9 +48,9 @@ class BundledTorBinaryVersionTest {
     private static final Pattern BUILD_VERSION = Pattern.compile("\\(on Tor (\\d+\\.\\d+\\.\\d+\\.\\d+(?:-[0-9a-z]+)?) ");
 
     // linux-aarch64 is left out: its Tor comes from a Tor Browser nightly built from tor main and reports a dev version
+    // linux32 is left out: Tor Browser 16.0 dropped linux i686, so its bundle stays at the last 15.0 release
     static Stream<Arguments> bundledTorBinaries() {
         return Stream.of(
-                Arguments.of("tor-binary-linux32", "native/linux/x86/tor.tar.xz", "tor"),
                 Arguments.of("tor-binary-linux64", "native/linux/x64/tor.tar.xz", "tor"),
                 Arguments.of("tor-binary-macos", "native/osx/x64/tor.tar.xz", "tor"),
                 Arguments.of("tor-binary-macos-aarch64", "native/osx/aarch64/tor.tar.xz", "tor"),
