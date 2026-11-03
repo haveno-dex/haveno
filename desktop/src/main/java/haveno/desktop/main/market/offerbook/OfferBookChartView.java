@@ -50,6 +50,7 @@ import haveno.network.p2p.NodeAddress;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -65,6 +66,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.Axis;
@@ -85,7 +87,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.fxmisc.easybind.EasyBind;
@@ -365,7 +371,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         seriesBuy = new XYChart.Series<>();
         seriesSell = new XYChart.Series<>();
 
-        areaChart = new AreaChart<>(xAxis, yAxis);
+        areaChart = new DepthChart(xAxis, yAxis, seriesBuy, seriesSell);
         areaChart.setLegendVisible(false);
         areaChart.setAnimated(false);
         areaChart.setHorizontalGridLinesVisible(false); // draw the horizontal grid lines ourselves to fix flickering due to floating-point edge comparison
@@ -905,6 +911,53 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         vBox.getChildren().addAll(titleButtonBox, tableView);
 
         return new Tuple4<>(tableView, vBox, button, titleLabel);
+    }
+
+    // Area chart whose bid and ask plateaus run flat to the chart edges, as depth past the outermost offer stays at its total.
+    static class DepthChart extends AreaChart<Number, Number> {
+        private final XYChart.Series<Number, Number> bids, asks;
+
+        DepthChart(NumberAxis xAxis, NumberAxis yAxis, XYChart.Series<Number, Number> bids, XYChart.Series<Number, Number> asks) {
+            super(xAxis, yAxis);
+            this.bids = bids;
+            this.asks = asks;
+        }
+
+        @Override
+        protected void layoutPlotChildren() {
+            super.layoutPlotChildren();
+            drawDepth(bids, true);
+            drawDepth(asks, false);
+        }
+
+        // Redraw the series outline from the plot edge on its open side through its points, then down to the baseline.
+        private void drawDepth(XYChart.Series<Number, Number> series, boolean openLeft) {
+            if (!getData().contains(series) || !(series.getNode() instanceof Group)) return;
+            List<Point2D> points = new ArrayList<>();
+            for (XYChart.Data<Number, Number> item : series.getData()) {
+                double x = getXAxis().getDisplayPosition(item.getXValue());
+                double y = getYAxis().getDisplayPosition(item.getYValue());
+                if (!Double.isNaN(x) && !Double.isNaN(y)) points.add(new Point2D(x, y));
+            }
+            if (points.isEmpty()) return;
+            points.sort(Comparator.comparingDouble(Point2D::getX));
+            Point2D first = points.get(0);
+            Point2D last = points.get(points.size() - 1);
+            double startX = openLeft ? 0 : first.getX();
+            double endX = openLeft ? last.getX() : getXAxis().getWidth();
+            double baseY = getYAxis().getDisplayPosition(0);
+            Group group = (Group) series.getNode();
+            Path fill = (Path) group.getChildren().get(0);
+            Path line = (Path) group.getChildren().get(1);
+            line.getElements().setAll(new MoveTo(startX, first.getY()));
+            fill.getElements().setAll(new MoveTo(startX, baseY), new LineTo(startX, first.getY()));
+            for (Point2D point : points) {
+                line.getElements().add(new LineTo(point.getX(), point.getY()));
+                fill.getElements().add(new LineTo(point.getX(), point.getY()));
+            }
+            line.getElements().add(new LineTo(endX, last.getY()));
+            fill.getElements().addAll(new LineTo(endX, last.getY()), new LineTo(endX, baseY), new ClosePath());
+        }
     }
 
 }
