@@ -583,7 +583,9 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     private BigInteger parsedAmount() {
         String text = amountField.getText();
         if (text == null || text.trim().isEmpty()) return BigInteger.ZERO;
-        return amountInFiat ? DisplayUtils.parseFiatToXmr(text, marketPrice()) : HavenoUtils.parseXmr(text.trim());
+        BigInteger amount = amountInFiat ? DisplayUtils.parseFiatToXmr(text, marketPrice()) : HavenoUtils.parseXmr(text.trim());
+        if (amount.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) throw new NumberFormatException("Amount out of range: " + text); // formatted as a long
+        return amount;
     }
 
     // parsed amount, ZERO when blank, or null when the input cannot be converted
