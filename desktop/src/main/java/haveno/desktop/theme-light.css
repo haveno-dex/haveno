@@ -248,8 +248,9 @@
     -fx-background-color: rgb(50, 95, 182);
 }
 
-.combo-box-popup .fiat-currency-badge {
-    -fx-background-color: -bs-color-primary;
+.combo-box-popup .fiat-currency-badge,
+.combo-box .fiat-currency-badge {
+    -fx-background-color: rgb(28, 96, 220);
 }
 
 .trade-detail-view .trade-steps {

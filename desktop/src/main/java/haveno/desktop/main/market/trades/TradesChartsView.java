@@ -738,6 +738,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.trade"),
                 Res.get("shared.trades")));
         currencyComboBox.getStyleClass().add("input-with-border");
+        currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyFieldGraphic);
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
