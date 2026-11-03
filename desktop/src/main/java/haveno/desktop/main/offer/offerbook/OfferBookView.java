@@ -189,6 +189,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         currencyComboBox.setPrefWidth(250);
         currencyComboBox.setMinWidth(150);
         currencyComboBox.getStyleClass().add("input-with-border");
+        currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyFieldGraphic);
 
         Tuple3<VBox, Label, AutocompleteComboBox<PaymentMethod>> paymentBoxTuple = FormBuilder.addTopLabelAutocompleteComboBox(
                 Res.get("offerbook.filterByPaymentMethod"));

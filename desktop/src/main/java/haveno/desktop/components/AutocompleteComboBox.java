@@ -21,6 +21,7 @@ import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
+import haveno.desktop.util.Accessibility;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -34,6 +35,7 @@ import javafx.scene.Node;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -65,6 +67,7 @@ import java.util.stream.Collectors;
 public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private static final int MAX_VISIBLE_ROWS = 10;
+    private static final double EDITOR_GRAPHIC_GAP = 8; // space between the editor graphic and its text
 
     private final JFXComboBoxListViewSkin<T> skin;
     private final ListView<T> popupList; // the dropdown's ListView, exposed by the skin
@@ -74,6 +77,10 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private List<? extends T> searchPool;            // wider pool searched once the user types (optional)
     private List<T> shownItems = new ArrayList<>();  // items currently in the popup
     private Function<String, Predicate<T>> queryFilter; // custom query-to-item matcher (optional)
+    private Function<T, Node> editorGraphicFactory;  // graphic before the editor text, e.g. a logo (optional)
+    private Node editorGraphic;                      // shown graphic, an unmanaged child laid out in the editor's padding
+    private T editorGraphicFor;                      // value the shown graphic was made for
+    private final String editorStyle;                // the skin's inline editor style, kept under the graphic padding
 
     private T committedValue;                        // last confirmed value, restored on an empty dismissal
     private boolean selectingAll;                    // guards the trailing key event after ctrl/cmd+A
@@ -103,6 +110,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         @SuppressWarnings("unchecked")
         ListView<T> content = (ListView<T>) skin.getPopupContent();
         popupList = content;
+        editorStyle = getEditor().getStyle();
 
         setAutocompleteItems(items);
         cellFactoryProperty().addListener((obs, old, factory) -> unpinWidth());
@@ -116,6 +124,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         filterAsUserTypes();
         trackCommittedValue();
         selectArrowedItemText();
+        showEditorGraphic();
     }
 
     // Report non-editable to accessibility on mac: the editable combo maps to an AXComboBox, which
@@ -124,6 +133,17 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
         if (attribute == AccessibleAttribute.EDITABLE && Utilities.isOSX()) return false;
         return super.queryAccessibleAttribute(attribute, parameters);
+    }
+
+    // Place the editor graphic in the left padding the editor reserves for it.
+    @Override
+    protected void layoutChildren() {
+        super.layoutChildren();
+        if (editorGraphic == null) return;
+        TextField editor = getEditor();
+        editorGraphic.autosize();
+        editorGraphic.relocate(snapPositionX(editor.getLayoutX()),
+                snapPositionY(editor.getLayoutY() + (editor.getHeight() - editorGraphic.getLayoutBounds().getHeight()) / 2));
     }
 
     // --- public API ---
@@ -146,6 +166,13 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     /** Override how a typed query matches items (e.g. to search countries or currencies); default matches the display string. */
     public void setQueryFilter(Function<String, Predicate<T>> queryFilter) {
         this.queryFilter = queryFilter;
+    }
+
+    /** Show a graphic before the editor text while it shows a value; the factory may return null for none. */
+    public void setEditorGraphic(Function<T, Node> factory) {
+        editorGraphicFactory = factory;
+        editorGraphicFor = null; // rebuild for the shown value
+        updateEditorGraphic();
     }
 
     /**
@@ -287,6 +314,33 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
             getSelectionModel().select(committedValue);
             getEditor().setText(asString(committedValue));
         });
+    }
+
+    // --- editor graphic ---
+
+    private void showEditorGraphic() {
+        valueProperty().addListener((obs, old, value) -> updateEditorGraphic());
+        getEditor().textProperty().addListener((obs, old, text) -> updateEditorGraphic());
+    }
+
+    // Show the graphic only while the editor shows the value's text, so typing a search starts from a bare field.
+    private void updateEditorGraphic() {
+        T value = getValue();
+        T shown = editorGraphicFactory != null && value != null && asString(value).equals(getEditor().getText()) ? value : null;
+        if (shown == null ? editorGraphic == null : shown.equals(editorGraphicFor)) return;
+        getChildren().remove(editorGraphic);
+        editorGraphicFor = shown;
+        editorGraphic = shown == null ? null : editorGraphicFactory.apply(shown);
+        if (editorGraphic != null) {
+            editorGraphic.setManaged(false);
+            editorGraphic.setMouseTransparent(true); // clicks reach the editor beneath
+            Accessibility.mute(editorGraphic); // the editor text already names the value
+            getChildren().add(editorGraphic);
+        }
+        // inline important outranks the stylesheet's important zero editor padding
+        getEditor().setStyle(editorGraphic == null ? editorStyle
+                : editorStyle + "-fx-padding: 0 0 0 " + (editorGraphic.prefWidth(-1) + EDITOR_GRAPHIC_GAP) + " !important;");
+        requestLayout(); // an unmanaged child does not request it, and a same width swap leaves the style unchanged
     }
 
     // --- popup plumbing ---

@@ -431,6 +431,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
 
         preferredTradeCurrencyComboBox.setCellFactory(GUIUtil.getTradeCurrencyCellFactory("", "",
                 FXCollections.emptyObservableMap()));
+        preferredTradeCurrencyComboBox.setEditorGraphic(GUIUtil::getCurrencyFieldGraphic);
 
         Tuple3<Label, ListView<TraditionalCurrency>, VBox> traditionalTuple = addTopLabelListView(currenciesGridPane, displayCurrenciesGridRowIndex,
                 Res.get("setting.preferences.displayTraditional"));
