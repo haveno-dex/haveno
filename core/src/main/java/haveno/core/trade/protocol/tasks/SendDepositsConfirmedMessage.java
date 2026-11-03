@@ -27,6 +27,7 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
 import haveno.core.trade.messages.TradeMailboxMessage;
+import haveno.network.p2p.mailbox.MailboxMessage;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -106,6 +107,15 @@ public abstract class SendDepositsConfirmedMessage extends SendMailboxMessageTas
     @Override
     protected void setStateFault() {
         getReceiver().setDepositsConfirmedMessageState(MessageState.FAILED);
+    }
+
+    // continue execution on fault so the message is sent to the next peer and resent later
+    @Override
+    protected void onFault(String errorMessage, MailboxMessage message) {
+        if (isCompleted()) return;
+        setStateFault();
+        appendToErrorMessage("Sending message failed: message=" + message + "\nerrorMessage=" + errorMessage);
+        complete();
     }
 
     private void cleanup() {
