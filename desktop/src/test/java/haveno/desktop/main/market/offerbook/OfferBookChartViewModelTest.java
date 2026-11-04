@@ -32,6 +32,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -423,14 +425,65 @@ public class OfferBookChartViewModelTest {
         assertEquals(List.of(3, 1, 4), shown.stream().map(XYChart.Data::getYValue).collect(Collectors.toList()));
     }
 
+    @Test
+    public void testDustTailHiddenBeyondTenPercent() {
+        double[] sell = {100, 101, 102, 103, 104, 105, 106, 109, 112, 125};
+        double[] sellAmounts = {10, 10, 10, 10, 10, 10, 10, 0.1, 0.1, 0.1};
+        double[] buy = {75, 88, 91, 94, 95, 96, 97, 98, 99, 100};
+        double[] buyAmounts = {0.1, 0.1, 0.1, 10, 10, 10, 10, 10, 10, 10};
+        for (double marketPrice : new double[]{0, 100}) {
+            assertEquals(List.of(100d, 101d, 102d, 103d, 104d, 105d, 106d, 109d), filterAtMarket(OfferDirection.SELL, marketPrice, sell, sellAmounts));
+            assertEquals(List.of(91d, 94d, 95d, 96d, 97d, 98d, 99d, 100d), filterAtMarket(OfferDirection.BUY, marketPrice, buy, buyAmounts));
+        }
+        assertEquals(List.of(100d, 101d, 102d, 103d, 104d, 105d, 106d), filterAtMarket(OfferDirection.SELL, 98, sell, sellAmounts));
+        assertEquals(List.of(94d, 95d, 96d, 97d, 98d, 99d, 100d), filterAtMarket(OfferDirection.BUY, 102, buy, buyAmounts));
+    }
+
+    @Test
+    public void testTailWithVolumeKeptBeyondTenPercent() {
+        double[] sell = {100, 100, 100, 100, 100, 100, 100, 112, 120, 128};
+        double[] sellAmounts = {1, 1, 1, 1, 1, 1, 1, 0.01, 50, 0.01};
+        double[] buy = {72, 80, 88, 100, 100, 100, 100, 100, 100, 100};
+        double[] buyAmounts = {0.01, 50, 0.01, 1, 1, 1, 1, 1, 1, 1};
+        assertEquals(List.of(100d, 100d, 100d, 100d, 100d, 100d, 100d, 112d, 120d), filterAtMarket(OfferDirection.SELL, 100, sell, sellAmounts));
+        assertEquals(List.of(80d, 88d, 100d, 100d, 100d, 100d, 100d, 100d, 100d), filterAtMarket(OfferDirection.BUY, 100, buy, buyAmounts));
+    }
+
+    @Test
+    public void testDustTrimmingStartsWithEightOffers() {
+        assertEquals(List.of(100d, 101d, 102d, 103d, 104d, 105d, 106d), filterAtMarket(OfferDirection.SELL, 100,
+                new double[]{100, 101, 102, 103, 104, 105, 106, 125}, new double[]{10, 10, 10, 10, 10, 10, 10, 0.1}));
+        assertEquals(List.of(100d, 101d, 102d, 103d, 104d, 105d, 125d), filterAtMarket(OfferDirection.SELL, 100,
+                new double[]{100, 101, 102, 103, 104, 105, 125}, new double[]{10, 10, 10, 10, 10, 10, 0.1}));
+    }
+
+    @Test
+    public void testDustFenceKeepsEqualPricesTogether() {
+        double[] sell = {100, 100, 100, 100, 100, 100, 100, 100, 115, 115, 120};
+        double[] sellAmounts = {10, 10, 10, 10, 10, 10, 10, 10, 1.5, 0.1, 0.1};
+        assertEquals(List.of(100d, 100d, 100d, 100d, 100d, 100d, 100d, 100d, 115d, 115d), filterAtMarket(OfferDirection.SELL, 100, sell, sellAmounts));
+    }
+
     private static List<Double> filter(OfferDirection direction, double... prices) {
         return filterAtMarket(direction, 0, prices);
     }
 
     private static List<Double> filterAtMarket(OfferDirection direction, double marketPrice, double... prices) {
-        List<XYChart.Data<Number, Number>> data = DoubleStream.of(prices)
-                .mapToObj(price -> new XYChart.Data<Number, Number>(price, 1))
-                .collect(Collectors.toList());
+        double[] amounts = new double[prices.length];
+        Arrays.fill(amounts, 1);
+        return filterAtMarket(direction, marketPrice, prices, amounts);
+    }
+
+    // Prices ascend; the depth accumulates the amounts from the best price like the view model does.
+    private static List<Double> filterAtMarket(OfferDirection direction, double marketPrice, double[] prices, double[] amounts) {
+        List<XYChart.Data<Number, Number>> data = new ArrayList<>();
+        double depth = 0;
+        for (int i = 0; i < prices.length; i++) {
+            int index = direction == OfferDirection.SELL ? i : prices.length - 1 - i;
+            depth += amounts[index];
+            data.add(new XYChart.Data<>(prices[index], depth));
+        }
+        if (direction == OfferDirection.BUY) Collections.reverse(data);
         return OfferBookChartView.filterOutliers(data, direction, marketPrice).stream()
                 .map(d -> d.getXValue().doubleValue())
                 .collect(Collectors.toList());

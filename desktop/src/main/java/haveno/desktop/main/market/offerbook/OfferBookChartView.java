@@ -640,7 +640,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private static final double OUTLIER_MIN_FENCE_RATIO = 0.1;
     private static final double OUTLIER_MAX_PRICE_RATIO = 3;
     private static final double OUTLIER_NEAR_PRICE_RATIO = 0.3;
-    // Use at least two offers per quartile before trimming statistical outliers.
+    // Beyond 10% of that price, also hide a far tail holding at most 2% of the side's volume.
+    private static final double OUTLIER_DUST_PRICE_RATIO = 0.1;
+    private static final double OUTLIER_DUST_VOLUME_RATIO = 0.02;
+    // Use at least two offers per quartile before trimming statistical outliers or dust.
     private static final int OUTLIER_MIN_OFFERS = 8;
 
     static List<XYChart.Data<Number, Number>> filterOutliers(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double marketPrice) {
@@ -655,18 +658,49 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             boolean hasMarketPrice = Double.isFinite(marketPrice) && marketPrice > 0;
             double bestPrice = farSideHigh ? prices[0] : prices[prices.length - 1];
             double outerLimit = farSideHigh ? bestPrice * OUTLIER_MAX_PRICE_RATIO : bestPrice / OUTLIER_MAX_PRICE_RATIO;
-            double nearFence = (hasMarketPrice ? marketPrice : bestPrice) * (farSideHigh ? 1 + OUTLIER_NEAR_PRICE_RATIO : 1 - OUTLIER_NEAR_PRICE_RATIO);
-            // Offer prices round to eight decimal places; allow half a unit plus floating-point error.
-            double nearTolerance = 0.5e-8 + 2 * Math.ulp(nearFence);
+            double anchorPrice = hasMarketPrice ? marketPrice : bestPrice;
+            double nearFence = anchorPrice * (farSideHigh ? 1 + OUTLIER_NEAR_PRICE_RATIO : 1 - OUTLIER_NEAR_PRICE_RATIO);
+            double dustZone = anchorPrice * (farSideHigh ? 1 + OUTLIER_DUST_PRICE_RATIO : 1 - OUTLIER_DUST_PRICE_RATIO);
+            double dustFence = dustFence(data, farSideHigh);
+            boolean trim = prices.length >= OUTLIER_MIN_OFFERS;
             return data.stream()
                     .filter(o -> {
                         double price = o.getXValue().doubleValue();
-                        if (farSideHigh ? price <= nearFence + nearTolerance : price >= nearFence - nearTolerance) return true;
-                        if (prices.length >= OUTLIER_MIN_OFFERS && (farSideHigh ? price > fence : price < fence)) return false;
+                        if (within(price, dustZone, farSideHigh)) return true;
+                        if (trim && beyond(price, dustFence, farSideHigh)) return false;
+                        if (within(price, nearFence, farSideHigh)) return true;
+                        if (trim && beyond(price, fence, farSideHigh)) return false;
                         return farSideHigh ? price < outerLimit : price > outerLimit;
                     })
                     .collect(Collectors.toList());
         }
+    }
+
+    // Offer prices round to eight decimal places; allow half a unit plus floating-point error inside a zone.
+    private static boolean within(double price, double zone, boolean farSideHigh) {
+        double tolerance = 0.5e-8 + 2 * Math.ulp(zone);
+        return farSideHigh ? price <= zone + tolerance : price >= zone - tolerance;
+    }
+
+    private static boolean beyond(double price, double fence, boolean farSideHigh) {
+        return farSideHigh ? price > fence : price < fence;
+    }
+
+    // Outermost price kept by volume: the y values accumulate amounts from the best price, so walk outward
+    // until the depth reached before an offer leaves at most dust.
+    private static double dustFence(List<XYChart.Data<Number, Number>> data, boolean farSideHigh) {
+        Comparator<XYChart.Data<Number, Number>> byPrice = Comparator.comparingDouble(o -> o.getXValue().doubleValue());
+        List<XYChart.Data<Number, Number>> fromBest = new ArrayList<>(data);
+        fromBest.sort(farSideHigh ? byPrice : byPrice.reversed());
+        double total = fromBest.stream().mapToDouble(o -> o.getYValue().doubleValue()).max().orElse(0);
+        double depth = 0;
+        double fence = fromBest.get(0).getXValue().doubleValue();
+        for (XYChart.Data<Number, Number> o : fromBest) {
+            if (depth >= total * (1 - OUTLIER_DUST_VOLUME_RATIO)) break;
+            fence = o.getXValue().doubleValue();
+            depth = o.getYValue().doubleValue();
+        }
+        return fence;
     }
 
     private static double quantile(double[] sorted, double p) {
