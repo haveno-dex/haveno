@@ -2663,6 +2663,16 @@ textfield */
     -fx-border-color: transparent;
 }
 
+/* The row of the offer hovered on the chart, tinted like a hovered row */
+.table-view.offer-table .table-row-cell:linked {
+    -fx-background-color: -bs-combo-popup-hover;
+}
+.table-view.offer-table .table-row-cell:linked .table-cell {
+    -fx-background: -bs-combo-popup-hover;
+    -fx-background-color: -bs-combo-popup-hover;
+    -fx-border-color: transparent;
+}
+
 /* Rows act on click (navigate, select); set the hand on every pickable node
    (ancestor-only is unreliable on macOS) and restore the default over empty rows. */
 .table-view.offer-table .table-row-cell,
@@ -3591,6 +3601,43 @@ textfield */
     -fx-stroke-width: 1;
     -fx-stroke-dash-array: 2 3;
     -fx-opacity: 0.55;
+}
+
+/* Offer at the pointer's price on the depth chart: a marker on its point, a guide to the price axis and a card */
+.chart-hover-marker.buy, .chart-hover-halo.buy { -fx-fill: -bs-buy; }
+.chart-hover-marker.sell, .chart-hover-halo.sell { -fx-fill: -bs-sell; }
+.chart-hover-marker { -fx-stroke: -bs-background-color; -fx-stroke-width: 2; }
+.chart-hover-halo { -fx-opacity: 0.3; }
+.chart-hover-guide { -fx-stroke-width: 1; -fx-stroke-dash-array: 3 3; -fx-opacity: 0.7; }
+.chart-hover-guide.buy { -fx-stroke: -bs-buy; }
+.chart-hover-guide.sell { -fx-stroke: -bs-sell; }
+.chart-hover-chip { -fx-text-fill: -bs-white; -fx-font-size: 0.923em; -fx-padding: 1 6 1 6; -fx-background-radius: 3; }
+.chart-hover-chip.buy { -fx-background-color: -bs-buy; }
+.chart-hover-chip.sell { -fx-background-color: -bs-sell; }
+
+.chart-hover-card {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-width: 1;
+    -fx-padding: 10 14 10 14;
+    -fx-spacing: 4;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 16, 0, 0, 4);
+}
+
+.chart-hover-card .dim { -fx-text-fill: -bs-rd-font-lighter; }
+.chart-hover-card .small { -fx-font-size: 0.923em; }
+.chart-hover-card .price, .chart-hover-card .row.current .label { -fx-font-family: "IBM Plex Sans Medium"; }
+.chart-hover-card .price { -fx-font-size: 1.385em; }
+.chart-hover-card .rows { -fx-padding: 4 0 0 0; }
+.chart-hover-card .row { -fx-padding: 3 6 3 6; -fx-background-radius: 4; }
+.chart-hover-card .row.current { -fx-background-color: -bs-color-background-row-hover; }
+.chart-hover-card .more { -fx-padding: 0 6 0 6; }
+.chart-hover-card .list {
+    -fx-padding: 8 0 0 0;
+    -fx-border-color: -bs-offer-card-border transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
 }
 
 #charts .default-color0.chart-area-symbol {

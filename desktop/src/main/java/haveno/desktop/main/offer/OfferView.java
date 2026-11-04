@@ -93,6 +93,12 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
             UserThread.execute(() -> {
                 if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1) {
                     loadView(viewPath.tip(), null, data);
+                    // an offer passed with the offer book path is shown there, as from the market chart
+                    if (data instanceof Offer) {
+                        OfferBookView<?, ?> offerBookView = viewPath.tip() == CryptoOfferBookView.class ? cryptoOfferBookView
+                                : viewPath.tip() == OtherOfferBookView.class ? otherOfferBookView : fiatOfferBookView;
+                        if (offerBookView != null) offerBookView.showOffer((Offer) data);
+                    }
                 } else if (viewPath.size() == 4 && viewPath.indexOf(this.getClass()) == 1) {
                     loadView(viewPath.get(2), viewPath.tip(), data);
                 }

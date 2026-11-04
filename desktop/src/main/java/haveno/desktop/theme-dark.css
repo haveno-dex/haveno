@@ -240,6 +240,14 @@
     -fx-background-color: -bs-color-background-row-hover;
     -fx-border-color: transparent;
 }
+.table-view.offer-table .table-row-cell:linked {
+    -fx-background-color: -bs-color-background-row-hover;
+}
+.table-view.offer-table .table-row-cell:linked .table-cell {
+    -fx-background: -bs-color-background-row-hover;
+    -fx-background-color: -bs-color-background-row-hover;
+    -fx-border-color: transparent;
+}
 .table-view .table-row-cell:filled:selected,
 .table-view.offer-table .table-row-cell:filled:selected {
     -fx-background-color: -fx-selection-bar;

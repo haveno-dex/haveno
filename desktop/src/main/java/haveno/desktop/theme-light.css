@@ -298,6 +298,14 @@
     -fx-background-color: -bs-color-background-row-hover;
     -fx-border-color: transparent;
 }
+.table-view.offer-table .table-row-cell:linked {
+    -fx-background-color: -bs-color-background-row-hover;
+}
+.table-view.offer-table .table-row-cell:linked .table-cell {
+    -fx-background: -bs-color-background-row-hover;
+    -fx-background-color: -bs-color-background-row-hover;
+    -fx-border-color: transparent;
+}
 .table-view .table-row-cell:filled:selected,
 .table-view.offer-table .table-row-cell:filled:selected {
     -fx-background-color: -fx-selection-bar;
@@ -346,6 +354,12 @@
 #charts .default-color1.chart-series-area-line { -fx-stroke: #da2c1a; }
 #charts .default-color0.chart-area-symbol { -fx-background-color: #26b94e, -bs-background-color; }
 #charts .default-color1.chart-area-symbol { -fx-background-color: #da2c1a, -bs-background-color; }
+.chart-hover-marker.buy, .chart-hover-halo.buy { -fx-fill: #26b94e; }
+.chart-hover-marker.sell, .chart-hover-halo.sell { -fx-fill: #da2c1a; }
+.chart-hover-guide.buy { -fx-stroke: #26b94e; }
+.chart-hover-guide.sell { -fx-stroke: #da2c1a; }
+.chart-hover-chip.buy { -fx-background-color: #26b94e; }
+.chart-hover-chip.sell { -fx-background-color: #da2c1a; }
 
 #charts .default-color0.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,

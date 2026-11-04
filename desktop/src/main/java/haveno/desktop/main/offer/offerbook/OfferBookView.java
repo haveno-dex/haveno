@@ -705,6 +705,30 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         model.setOfferActionHandler(offerActionHandler);
     }
 
+    // Selects the offer's row and scrolls to it, clearing the filters that hide it and setting the offer type toggles for it
+    public void showOffer(Offer offer) {
+        UserThread.execute(() -> { // the table takes its items a pulse after activation
+            if (findItem(offer) == null) {
+                if (model.isMyOffer(offer)) model.preferences.setShowOwnOffersInOfferBook(true);
+                filterInputField.setText("");
+                model.onFilterKeyTyped("");
+                paymentMethodComboBox.getSelectionModel().select(SHOW_ALL);
+                model.onSetPaymentMethod(paymentMethodComboBox.getSelectionModel().getSelectedItem());
+                if (matchingOffersToggleButton.isSelected()) matchingOffersToggleButton.fire();
+                if (noDepositOffersToggleButton.isSelected()) noDepositOffersToggleButton.fire();
+                if (privateOffersToggleButton.isSelected() != offer.isPrivateOffer()) privateOffersToggleButton.fire();
+            }
+            OfferBookListItem item = findItem(offer);
+            if (item == null) return;
+            tableView.getSelectionModel().select(item);
+            tableView.scrollTo(item);
+        });
+    }
+
+    private OfferBookListItem findItem(Offer offer) {
+        return model.getOfferList().stream().filter(item -> item.getOffer().getId().equals(offer.getId())).findFirst().orElse(null);
+    }
+
     public void onTabSelected(boolean isSelected) {
         if (model.isTabSelected == isSelected) {
             return;

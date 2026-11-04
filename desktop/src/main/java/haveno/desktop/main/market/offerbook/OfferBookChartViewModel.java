@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 class OfferBookChartViewModel extends ActivatableViewModel {
     private static final int TAB_INDEX = 0;
@@ -258,9 +259,18 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     }
 
     public void goToOfferView(OfferDirection direction) {
+        goToOfferView(direction, null);
+    }
+
+    // Opens the offer book on the offer, where it's taken
+    public void showOffer(Offer offer) {
+        goToOfferView(offer.getDirection(), offer);
+    }
+
+    private void goToOfferView(OfferDirection direction, @Nullable Offer offer) {
         updateScreenCurrencyInPreferences(direction);
         Class<? extends OfferView> offerView = isSellOffer(direction) ? BuyOfferView.class : SellOfferView.class;
-        navigation.navigateTo(MainView.class, offerView, OfferViewUtil.getOfferBookViewClass(getCurrencyCode()));
+        navigation.navigateToWithData(offer, MainView.class, offerView, OfferViewUtil.getOfferBookViewClass(getCurrencyCode()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -446,9 +456,9 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     
                     double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
                     if (direction.equals(OfferDirection.BUY))
-                        data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                        data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount, offer));
                     else
-                        data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                        data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount, offer));
                 }
             }
             offerTableList.setAll(offerTableListTemp);

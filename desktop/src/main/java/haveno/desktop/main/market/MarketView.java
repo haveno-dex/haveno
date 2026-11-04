@@ -101,7 +101,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
 
         navigationListener = (viewPath, data) -> {
             if (viewPath.size() == 3 && viewPath.indexOf(MarketView.class) == 1)
-                loadView(viewPath.tip());
+                loadView(viewPath.tip(), data);
         };
 
         tabChangeListener = (ov, oldValue, newValue) -> {
@@ -174,7 +174,7 @@ public class MarketView extends ActivatableView<TabPane, Void> {
             scene.removeEventHandler(KeyEvent.KEY_RELEASED, keyEventEventHandler);
     }
 
-    private void loadView(Class<? extends View> viewClass) {
+    private void loadView(Class<? extends View> viewClass, Object data) {
         final Tab tab;
         View view = viewLoader.load(viewClass);
 
@@ -190,6 +190,9 @@ public class MarketView extends ActivatableView<TabPane, Void> {
             tab.setContent(view.getRoot());
         }
         root.getSelectionModel().select(tab);
+
+        // a currency code passed with the offer book path selects that currency, as from the offers by currency tab
+        if (view instanceof OfferBookChartView && data instanceof String) ((OfferBookChartView) view).showCurrency((String) data);
     }
 
     private String getAllTradesWithReferralId() {

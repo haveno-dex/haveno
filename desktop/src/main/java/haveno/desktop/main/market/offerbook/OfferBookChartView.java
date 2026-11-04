@@ -61,11 +61,13 @@ import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
+import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.chart.AreaChart;
@@ -80,13 +82,18 @@ import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.LineTo;
@@ -111,6 +118,12 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private AnchorPane chartPane;
     private Pane deviationScalePane;
     private Pane gridLinesPane;
+    private Pane hoverPane; // over the whole view, holding the point markers, the price guide and the offer card
+    private Group hoverMarkers;
+    private Point2D hoverMouse; // last mouse position over the chart in scene coordinates, null once it left
+    private XYChart.Data<Number, Number> hoveredData; // point at the pointer's price
+    private TableRow<OfferListItem> hoveredRow; // table row under the pointer, whose point is marked
+    private VBox hoverCard;
     private boolean chartOverlaysRedrawScheduled;
     private AutocompleteComboBox<CurrencyListItem> currencyComboBox;
     private Subscription tradeCurrencySubscriber;
@@ -122,9 +135,9 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private AutoTooltipButton sellButton;
     private AutoTooltipButton buyButton;
     private ChangeListener<Number> selectedTabIndexListener;
+    private ChangeListener<Boolean> currencyListShowingListener;
     private SingleSelectionModel<Tab> tabPaneSelectionModel;
     private Label sellHeaderLabel, buyHeaderLabel;
-    private ChangeListener<OfferListItem> sellTableRowSelectionListener, buyTableRowSelectionListener;
     private ListChangeListener<OfferBookListItem> changeListener;
     private ListChangeListener<CurrencyListItem> currencyListItemsListener;
     private final double initialOfferTableViewHeight = 83; // decrease as MainView's content-pane's top anchor increases
@@ -140,6 +153,17 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private static final int DEVIATION_TICK_HEIGHT = 5;        // labeled ticks
     private static final int DEVIATION_MINOR_TICK_HEIGHT = 4;  // unlabeled midway ticks
     private static final int DEVIATION_LABEL_GAP = 1;          // px between the labels and their ticks (0 = touching)
+
+    // Hovered offer (px): radius within which overlapping points are listed together, marker and halo radii, gap between
+    // the point and its card, the card's minimum width, and the gap between the plot and the price chip on the axis
+    private static final double HOVER_CLUSTER_RADIUS = 6;
+    private static final int HOVER_CLUSTER_MAX_ROWS = 6;
+    private static final double HOVER_MARKER_RADIUS = 4.5;
+    private static final double HOVER_HALO_RADIUS = 10;
+    private static final double HOVER_CARD_GAP = 14;
+    private static final double HOVER_CARD_MIN_WIDTH = 240;
+    private static final double HOVER_CHIP_GAP = 4;
+    private static final PseudoClass LINKED_PSEUDO_CLASS = PseudoClass.getPseudoClass("linked"); // row of the offer hovered on the chart
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor, lifecycle
@@ -191,7 +215,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tupleSell.second.setUserData(OfferDirection.SELL.name());
         bottomHBox.getChildren().addAll(tupleSell.second, tupleBuy.second);
 
-        root.getChildren().addAll(currencyComboBoxTuple.first, chartPane, bottomHBox);
+        root.getChildren().addAll(currencyComboBoxTuple.first, chartPane, bottomHBox, hoverPane);
+        root.layoutBoundsProperty().addListener((observable, oldValue, newValue) -> hoverPane.resizeRelocate(0, 0, newValue.getWidth(), newValue.getHeight()));
     }
 
     @Override
@@ -285,12 +310,20 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         buyOfferTableView.setItems(model.getTopBuyOfferList());
         sellOfferTableView.setItems(model.getTopSellOfferList());
 
-        buyOfferTableView.getSelectionModel().selectedItemProperty().addListener(buyTableRowSelectionListener);
-        sellOfferTableView.getSelectionModel().selectedItemProperty().addListener(sellTableRowSelectionListener);
-
         model.priceFeedService.updateCounterProperty().addListener(priceFeedUpdateCounterListener);
+        currencyComboBox.showingProperty().addListener(currencyListShowingListener);
 
         updateChartData();
+    }
+
+    // Shows the currency's offers, as from a row of the offers by currency tab
+    public void showCurrency(String currencyCode) {
+        model.getCurrencyListItems().stream().filter(item -> item.tradeCurrency.getCode().equals(currencyCode)).findFirst().ifPresent(item -> {
+            currencyComboBox.getSelectionModel().select(item);
+            currencyComboBox.getEditor().setText(new CurrencyListItemStringConverter(currencyComboBox).toString(item));
+            model.onSetTradeCurrency(item.tradeCurrency);
+            updateChartData();
+        });
     }
 
     static class CurrencyListItemStringConverter extends StringConverter<CurrencyListItem> {
@@ -321,8 +354,13 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                 currencyComboBox.getSelectionModel().select(model.getSelectedCurrencyListItem().get());
         };
 
-        sellTableRowSelectionListener = (observable, oldValue, newValue) -> model.goToOfferView(OfferDirection.SELL);
-        buyTableRowSelectionListener = (observable, oldValue, newValue) -> model.goToOfferView(OfferDirection.BUY);
+        // the currency list opens over the chart and takes the pointer without the chart seeing it leave
+        currencyListShowingListener = (observable, oldValue, showing) -> {
+            if (showing) {
+                hoverMouse = null;
+                updateHover(false);
+            }
+        };
 
         // Market prices update ~once per minute; refresh the prices, chart and tables.
         // Debounced to collapse the burst of updates from a single price request cycle.
@@ -343,9 +381,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tabPaneSelectionModel.selectedIndexProperty().removeListener(selectedTabIndexListener);
         model.currencyListItems.getObservableList().removeListener(currencyListItemsListener);
         tradeCurrencySubscriber.unsubscribe();
-        buyOfferTableView.getSelectionModel().selectedItemProperty().removeListener(buyTableRowSelectionListener);
-        sellOfferTableView.getSelectionModel().selectedItemProperty().removeListener(sellTableRowSelectionListener);
         model.priceFeedService.updateCounterProperty().removeListener(priceFeedUpdateCounterListener);
+        currencyComboBox.showingProperty().removeListener(currencyListShowingListener);
+        hoverMouse = null;
+        hoveredRow = null;
+        updateHover(true);
         if (priceRefreshTimer != null) {
             priceRefreshTimer.stop();
             priceRefreshTimer = null;
@@ -408,7 +448,27 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         AnchorPane.setLeftAnchor(gridLinesPane, 0d);
         AnchorPane.setRightAnchor(gridLinesPane, 0d);
 
+        // over the whole view rather than the chart, so the card isn't cut off at the chart's edge
+        hoverPane = new Pane();
+        hoverPane.setManaged(false);
+        hoverPane.setMouseTransparent(true);
+        hoverMarkers = new Group();
+        hoverPane.getChildren().add(hoverMarkers);
+
         chartPane.getChildren().addAll(gridLinesPane, areaChart, deviationScalePane);
+
+        areaChart.setOnMouseMoved(this::onChartMouseMoved);
+        areaChart.setOnMouseDragged(this::onChartMouseMoved);
+        areaChart.setOnMouseExited(e -> {
+            hoverMouse = null;
+            updateHover(false);
+        });
+        areaChart.setOnMouseClicked(e -> {
+            if (!isPlainClick(e)) return;
+            hoverMouse = new Point2D(e.getSceneX(), e.getSceneY());
+            XYChart.Data<Number, Number> nearest = nearestData();
+            if (nearest != null) model.showOffer(offerOf(nearest));
+        });
 
         InvalidationListener overlayRedrawTrigger = observable -> scheduleChartOverlaysRedraw();
         xAxis.lowerBoundProperty().addListener(overlayRedrawTrigger);
@@ -418,6 +478,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         yAxis.upperBoundProperty().addListener(overlayRedrawTrigger);
         areaChart.widthProperty().addListener(overlayRedrawTrigger);
         areaChart.heightProperty().addListener(overlayRedrawTrigger);
+        // the page scrolling under a resting pointer; a change listener, since nothing else reads this property
+        hoverPane.localToSceneTransformProperty().addListener((observable, oldValue, newValue) -> scheduleChartOverlaysRedraw());
     }
 
     private synchronized void updateChartData() {
@@ -484,6 +546,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             chartOverlaysRedrawScheduled = false;
             redrawGridLines();
             redrawDeviationScale();
+            updateHover(true);
         });
     }
 
@@ -519,6 +582,234 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private double gridLineY(Number value) {
         Point2D scenePoint = yAxis.localToScene(0, yAxis.getDisplayPosition(value));
         return gridLinesPane.sceneToLocal(scenePoint).getY();
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Offer card: the offer at the pointer's price, read only; a click opens it in the offer book
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    private void onChartMouseMoved(MouseEvent event) {
+        hoverMouse = new Point2D(event.getSceneX(), event.getSceneY());
+        updateHover(false);
+    }
+
+    // Re-runs the hit test from the last pointer position; with redraw the markers and the card are laid out again
+    private void updateHover(boolean redraw) {
+        if (hoverPane == null) return;
+        XYChart.Data<Number, Number> nearest = nearestData();
+        boolean changed = nearest != hoveredData;
+        hoveredData = nearest;
+        areaChart.setCursor(nearest == null ? Cursor.DEFAULT : Cursor.HAND);
+        if (changed || redraw) {
+            redrawMarkers();
+            redrawCard();
+        }
+    }
+
+    // The point at the pointer's price anywhere in the plot area; among offers in that price column, the nearest by height
+    private XYChart.Data<Number, Number> nearestData() {
+        if (hoverMouse == null || currencyComboBox.isShowing()) return null;
+        Point2D mouse = hoverPane.sceneToLocal(hoverMouse);
+        Bounds plotBounds = plotBounds();
+        if (plotBounds == null || !plotBounds.contains(mouse)) return null;
+        List<XYChart.Data<Number, Number>> points = areaChart.getData().stream().flatMap(series -> series.getData().stream()).collect(Collectors.toList());
+        double nearestX = points.stream().mapToDouble(data -> Math.abs(mouse.getX() - hoverPoint(data).getX())).min().orElse(0);
+        return points.stream()
+                .filter(data -> Math.abs(mouse.getX() - hoverPoint(data).getX()) <= nearestX + 1)
+                .min(Comparator.comparingDouble(data -> Math.abs(mouse.getY() - hoverPoint(data).getY())))
+                .orElse(null);
+    }
+
+    // The plot area in the overlay's coordinates, or null before the chart is laid out
+    private Bounds plotBounds() {
+        Node plotBackground = areaChart.lookup(".chart-plot-background");
+        return plotBackground == null ? null : hoverPane.sceneToLocal(plotBackground.localToScene(plotBackground.getBoundsInLocal()));
+    }
+
+    private Point2D hoverPoint(XYChart.Data<Number, Number> data) {
+        double x = hoverPane.sceneToLocal(xAxis.localToScene(xAxis.getDisplayPosition(data.getXValue()), 0)).getX();
+        double y = hoverPane.sceneToLocal(yAxis.localToScene(0, yAxis.getDisplayPosition(data.getYValue()))).getY();
+        return new Point2D(x, y);
+    }
+
+    private static Offer offerOf(XYChart.Data<Number, Number> data) {
+        return (Offer) data.getExtraValue();
+    }
+
+    // The offer's chart entry from the model, plotted or filtered out as an outlier, or null once the offer left the book
+    private XYChart.Data<Number, Number> dataFor(Offer offer) {
+        for (List<XYChart.Data<Number, Number>> data : List.of(model.getBuyData(), model.getSellData())) {
+            synchronized (data) {
+                for (XYChart.Data<Number, Number> entry : data) {
+                    if (offerOf(entry).getId().equals(offer.getId())) return entry;
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isPlotted(XYChart.Data<Number, Number> data) {
+        return seriesBuy.getData().contains(data) || seriesSell.getData().contains(data);
+    }
+
+    // Marks the hovered point with a guide to its price and the point of the table row under the pointer, and links the
+    // rows to the hovered point; the row's offer is read here since a reused row shows another offer after a rebuild
+    private void redrawMarkers() {
+        hoverMarkers.getChildren().clear();
+        XYChart.Data<Number, Number> linkedData = hoveredRow == null || hoveredRow.isEmpty() ? null : dataFor(hoveredRow.getItem().offer);
+        if (linkedData != null && linkedData != hoveredData && isPlotted(linkedData)) addMarker(linkedData);
+        if (hoveredData != null) {
+            addGuide(hoveredData);
+            addMarker(hoveredData);
+        }
+        for (TableView<OfferListItem> table : List.of(buyOfferTableView, sellOfferTableView)) {
+            for (Node node : table.lookupAll(".table-row-cell")) updateLinkedRow((TableRow<?>) node);
+        }
+    }
+
+    private void addMarker(XYChart.Data<Number, Number> data) {
+        Point2D point = hoverPoint(data);
+        String side = offerOf(data).isBuyOffer() ? "buy" : "sell";
+        Circle halo = new Circle(point.getX(), point.getY(), HOVER_HALO_RADIUS);
+        halo.getStyleClass().addAll("chart-hover-halo", side);
+        Circle marker = new Circle(point.getX(), point.getY(), HOVER_MARKER_RADIUS);
+        marker.getStyleClass().addAll("chart-hover-marker", side);
+        hoverMarkers.getChildren().addAll(halo, marker);
+    }
+
+    // A dashed line from the point down to the price axis, with the price on a chip over the axis
+    private void addGuide(XYChart.Data<Number, Number> data) {
+        Bounds plotBounds = plotBounds();
+        if (plotBounds == null) return;
+        Point2D point = hoverPoint(data);
+        String side = offerOf(data).isBuyOffer() ? "buy" : "sell";
+        Line guide = new Line(point.getX(), point.getY(), point.getX(), plotBounds.getMaxY());
+        guide.getStyleClass().addAll("chart-hover-guide", side);
+        Label chip = new Label(FormattingUtils.formatPrice(offerOf(data).getPrice()));
+        chip.getStyleClass().addAll("chart-hover-chip", side);
+        chip.setManaged(false);
+        hoverMarkers.getChildren().addAll(guide, chip);
+        chip.applyCss();
+        double width = chip.prefWidth(-1);
+        chip.resizeRelocate(Math.max(0, Math.min(point.getX() - width / 2, hoverPane.getWidth() - width)), plotBounds.getMaxY() + HOVER_CHIP_GAP, width, chip.prefHeight(width));
+    }
+
+    // A row is linked while its offer's point is hovered on the chart
+    private void updateLinkedRow(TableRow<?> row) {
+        Offer offer = row.getItem() instanceof OfferListItem ? ((OfferListItem) row.getItem()).offer : null;
+        row.pseudoClassStateChanged(LINKED_PSEUDO_CLASS, offer != null && hoveredData != null && offerOf(hoveredData).getId().equals(offer.getId()));
+    }
+
+    // Lays the hovered point's card out beside it, toward the spread and above, kept within the view
+    private void redrawCard() {
+        hoverPane.getChildren().remove(hoverCard);
+        hoverCard = null;
+        if (hoveredData == null) return;
+        Offer offer = offerOf(hoveredData);
+        Point2D point = hoverPoint(hoveredData);
+
+        // same side offers whose points overlap the hovered one are listed in the card, topmost first
+        List<XYChart.Data<Number, Number>> cluster = areaChart.getData().stream()
+                .flatMap(series -> series.getData().stream())
+                .filter(data -> offerOf(data).isBuyOffer() == offer.isBuyOffer() && point.distance(hoverPoint(data)) <= HOVER_CLUSTER_RADIUS)
+                .sorted(Comparator.comparingDouble(data -> hoverPoint(data).getY()))
+                .collect(Collectors.toList());
+        VBox card = createCard(hoveredData, cluster);
+        hoverCard = card;
+        hoverPane.getChildren().add(card);
+
+        card.applyCss();
+        double width = Math.max(HOVER_CARD_MIN_WIDTH, card.prefWidth(-1));
+        double height = card.prefHeight(width);
+        boolean opensRight = offer.isBuyOffer();
+        double x = opensRight ? point.getX() + HOVER_CARD_GAP : point.getX() - HOVER_CARD_GAP - width;
+        if (x < 0 || x + width > hoverPane.getWidth()) x = opensRight ? point.getX() - HOVER_CARD_GAP - width : point.getX() + HOVER_CARD_GAP;
+        double y = point.getY() - HOVER_CARD_GAP - height;
+        card.resizeRelocate(Math.max(0, Math.min(x, hoverPane.getWidth() - width)), Math.max(0, Math.min(y, hoverPane.getHeight() - height)), width, height);
+    }
+
+    // The card for an offer: its price and deviation, then its amounts, payment method and maker, or with a cluster the
+    // offers sharing its point, with the one the pointer's height picks highlighted
+    private VBox createCard(XYChart.Data<Number, Number> shown, List<XYChart.Data<Number, Number>> cluster) {
+        Offer offer = offerOf(shown);
+        VBox card = new VBox();
+        card.getStyleClass().add("chart-hover-card");
+        card.setManaged(false);
+
+        String title = offer.isBuyOffer() ? sellHeaderLabel.getText() : buyHeaderLabel.getText();
+        if (cluster.size() > 1) title += "  ·  " + cluster.size() + " " + Res.get("shared.multipleOffers");
+        HBox header = new HBox(12, hoverLabel(title, "dim", "small"), hoverSpacer());
+        if (chartMarketPrice > 0) {
+            // the plotted price and the market price come from the same chart build, like the deviation scale
+            String deviation = formatDeviation(shown.getXValue().doubleValue() / chartMarketPrice - 1, 2);
+            header.getChildren().add(hoverLabel(Res.get("market.offerBook.chart.deviationFromMarket", deviation), "dim", "small"));
+        }
+        String currencyCode = model.getCurrencyCode();
+        HBox priceRow = new HBox(5, hoverLabel(FormattingUtils.formatPrice(offer.getPrice()), "price"), hoverLabel(currencyCode, "dim", "small"));
+        priceRow.setAlignment(Pos.BASELINE_LEFT);
+        card.getChildren().addAll(header, priceRow);
+
+        if (cluster.size() > 1) {
+            // rows around the hovered offer, with an ellipsis where the cluster is longer than the card shows
+            int from = Math.max(0, Math.min(cluster.indexOf(shown) - HOVER_CLUSTER_MAX_ROWS / 2, cluster.size() - HOVER_CLUSTER_MAX_ROWS));
+            int to = Math.min(cluster.size(), from + HOVER_CLUSTER_MAX_ROWS);
+            VBox list = new VBox();
+            list.getStyleClass().add("list");
+            if (from > 0) list.getChildren().add(hoverLabel("…", "dim", "more"));
+            for (XYChart.Data<Number, Number> data : cluster.subList(from, to)) {
+                Offer rowOffer = offerOf(data);
+                HBox row = new HBox(12, hoverLabel(DisplayUtils.formatAmount(rowOffer, formatter) + " " + Res.getBaseCurrencyCode()), hoverSpacer(),
+                        hoverLabel(rowOffer.getPaymentMethodNameWithCountryCode(), "dim"));
+                row.getStyleClass().add("row");
+                if (data == shown) row.getStyleClass().add("current");
+                list.getChildren().add(row);
+            }
+            if (to < cluster.size()) list.getChildren().add(hoverLabel("…", "dim", "more"));
+            card.getChildren().add(list);
+            return card;
+        }
+
+        boolean myOffer = model.isMyOffer(offer);
+        HBox maker = new HBox(6);
+        maker.setAlignment(Pos.CENTER_RIGHT);
+        if (myOffer) {
+            maker.getChildren().add(hoverLabel(Res.get("shared.me")));
+        } else {
+            maker.getChildren().add(new PeerInfoIconSmall(offer.getOwnerNodeAddress(), Res.get("peerInfoIcon.tooltip.maker"), offer,
+                    model.preferences, model.accountAgeWitnessService, useDevPrivilegeKeys));
+            long accountAge = CurrencyUtil.isFiatCurrency(currencyCode) ? model.accountAgeWitnessService.getAccountAge(offer) : -1;
+            if (accountAge > -1) maker.getChildren().add(hoverLabel(Res.get("market.offerBook.chart.accountAge", DisplayUtils.formatAccountAge(accountAge))));
+        }
+        VBox rows = new VBox(3,
+                hoverRow(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode()), hoverLabel(DisplayUtils.formatAmount(offer, formatter))),
+                hoverRow(Res.get("shared.amountWithCur", currencyCode), hoverLabel(VolumeUtil.formatVolume(offer, false, 0))),
+                hoverRow(Res.get("shared.paymentMethod"), hoverLabel(offer.getPaymentMethodNameWithCountryCode())),
+                hoverRow(Res.get("shared.maker"), maker));
+        rows.getStyleClass().add("rows");
+        card.getChildren().add(rows);
+        return card;
+    }
+
+    private static boolean isPlainClick(MouseEvent event) {
+        return event.getButton() == MouseButton.PRIMARY && event.isStillSincePress();
+    }
+
+    private static HBox hoverRow(String key, Node value) {
+        HBox row = new HBox(12, hoverLabel(key, "dim"), hoverSpacer(), value);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private static Region hoverSpacer() {
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        return spacer;
+    }
+
+    private static Label hoverLabel(String text, String... styleClasses) {
+        Label label = new Label(text);
+        label.getStyleClass().addAll(styleClasses);
+        return label;
     }
 
     private void redrawDeviationScale() {
@@ -688,8 +979,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         // price
         TableColumn<OfferListItem, OfferListItem> priceColumn = new TableColumn<>();
         priceColumn.textProperty().bind(priceColumnLabel);
-        priceColumn.setMinWidth(115);
-        priceColumn.setMaxWidth(115);
+        priceColumn.setMinWidth(100);
+        priceColumn.setMaxWidth(100);
         priceColumn.setSortable(false);
         priceColumn.getStyleClass().add("number-column");
         priceColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
@@ -742,7 +1033,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
 
         // volume
         TableColumn<OfferListItem, OfferListItem> volumeColumn = new TableColumn<>();
-        volumeColumn.setMinWidth(115);
+        volumeColumn.setMinWidth(90);
         volumeColumn.setSortable(false);
         volumeColumn.textProperty().bind(isSellTable ? volumeSellColumnLabel : volumeBuyColumnLabel);
         volumeColumn.getStyleClass().addAll("number-column");
@@ -804,7 +1095,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         // amount
         TableColumn<OfferListItem, OfferListItem> amountColumn = new TableColumn<>();
         amountColumn.textProperty().bind(isSellTable ? amountSellColumnLabel : amountBuyColumnLabel);
-        amountColumn.setMinWidth(115);
+        amountColumn.setMinWidth(90);
         amountColumn.setSortable(false);
         amountColumn.getStyleClass().add("number-column");
         amountColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
@@ -827,12 +1118,25 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
                     }
                 });
 
+        // payment method
+        TableColumn<OfferListItem, OfferListItem> paymentMethodColumn = new AutoTooltipTableColumn<>(Res.get("shared.paymentMethod"));
+        paymentMethodColumn.setMinWidth(120);
+        paymentMethodColumn.setSortable(false);
+        paymentMethodColumn.setCellValueFactory((offer) -> new ReadOnlyObjectWrapper<>(offer.getValue()));
+        paymentMethodColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            public void updateItem(final OfferListItem offerListItem, boolean empty) {
+                super.updateItem(offerListItem, empty);
+                setGraphic(offerListItem != null && !empty ? new AutoTooltipLabel(offerListItem.offer.getPaymentMethodNameWithCountryCode()) : null);
+            }
+        });
+
         // trader avatar
         TableColumn<OfferListItem, OfferListItem> avatarColumn = new AutoTooltipTableColumn<>(isSellTable ?
                 Res.get("shared.sellerUpperCase") : Res.get("shared.buyerUpperCase")) {
             {
-                setMinWidth(80);
-                setMaxWidth(80);
+                setMinWidth(60);
+                setMaxWidth(60);
                 setSortable(true);
             }
         };
@@ -876,9 +1180,36 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tableView.getColumns().add(volumeColumn);
         tableView.getColumns().add(amountColumn);
         tableView.getColumns().add(priceColumn);
+        tableView.getColumns().add(paymentMethodColumn);
         tableView.getColumns().add(avatarColumn);
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        tableView.setRowFactory(tv -> {
+            TableRow<OfferListItem> row = new TableRow<>() {
+                @Override
+                protected void updateItem(OfferListItem item, boolean empty) {
+                    super.updateItem(item, empty);
+                    updateLinkedRow(this);
+                }
+            };
+            // the row under the pointer marks its point on the chart, and a click opens its offer in the offer book
+            row.setOnMouseEntered(e -> {
+                hoveredRow = row;
+                redrawMarkers();
+            });
+            row.setOnMouseExited(e -> {
+                if (hoveredRow == row) hoveredRow = null;
+                redrawMarkers();
+            });
+            row.setOnMouseClicked(e -> {
+                if (!row.isEmpty() && isPlainClick(e)) model.showOffer(row.getItem().offer);
+            });
+            return row;
+        });
+        tableView.setOnKeyPressed(e -> {
+            OfferListItem selected = tableView.getSelectionModel().getSelectedItem();
+            if (e.getCode() == KeyCode.ENTER && selected != null) model.showOffer(selected.offer);
+        });
         Label placeholder = new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.multipleOffers")));
         placeholder.setWrapText(true);
         tableView.setPlaceholder(placeholder);

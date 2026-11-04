@@ -25,11 +25,15 @@ import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
+import haveno.desktop.main.MainView;
+import haveno.desktop.main.market.MarketView;
+import haveno.desktop.main.market.offerbook.OfferBookChartView;
 import haveno.desktop.util.GUIUtil;
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -39,7 +43,9 @@ import javafx.collections.transformation.SortedList;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.util.Callback;
@@ -47,6 +53,7 @@ import javafx.util.Callback;
 @FxmlView
 public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewModel> {
     private final CoinFormatter formatter;
+    private final Navigation navigation;
     private TableView<SpreadItem> tableView;
     private SortedList<SpreadItem> sortedList;
     private ListChangeListener<SpreadItem> itemListChangeListener;
@@ -57,9 +64,10 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public SpreadView(SpreadViewModel model, @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
+    public SpreadView(SpreadViewModel model, @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter, Navigation navigation) {
         super(model);
         this.formatter = formatter;
+        this.navigation = navigation;
     }
 
     @Override
@@ -67,6 +75,18 @@ public class SpreadView extends ActivatableViewAndModel<GridPane, SpreadViewMode
         tableView = new TableView<>();
         GUIUtil.applyTableStyle(tableView);
         tableView.getStyleClass().add("non-interactive-table");
+        if (!model.isIncludePaymentMethod()) {
+            // a currency row opens the offer book chart on that currency
+            tableView.getStyleClass().add("clickable-rows");
+            tableView.setRowFactory(tv -> {
+                TableRow<SpreadItem> row = new TableRow<>();
+                row.setOnMouseClicked(e -> {
+                    if (row.isEmpty() || e.getButton() != MouseButton.PRIMARY || !e.isStillSincePress()) return;
+                    navigation.navigateToWithData(row.getItem().currencyCode, MainView.class, MarketView.class, OfferBookChartView.class);
+                });
+                return row;
+            });
+        }
 
         int gridRow = 0;
         GridPane.setRowIndex(tableView, gridRow);
