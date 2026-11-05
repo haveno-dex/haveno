@@ -67,6 +67,9 @@
     -bs-color-background-row-even: rgb(19, 19, 19);
     -bs-color-background-row-odd: rgb(9, 9, 9);
     -bs-color-background-row-hover: rgb(33, 33, 33);
+    -bs-color-row-sibling-bar: rgba(255, 255, 255, 0.25);
+    -bs-color-row-linked-bar: rgba(255, 255, 255, 0.55);
+    -bs-color-row-new-offer: rgba(255, 255, 255, 0.22);
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-color-table-cell-disabled: #7a7a7a;
     -bs-text-color-dim1: rgb(87, 87, 87);
@@ -179,6 +182,7 @@
     -bs-progress-bar-track: #272728;
     -bs-chart-tick: rgba(255, 255, 255, 0.7);
     -bs-chart-lines: -bs-color-gray-2;
+    -bs-chart-chip-neutral: #4a4a4a;
     -bs-white: white;
     -bs-prompt-text: -bs-color-gray-6;
     -bs-decimals: #db6300;
@@ -670,6 +674,16 @@
 .table-view.non-interactive-table .hyperlink-with-icon,
 .table-view.non-interactive-table .table-row-cell .hyperlink .text {
     -fx-fill: -bs-color-gray-dim;
+}
+
+/* The Market offer panels read brighter than the other dim tables, and brightest on the row in focus. */
+.offer-book-card .table-view.offer-table .table-row-cell {
+    -bs-color-gray-dim: -bs-rd-font-dark;
+}
+
+.offer-book-card .table-view.offer-table .table-row-cell:linked .label,
+.offer-book-card .table-view.offer-table .table-row-cell:filled:selected .label {
+    -fx-text-fill: -bs-white;
 }
 
 .table-view.non-interactive-table .table-cell.highlight-text,

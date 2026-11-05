@@ -17,7 +17,10 @@
 
 package haveno.desktop.main.offer;
 
+import com.google.common.base.Joiner;
 import haveno.common.UserThread;
+import haveno.core.locale.BankUtil;
+import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -25,6 +28,7 @@ import haveno.core.locale.TradeCurrency;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.main.offer.offerbook.FiatOfferBookView;
@@ -44,6 +48,7 @@ import monero.daemon.model.MoneroSubmitTxResult;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -97,6 +102,61 @@ public class OfferViewUtil {
             offerBookViewClazz = OtherOfferBookView.class;
         }
         return offerBookViewClazz;
+    }
+
+    public static String getPaymentMethod(Offer offer) {
+        if (isF2F(offer)) {
+            return offer.getPaymentMethod().getShortName() + " (" + offer.getCountryCode() + ", " + offer.getF2FCity() + ")";
+        } else {
+            return offer.getPaymentMethodNameWithCountryCode();
+        }
+    }
+
+    public static String getPaymentMethodToolTip(Offer offer) {
+        String result = Res.getWithCol("shared.paymentMethod") + " " + Res.get(offer.getPaymentMethod().getId());
+        result += "\n" + Res.getWithCol("shared.currency") + " " + CurrencyUtil.getNameAndCode(offer.getCounterCurrencyCode());
+
+        String countryCode = offer.getCountryCode();
+        if (isF2F(offer)) {
+            if (countryCode != null) {
+                result += "\n" + Res.get("payment.f2f.offerbook.tooltip.countryAndCity",
+                        CountryUtil.getNameByCode(countryCode), offer.getF2FCity());
+            }
+        } else {
+            if (countryCode != null) {
+                String bankId = offer.getBankId();
+                if (bankId != null && !bankId.equals("null")) {
+                    if (BankUtil.isBankIdRequired(countryCode))
+                        result += "\n" + Res.get("offerbook.offerersBankId", bankId);
+                    else if (BankUtil.isBankNameRequired(countryCode))
+                        result += "\n" + Res.get("offerbook.offerersBankName", bankId);
+                }
+            }
+
+            if (countryCode != null)
+                result += "\n" + Res.get("offerbook.offerersBankSeat", CountryUtil.getNameByCode(countryCode));
+
+            List<String> acceptedCountryCodes = offer.getAcceptedCountryCodes();
+            List<String> acceptedBanks = offer.getAcceptedBankIds();
+            if (acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty()) {
+                if (CountryUtil.containsAllSepaEuroCountries(acceptedCountryCodes))
+                    result += "\n" + Res.get("offerbook.offerersAcceptedBankSeatsEuro");
+                else
+                    result += "\n" + Res.get("offerbook.offerersAcceptedBankSeats", CountryUtil.getNamesByCodesString(acceptedCountryCodes));
+            } else if (acceptedBanks != null && !acceptedBanks.isEmpty()) {
+                if (offer.getPaymentMethod().equals(PaymentMethod.SAME_BANK))
+                    result += "\n" + Res.getWithCol("shared.bankName") + " " + acceptedBanks.get(0);
+                else if (offer.getPaymentMethod().equals(PaymentMethod.SPECIFIC_BANKS))
+                    result += "\n" + Res.getWithCol("shared.acceptedBanks") + " " + Joiner.on(", ").join(acceptedBanks);
+            }
+        }
+        if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
+            result += "\n" + Res.get("payment.shared.extraInfo.tooltip", offer.getCombinedExtraInfo());
+        return result;
+    }
+
+    private static boolean isF2F(Offer offer) {
+        return offer.getPaymentMethod().equals(PaymentMethod.F2F);
     }
 
     public static boolean isShownAsSellOffer(Offer offer) {

@@ -24,10 +24,12 @@ import org.slf4j.LoggerFactory;
 public class OfferListItem {
     private static final Logger log = LoggerFactory.getLogger(OfferListItem.class);
     public final Offer offer;
+    public final double price;
     public final double accumulated;
 
-    public OfferListItem(Offer offer, double accumulated) {
+    public OfferListItem(Offer offer, double price, double accumulated) {
         this.offer = offer;
+        this.price = price;
         this.accumulated = accumulated;
     }
 
@@ -40,6 +42,7 @@ public class OfferListItem {
 
         //noinspection SimplifiableIfStatement
         if (Double.compare(that.accumulated, accumulated) != 0) return false;
+        if (Double.compare(that.price, price) != 0) return false;
         return !(offer != null ? !offer.equals(that.offer) : that.offer != null);
 
     }
@@ -50,6 +53,8 @@ public class OfferListItem {
         long temp;
         result = offer != null ? offer.hashCode() : 0;
         temp = Double.doubleToLongBits(accumulated);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(price);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
     }
