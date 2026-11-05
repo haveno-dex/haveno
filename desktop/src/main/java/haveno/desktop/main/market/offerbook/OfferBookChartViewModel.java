@@ -29,11 +29,14 @@ import haveno.core.monetary.Price;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferFilterService;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
+import haveno.core.util.FormattingUtils;
+import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableViewModel;
@@ -68,6 +71,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 class OfferBookChartViewModel extends ActivatableViewModel {
     private static final int TAB_INDEX = 0;
 
@@ -77,6 +82,8 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     final PriceFeedService priceFeedService;
     final AccountAgeWitnessService accountAgeWitnessService;
     private final Navigation navigation;
+    private final PriceUtil priceUtil;
+    private final OfferFilterService offerFilterService;
 
     final ObjectProperty<TradeCurrency> selectedTradeCurrencyProperty = new SimpleObjectProperty<>();
     private final List<XYChart.Data<Number, Number>> buyData = new ArrayList<>();
@@ -103,13 +110,17 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                             Preferences preferences,
                             PriceFeedService priceFeedService,
                             AccountAgeWitnessService accountAgeWitnessService,
-                            Navigation navigation) {
+                            Navigation navigation,
+                            PriceUtil priceUtil,
+                            OfferFilterService offerFilterService) {
         this.offerBook = offerBook;
         this.openOfferManager = openOfferManager;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
         this.navigation = navigation;
         this.accountAgeWitnessService = accountAgeWitnessService;
+        this.priceUtil = priceUtil;
+        this.offerFilterService = offerFilterService;
 
         String code = preferences.getOfferBookChartScreenCurrencyCode();
         if (code != null) {
@@ -257,10 +268,23 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         return openOfferManager.isMyOffer(offer);
     }
 
+    public boolean isOfferBanned(Offer offer) {
+        return offerFilterService.isOfferBanned(offer);
+    }
+
     public void goToOfferView(OfferDirection direction) {
+        goToOfferView(direction, null);
+    }
+
+    // Opens the offer book of the offer's side with the offer selected.
+    public void showOffer(Offer offer) {
+        goToOfferView(offer.getDirection(), offer);
+    }
+
+    private void goToOfferView(OfferDirection direction, @Nullable Offer offer) {
         updateScreenCurrencyInPreferences(direction);
         Class<? extends OfferView> offerView = isSellOffer(direction) ? BuyOfferView.class : SellOfferView.class;
-        navigation.navigateTo(MainView.class, offerView, OfferViewUtil.getOfferBookViewClass(getCurrencyCode()));
+        navigation.navigateToWithData(offer, MainView.class, offerView, OfferViewUtil.getOfferBookViewClass(getCurrencyCode()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -284,6 +308,18 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         MarketPrice marketPrice = priceFeedService.getMarketPrice(getCurrencyCode());
         if (marketPrice == null || !marketPrice.isRecentExternalPriceAvailable()) return Optional.empty();
         return Optional.of(marketPrice.getPrice());
+    }
+
+    // Market priced offers have no price until the first market prices arrive.
+    public boolean isAwaitingPrices() {
+        return !priceFeedService.hasExternalPrices() && hasUnpricedOffers();
+    }
+
+    // Market priced offers have no price without a recent market price of their currency.
+    public boolean hasUnpricedOffers() {
+        return offerBookListItems.stream()
+                .map(OfferBookListItem::getOffer)
+                .anyMatch(offer -> offer.getCounterCurrencyCode().equals(getCurrencyCode()) && offer.getPrice() == null);
     }
 
     public ObservableList<OfferBookListItem> getOfferBookListItems() {
@@ -327,6 +363,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         return DisplayUtils.formatPrice(offer.getPrice(), decimalAligned, offer.isBuyOffer()
                 ? maxPlacesForBuyPrice.get()
                 : maxPlacesForSellPrice.get());
+    }
+
+    // The offer's percent from the market price for its taker, the value of the offer book's price column.
+    public String getPriceAsPercentage(Offer offer) {
+        return priceUtil.getMarketBasedPrice(offer, offer.getMirroredDirection())
+                .map(FormattingUtils::formatPercentagePrice)
+                .orElse("");
     }
 
     public String getVolume(Offer offer) {
@@ -442,13 +485,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
                 if (price != null) {
                     double amount = (double) offer.getAmount().longValueExact() / LongMath.pow(10, HavenoUtils.XMR_SMALLEST_UNIT_EXPONENT);
                     accumulatedAmount += amount;
-                    offerTableListTemp.add(new OfferListItem(offer, accumulatedAmount));
     
                     double priceAsDouble = (double) price.getValue() / LongMath.pow(10, price.smallestUnitExponent());
+                    offerTableListTemp.add(new OfferListItem(offer, priceAsDouble, accumulatedAmount));
                     if (direction.equals(OfferDirection.BUY))
-                        data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                        data.add(0, new XYChart.Data<>(priceAsDouble, accumulatedAmount, offer));
                     else
-                        data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount));
+                        data.add(new XYChart.Data<>(priceAsDouble, accumulatedAmount, offer));
                 }
             }
             offerTableList.setAll(offerTableListTemp);

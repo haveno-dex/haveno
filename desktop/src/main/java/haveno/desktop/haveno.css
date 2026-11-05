@@ -2678,6 +2678,99 @@ textfield */
     -fx-cursor: default;
 }
 
+/* Rows at the price of the offer in focus on the depth chart take a dim bar on the left edge. The card in the
+   selectors outranks the theme's hover and selection rules. */
+.offer-book-card .table-view.offer-table .table-row-cell:linked-sibling:even .table-cell.first-column {
+    -fx-background-color: -bs-color-row-sibling-bar, -bs-color-background-row-even;
+    -fx-background-insets: 0, 0 0 0 2;
+}
+.offer-book-card .table-view.offer-table .table-row-cell:linked-sibling:odd .table-cell.first-column {
+    -fx-background-color: -bs-color-row-sibling-bar, -bs-color-background-row-odd;
+    -fx-background-insets: 0, 0 0 0 2;
+}
+
+/* A new offer's row glows as strongly as the color which the view animates on it is bright. */
+.table-view.offer-table .table-row-cell:new-offer:even {
+    -fx-background-color: -bs-color-background-row-even, ladder(-bs-new-offer-glow, transparent 0%, -bs-color-row-new-offer 100%);
+    -fx-background-insets: 0;
+}
+.table-view.offer-table .table-row-cell:new-offer:odd {
+    -fx-background-color: -bs-color-background-row-odd, ladder(-bs-new-offer-glow, transparent 0%, -bs-color-row-new-offer 100%);
+    -fx-background-insets: 0;
+}
+.table-view.offer-table .table-row-cell:new-offer .table-cell {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* The hover stays with an offer while the book moves its rows, so the row under the pointer keeps its plain colors
+   and :linked marks the hovered offer. */
+.offer-book-card .table-view.offer-table .table-row-cell:hover:even {
+    -fx-background-color: -bs-color-background-row-even;
+}
+.offer-book-card .table-view.offer-table .table-row-cell:hover:odd {
+    -fx-background-color: -bs-color-background-row-odd;
+}
+.offer-book-card .table-view.offer-table .table-row-cell:hover:even .table-cell {
+    -fx-background-color: -bs-color-background-row-even;
+    -fx-border-color: -bs-color-background-row-even;
+}
+.offer-book-card .table-view.offer-table .table-row-cell:hover:odd .table-cell {
+    -fx-background-color: -bs-color-background-row-odd;
+    -fx-border-color: -bs-color-background-row-odd;
+}
+
+/* The row of the offer in focus, and the selected row which keeps it there, take the hover tint and a bar on the left edge. */
+.offer-book-card .table-view.offer-table .table-row-cell:filled:linked,
+.offer-book-card .table-view.offer-table .table-row-cell:filled:selected {
+    -fx-background-color: -bs-color-background-row-hover;
+}
+.offer-book-card .table-view.offer-table .table-row-cell:filled:linked .table-cell,
+.offer-book-card .table-view.offer-table .table-row-cell:filled:selected .table-cell {
+    -fx-background: -bs-color-background-row-hover;
+    -fx-background-color: -bs-color-background-row-hover;
+    -fx-border-color: transparent;
+}
+.offer-book-card .table-view.offer-table .table-row-cell:linked .table-cell.first-column,
+.offer-book-card .table-view.offer-table .table-row-cell:filled:selected .table-cell.first-column {
+    -fx-background-color: -bs-color-row-linked-bar, -bs-color-background-row-hover;
+    -fx-background-insets: 0, 0 0 0 2;
+}
+
+.offer-book-card .table-view.offer-table .table-row-cell .table-cell .offer-percent {
+    -fx-text-fill: -bs-rd-font-lighter;
+    -fx-font-size: 0.885em;
+    -fx-padding: 0 0 0 8;
+}
+
+.offer-book-card .table-view.offer-table .table-row-cell .table-cell .offer-instant-tag {
+    -fx-text-fill: -bs-rd-font-lighter;
+    -fx-font-size: 11px;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-radius: 3;
+    -fx-padding: 0 5 0 5;
+}
+
+.offer-table .offer-terms-icon {
+    -fx-fill: -bs-rd-font-lighter;
+}
+
+/* The card with an offer's payment details and terms: a tooltip drawn inside the view, so that it stays in the window. */
+.offer-terms-card {
+    -fx-background-color: -bs-context-menu-background;
+    -fx-border-color: -bs-color-border-form-field;
+    -fx-border-radius: 6;
+}
+
+.offer-terms-card .label {
+    -fx-text-fill: -bs-text-color;
+}
+
+.offer-terms-card .offer-terms-more {
+    -fx-text-fill: -bs-rd-font-lighter;
+    -fx-padding: 4 0 0 0;
+}
+
 .offer-table-top {
     -fx-background-color: -bs-color-background-pane;
     -fx-padding: 15 15 5 15;
@@ -3593,11 +3686,114 @@ textfield */
     -fx-opacity: 0.55;
 }
 
-#charts .default-color0.chart-area-symbol {
-    -fx-background-color: -bs-buy, -bs-background-color;
+.deviation-scale-label:market {
+    -fx-text-fill: -bs-text-color;
 }
 
-#charts .default-color1.chart-area-symbol, #charts-dao .default-color0.chart-area-symbol {
+/* Focus on the depth chart: a marker on the offer's step, a guide, chips on both scales and a label.
+   The side sets the color, which stays neutral for a bare price. */
+.chart-focus {
+    -bs-chart-focus: -bs-chart-chip-neutral;
+}
+
+.chart-focus.bid {
+    -bs-chart-focus: -bs-buy;
+}
+
+.chart-focus.ask {
+    -bs-chart-focus: -bs-sell;
+}
+
+.chart-focus-halo {
+    -fx-fill: -bs-chart-focus;
+    -fx-opacity: 0.22;
+}
+
+.chart-focus-dot {
+    -fx-fill: -bs-chart-focus;
+    -fx-stroke: -bs-background-color;
+    -fx-stroke-width: 2;
+}
+
+.chart-focus-guide {
+    -fx-stroke: -bs-chart-focus;
+    -fx-stroke-dash-array: 3 3;
+    -fx-opacity: 0.85;
+}
+
+.chart-focus.gap .chart-focus-guide {
+    -fx-stroke: -bs-rd-font-lighter;
+    -fx-opacity: 0.7;
+}
+
+/* the ring which grows and fades around the dot on a new offer's step corner */
+.chart-new-offer-ring {
+    -fx-fill: transparent;
+    -fx-stroke: -bs-chart-focus;
+    -fx-stroke-width: 2;
+}
+
+.chart-focus-chip {
+    -fx-background-color: -bs-chart-focus;
+    -fx-background-radius: 3;
+    -fx-text-fill: white;
+    -fx-font-size: 10.5px;
+    -fx-padding: 0 7 0 7;
+    -fx-alignment: center;
+}
+
+.chart-focus-label {
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 4;
+    -fx-border-color: -bs-offer-card-border;
+    -fx-border-radius: 4;
+    -fx-padding: 6 9 6 9;
+}
+
+.chart-focus-label .label {
+    -fx-text-fill: -bs-rd-font-lighter;
+    -fx-font-size: 11px;
+}
+
+.chart-focus-label .chart-focus-amount {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 12px;
+}
+
+/* the outline in the page color keeps the grid lines off the note's letters */
+.chart-empty-note {
+    -fx-fill: -bs-rd-font-lighter;
+    -fx-font-size: 12.5px;
+    -fx-stroke: -bs-content-background-gray;
+    -fx-stroke-width: 3;
+    -fx-stroke-type: outside;
+}
+
+.chart-empty-book .label {
+    -fx-text-fill: -bs-rd-font-lighter;
+    -fx-font-size: 12px;
+}
+
+.chart-empty-book .chart-empty-title {
+    -fx-text-fill: -bs-text-color;
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 4 0;
+}
+
+.chart-empty-book .hyperlink {
+    -fx-font-size: 12px;
+    -fx-padding: 0;
+}
+
+.chart-empty-book .hyperlink.buy {
+    -fx-text-fill: -bs-buy;
+}
+
+.chart-empty-book .hyperlink.sell {
+    -fx-text-fill: -bs-sell;
+}
+
+#charts-dao .default-color0.chart-area-symbol {
     -fx-background-color: -bs-sell, -bs-background-color;
 }
 

@@ -130,6 +130,7 @@
     -bs-context-menu-hover: -bs-color-primary-faint;
     -fx-default-button: derive(-fx-accent, 95%);
     -bs-progress-bar-track: -bs-color-gray-1;
+    -bs-chart-chip-neutral: #5b6d85;
     -bs-white: white;
     -bs-prompt-text: -fx-control-inner-background;
     -bs-soft-red: #aa4c3b;
@@ -146,6 +147,9 @@
     -bs-color-background-row-even: -bs-color-background-pane;
     -bs-color-background-row-odd: #f4f5f7;
     -bs-color-background-row-hover: -bs-combo-popup-hover;
+    -bs-color-row-sibling-bar: rgba(0, 0, 0, 0.2);
+    -bs-color-row-linked-bar: rgba(0, 0, 0, 0.45);
+    -bs-color-row-new-offer: rgba(0, 0, 0, 0.12);
     -bs-color-table-cell-dim: -bs-color-gray-ccc;
     -bs-color-table-cell-disabled: #8b96a8;
     -bs-color-background-popup: white;
@@ -309,6 +313,11 @@
     -fx-border-color: -fx-selection-bar;
 }
 
+/* Translucent, so that the Instant tag's outline keeps its weight on the row's hover tint. */
+.offer-book-card .table-view.offer-table .table-row-cell .table-cell .offer-instant-tag {
+    -fx-border-color: -bs-color-hairline;
+}
+
 .warning-box {
     -fx-background-color: -bs-yellow-light;
 }
@@ -344,8 +353,8 @@
    lightness gap is kept for red-green colorblind separation. */
 #charts .default-color0.chart-series-area-line { -fx-stroke: #26b94e; }
 #charts .default-color1.chart-series-area-line { -fx-stroke: #da2c1a; }
-#charts .default-color0.chart-area-symbol { -fx-background-color: #26b94e, -bs-background-color; }
-#charts .default-color1.chart-area-symbol { -fx-background-color: #da2c1a, -bs-background-color; }
+.chart-focus.bid { -bs-chart-focus: #26b94e; }
+.chart-focus.ask { -bs-chart-focus: #da2c1a; }
 
 #charts .default-color0.chart-series-area-fill {
     -fx-fill: linear-gradient(to bottom,

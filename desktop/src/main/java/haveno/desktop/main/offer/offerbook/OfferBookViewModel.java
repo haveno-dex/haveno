@@ -17,16 +17,12 @@
 
 package haveno.desktop.main.offer.offerbook;
 
-import com.google.common.base.Joiner;
-
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
 import haveno.common.handlers.ResultHandler;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreApi;
-import haveno.core.locale.BankUtil;
-import haveno.core.locale.CountryUtil;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
@@ -56,6 +52,7 @@ import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableViewModel;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.OfferView;
+import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.DisplayUtils;
@@ -81,7 +78,6 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -544,71 +540,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return CurrencyUtil.isVolumeRoundedToNearestUnit(item.getOffer().getCounterCurrencyCode()) ? GUIUtil.NUM_DECIMALS_UNIT : GUIUtil.NUM_DECIMALS_PRECISE;
     }
 
-    String getPaymentMethod(OfferBookListItem item) {
-        String result = "";
-        if (item != null) {
-            Offer offer = item.getOffer();
-            if (isF2F(offer)) {
-                result = offer.getPaymentMethod().getShortName() + " (" + offer.getCountryCode() + ", " + offer.getF2FCity() + ")";
-            } else {
-                result = offer.getPaymentMethodNameWithCountryCode();
-            }
-
-        }
-        return result;
-    }
-
-    String getPaymentMethodToolTip(OfferBookListItem item) {
-        String result = "";
-        if (item != null) {
-            Offer offer = item.getOffer();
-            result = Res.getWithCol("shared.paymentMethod") + " " + Res.get(offer.getPaymentMethod().getId());
-            result += "\n" + Res.getWithCol("shared.currency") + " " + CurrencyUtil.getNameAndCode(offer.getCounterCurrencyCode());
-
-            String countryCode = offer.getCountryCode();
-            if (isF2F(offer)) {
-                if (countryCode != null) {
-                    result += "\n" + Res.get("payment.f2f.offerbook.tooltip.countryAndCity",
-                            CountryUtil.getNameByCode(countryCode), offer.getF2FCity());
-                }
-            } else {
-                if (countryCode != null) {
-                    String bankId = offer.getBankId();
-                    if (bankId != null && !bankId.equals("null")) {
-                        if (BankUtil.isBankIdRequired(countryCode))
-                            result += "\n" + Res.get("offerbook.offerersBankId", bankId);
-                        else if (BankUtil.isBankNameRequired(countryCode))
-                            result += "\n" + Res.get("offerbook.offerersBankName", bankId);
-                    }
-                }
-
-                if (countryCode != null)
-                    result += "\n" + Res.get("offerbook.offerersBankSeat", CountryUtil.getNameByCode(countryCode));
-
-                List<String> acceptedCountryCodes = offer.getAcceptedCountryCodes();
-                List<String> acceptedBanks = offer.getAcceptedBankIds();
-                if (acceptedCountryCodes != null && !acceptedCountryCodes.isEmpty()) {
-                    if (CountryUtil.containsAllSepaEuroCountries(acceptedCountryCodes))
-                        result += "\n" + Res.get("offerbook.offerersAcceptedBankSeatsEuro");
-                    else
-                        result += "\n" + Res.get("offerbook.offerersAcceptedBankSeats", CountryUtil.getNamesByCodesString(acceptedCountryCodes));
-                } else if (acceptedBanks != null && !acceptedBanks.isEmpty()) {
-                    if (offer.getPaymentMethod().equals(PaymentMethod.SAME_BANK))
-                        result += "\n" + Res.getWithCol("shared.bankName") + " " + acceptedBanks.get(0);
-                    else if (offer.getPaymentMethod().equals(PaymentMethod.SPECIFIC_BANKS))
-                        result += "\n" + Res.getWithCol("shared.acceptedBanks") + " " + Joiner.on(", ").join(acceptedBanks);
-                }
-            }
-            if (offer.getCombinedExtraInfo() != null && !offer.getCombinedExtraInfo().isEmpty())
-                result += "\n" + Res.get("payment.shared.extraInfo.tooltip", offer.getCombinedExtraInfo());
-        }
-        return result;
-    }
-
-    private boolean isF2F(Offer offer) {
-        return offer.getPaymentMethod().equals(PaymentMethod.F2F);
-    }
-
     String getDirectionLabelTooltip(Offer offer) {
         return getDirectionWithCodeDetailed(offer.getMirroredDirection(), offer.getCounterCurrencyCode());
     }
@@ -696,7 +627,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
             // filter short payment method
             nextPredicate = nextPredicate.or(offerBookListItem -> {
-                return getPaymentMethod(offerBookListItem).toLowerCase().contains(filterText.toLowerCase());
+                return OfferViewUtil.getPaymentMethod(offerBookListItem.getOffer()).toLowerCase().contains(filterText.toLowerCase());
             });
 
             // filter currencies
