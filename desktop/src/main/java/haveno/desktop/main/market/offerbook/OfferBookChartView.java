@@ -364,6 +364,16 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         updateChartData();
     }
 
+    // Shows the currency's offers, as from a row of the offers by currency tab.
+    public void showCurrency(String currencyCode) {
+        model.getCurrencyListItems().stream().filter(item -> item.tradeCurrency.getCode().equals(currencyCode)).findFirst().ifPresent(item -> {
+            currencyComboBox.getSelectionModel().select(item);
+            currencyComboBox.getEditor().setText(new CurrencyListItemStringConverter(currencyComboBox).toString(item));
+            model.onSetTradeCurrency(item.tradeCurrency);
+            updateChartData();
+        });
+    }
+
     static class CurrencyListItemStringConverter extends StringConverter<CurrencyListItem> {
         private final ComboBox<CurrencyListItem> comboBox;
 
