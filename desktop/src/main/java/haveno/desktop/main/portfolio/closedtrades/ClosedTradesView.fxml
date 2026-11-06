@@ -45,16 +45,16 @@
                 <TableColumn fx:id="dateColumn" minWidth="170"/>
                 <TableColumn fx:id="marketColumn" minWidth="75"/>
                 <TableColumn fx:id="priceColumn" minWidth="100"/>
-                <TableColumn fx:id="deviationColumn" minWidth="70"/>
-                <TableColumn fx:id="amountColumn" minWidth="110"/>
+                <TableColumn fx:id="deviationColumn" minWidth="72"/>
+                <TableColumn fx:id="amountColumn" minWidth="105"/>
                 <TableColumn fx:id="volumeColumn" minWidth="110"/>
                 <TableColumn fx:id="txFeeColumn" visible="false" minWidth="75"/>
                 <TableColumn fx:id="tradeFeeColumn" visible="false" minWidth="110"/>
                 <TableColumn fx:id="buyerSecurityDepositColumn" visible="false" minWidth="75"/>
                 <TableColumn fx:id="sellerSecurityDepositColumn" visible="false" minWidth="75"/>
                 <TableColumn fx:id="paymentMethodColumn" minWidth="110" maxWidth="200"/>
-                <TableColumn fx:id="directionColumn" minWidth="70"/>
-                <TableColumn fx:id="stateColumn" minWidth="80"/>
+                <TableColumn fx:id="directionColumn" minWidth="76"/>
+                <TableColumn fx:id="stateColumn" minWidth="80" prefWidth="150"/>
                 <TableColumn fx:id="chatColumn" minWidth="40" maxWidth="40" sortable="false"/>
                 <TableColumn fx:id="duplicateColumn" minWidth="30" maxWidth="30" sortable="false"/>
                 <TableColumn fx:id="avatarColumn" minWidth="40" maxWidth="40"/>
