@@ -22,6 +22,7 @@ import com.google.inject.name.Named;
 import haveno.core.locale.Res;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.desktop.Navigation;
 import haveno.desktop.common.view.FxmlView;
 import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
 import javafx.scene.control.ToggleButton;
@@ -35,8 +36,8 @@ public class SpreadViewPaymentMethod extends SpreadView {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Inject
-    public SpreadViewPaymentMethod(SpreadViewModel model, @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter) {
-        super(model, formatter);
+    public SpreadViewPaymentMethod(SpreadViewModel model, @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter, Navigation navigation) {
+        super(model, formatter, navigation);
         model.setIncludePaymentMethod(true);
     }
 
