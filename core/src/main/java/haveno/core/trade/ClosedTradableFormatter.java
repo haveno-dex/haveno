@@ -177,6 +177,7 @@ public class ClosedTradableFormatter {
                 case DEACTIVATED:
                     log.error("Invalid state {}", state);
                     return state.name();
+                case PENDING: // a canceled offer can retain its pending state
                 case CANCELED:
                     return Res.get("portfolio.closed.canceled");
                 default:
