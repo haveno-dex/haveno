@@ -82,6 +82,7 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
     private Navigation.Listener navigationListener;
     private ChangeListener<Tab> tabChangeListener;
     private ListChangeListener<Tab> tabListChangeListener;
+    private ListChangeListener<Trade> failedTradesListChangeListener;
 
     private final CachingViewLoader viewLoader;
     private final Navigation navigation;
@@ -182,6 +183,13 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
             if (removedTabs.size() == 1 && removedTabs.get(0).equals(cloneOpenOfferTab))
                 onCloneOpenOfferRemoved();
         };
+
+        failedTradesListChangeListener = change -> {
+            UserThread.execute(() -> {
+                if (failedTradesManager.getObservableList().size() > 0 && tabPane.getTabs().size() == 3)
+                    tabPane.getTabs().add(failedTradesTab);
+            });
+        };
     }
 
     public void reserveNavigationWidth(ObservableNumberValue width) {
@@ -265,12 +273,7 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void activate() {
-        failedTradesManager.getObservableList().addListener((ListChangeListener<Trade>) c -> {
-            UserThread.execute(() -> {
-                if (failedTradesManager.getObservableList().size() > 0 && tabPane.getTabs().size() == 3)
-                    tabPane.getTabs().add(failedTradesTab);
-            });
-        });
+        failedTradesManager.getObservableList().addListener(failedTradesListChangeListener);
         if (failedTradesManager.getObservableList().size() > 0 && tabPane.getTabs().size() == 3)
             tabPane.getTabs().add(failedTradesTab);
 
@@ -303,6 +306,7 @@ public class PortfolioView extends ActivatableView<VBox, Void> {
 
     @Override
     protected void deactivate() {
+        failedTradesManager.getObservableList().removeListener(failedTradesListChangeListener);
         tabPane.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
         navigation.removeListener(navigationListener);
         currentTab = null;
