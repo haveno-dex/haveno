@@ -18,36 +18,25 @@
 package haveno.core.account.witness;
 
 import haveno.common.crypto.Hash;
-import haveno.common.crypto.KeyRing;
-import haveno.common.crypto.PubKeyRing;
 import haveno.common.util.Utilities;
 import haveno.core.account.sign.SignedWitness;
 import haveno.core.account.sign.SignedWitnessService;
-import haveno.core.payment.payload.PaymentAccountPayload;
-import haveno.core.trade.Trade;
 import haveno.network.p2p.storage.P2PDataStorage;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.Stack;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
 public class AccountAgeWitnessUtils {
     private final AccountAgeWitnessService accountAgeWitnessService;
     private final SignedWitnessService signedWitnessService;
-    private final KeyRing keyRing;
 
     AccountAgeWitnessUtils(AccountAgeWitnessService accountAgeWitnessService,
-                           SignedWitnessService signedWitnessService,
-                           KeyRing keyRing) {
+                           SignedWitnessService signedWitnessService) {
         this.accountAgeWitnessService = accountAgeWitnessService;
         this.signedWitnessService = signedWitnessService;
-        this.keyRing = keyRing;
     }
 
     // Log tree of signed witnesses
@@ -99,69 +88,5 @@ public class AccountAgeWitnessUtils {
                 log.info("PK hash {} date {}",
                         Utilities.bytesAsHexString(Hash.getRipemd160hash(signedWitness.getSignerPubKey())),
                         signedWitness.getDate()));
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////
-    // Debug logs
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    private String getWitnessDebugLog(PaymentAccountPayload paymentAccountPayload,
-                                      PubKeyRing pubKeyRing) {
-        Optional<AccountAgeWitness> accountAgeWitness =
-                accountAgeWitnessService.findWitness(paymentAccountPayload, pubKeyRing);
-        if (!accountAgeWitness.isPresent()) {
-            byte[] accountInputDataWithSalt =
-                    accountAgeWitnessService.getAccountInputDataWithSalt(paymentAccountPayload);
-            byte[] hash = Hash.getSha256Ripemd160hash(Utilities.concatenateByteArrays(accountInputDataWithSalt,
-                    pubKeyRing.getSignaturePubKeyBytes()));
-            return "No accountAgeWitness found for paymentAccountPayload with hash " + Utilities.bytesAsHexString(hash);
-        }
-
-        AccountAgeWitnessService.SignState signState =
-                accountAgeWitnessService.getSignState(accountAgeWitness.get());
-        return signState.name() + " " + signState.getDisplayString() +
-                "\n" + accountAgeWitness.toString();
-    }
-
-    public void witnessDebugLog(Trade trade, @Nullable AccountAgeWitness myWitness) {
-        // Log to find why accounts sometimes don't get signed as expected
-        // TODO: Demote to debug or remove once account signing is working ok
-        checkNotNull(trade.getContract());
-        checkNotNull(trade.getBuyer().getPaymentAccountPayload());
-        boolean checkingSignTrade = true;
-        boolean isBuyer = trade.getContract().isMyRoleBuyer(keyRing.getPubKeyRing());
-        AccountAgeWitness witness = myWitness;
-        if (witness == null) {
-            witness = isBuyer ?
-                    accountAgeWitnessService.getMyWitness(trade.getBuyer().getPaymentAccountPayload()) :
-                    accountAgeWitnessService.getMyWitness(trade.getSeller().getPaymentAccountPayload());
-            checkingSignTrade = false;
-        }
-        boolean isSignWitnessTrade = accountAgeWitnessService.accountIsSigner(witness) &&
-                !accountAgeWitnessService.peerHasSignedWitness(trade) &&
-                accountAgeWitnessService.tradeAmountIsSufficient(trade.getAmount());
-        log.debug("AccountSigning debug log: " +
-                        "\ntradeId: {}" +
-                        "\nis buyer: {}" +
-                        "\nbuyer account age witness info: {}" +
-                        "\nseller account age witness info: {}" +
-                        "\nchecking for sign trade: {}" +
-                        "\nis myWitness signer: {}" +
-                        "\npeer has signed witness: {}" +
-                        "\ntrade amount: {}" +
-                        "\ntrade amount is sufficient: {}" +
-                        "\nisSignWitnessTrade: {}",
-                trade.getId(),
-                isBuyer,
-                getWitnessDebugLog(trade.getBuyer().getPaymentAccountPayload(),
-                        trade.getContract().getBuyerPubKeyRing()),
-                getWitnessDebugLog(trade.getSeller().getPaymentAccountPayload(),
-                        trade.getContract().getSellerPubKeyRing()),
-                checkingSignTrade, // Following cases added to use same logic as in seller signing check
-                accountAgeWitnessService.accountIsSigner(witness),
-                accountAgeWitnessService.peerHasSignedWitness(trade),
-                trade.getAmount(),
-                accountAgeWitnessService.tradeAmountIsSufficient(trade.getAmount()),
-                isSignWitnessTrade);
     }
 }

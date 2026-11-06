@@ -55,11 +55,13 @@ import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
 import haveno.network.p2p.P2PService;
+import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
 import haveno.network.p2p.storage.persistence.AppendOnlyDataStoreService;
 import org.bitcoinj.core.ECKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigInteger;
 import java.io.File;
@@ -76,12 +78,15 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static haveno.core.payment.payload.PaymentMethod.getPaymentMethod;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -207,6 +212,38 @@ public class AccountAgeWitnessServiceTest {
         when(signatures.isSignedByArbitrator(witness)).thenReturn(true);
         assertTrue(witnessService.verifyPeersTradeAmount(offer, amount, error -> {}));
         assertTrue(witnessService.myHasTradeLimitException(account));
+    }
+
+    @Test
+    public void traderPublishesMissingPeerWitnessBeforeSigning() {
+        KeyRing keyRing = mock(KeyRing.class);
+        KeyPair signatureKeyPair = Sig.generateKeyPair();
+        when(keyRing.getSignatureKeyPair()).thenReturn(signatureKeyPair);
+        when(keyRing.getPubKeyRing()).thenReturn(new PubKeyRing(signatureKeyPair.getPublic(), Encryption.generateKeyPair().getPublic()));
+        P2PService p2pService = mock(P2PService.class);
+        SignedWitnessService signatures = new SignedWitnessService(keyRing, p2pService, mock(ArbitratorManager.class), null,
+                mock(AppendOnlyDataStoreService.class), null, mock(FilterManager.class), Clock.systemUTC());
+        AccountAgeWitnessService witnessService = new AccountAgeWitnessService(keyRing, p2pService, null, signatures,
+                mock(ChargeBackRisk.class), null, mock(AppendOnlyDataStoreService.class), Clock.systemUTC(), mock(FilterManager.class));
+        PaymentAccountPayload payload = mock(PaymentAccountPayload.class);
+        when(payload.getAgeWitnessInputData()).thenReturn(new byte[]{1});
+        when(payload.getSalt()).thenReturn(new byte[]{2});
+        PubKeyRing peersKeys = new PubKeyRing(publicKey, Encryption.generateKeyPair().getPublic());
+        TradePeer peer = new TradePeer();
+        peer.setPubKeyRing(peersKeys);
+        peer.setPaymentAccountPayload(payload);
+        Trade trade = mock(SellerAsMakerTrade.class);
+        when(trade.getTradePeer()).thenReturn(peer);
+        when(trade.getAmount()).thenReturn(SignedWitnessService.MINIMUM_TRADE_AMOUNT_FOR_SIGNING);
+        when(trade.getId()).thenReturn("trade");
+
+        Optional<SignedWitness> signedWitness = witnessService.traderSignAndPublishPeersAccountAgeWitness(trade);
+        byte[] peersWitnessHash = witnessService.getNewWitness(payload, peersKeys).getHash();
+        assertArrayEquals(peersWitnessHash, signedWitness.orElseThrow().getAccountAgeWitnessHash());
+        ArgumentCaptor<PersistableNetworkPayload> published = ArgumentCaptor.forClass(PersistableNetworkPayload.class);
+        verify(p2pService).addPersistableNetworkPayload(published.capture(), eq(false));
+        assertArrayEquals(peersWitnessHash, published.getValue().getHash());
+        assertSame(published.getValue(), peer.getAccountAgeWitness());
     }
 
     @Disabled
