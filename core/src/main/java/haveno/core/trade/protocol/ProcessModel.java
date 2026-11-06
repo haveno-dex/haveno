@@ -52,7 +52,6 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.mediation.mediator.MediatorManager;
 import haveno.core.support.dispute.refund.refundagent.RefundAgentManager;
-import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.statistics.ReferralIdService;
@@ -331,10 +330,6 @@ public class ProcessModel implements Model, PersistablePayload {
         if (tradeManager != null) {
             tradeManager.requestPersistence();
         }
-    }
-
-    void witnessDebugLog(Trade trade) {
-        getAccountAgeWitnessService().getAccountAgeWitnessUtils().witnessDebugLog(trade, null);
     }
 
     public boolean maybeClearSensitiveData() {

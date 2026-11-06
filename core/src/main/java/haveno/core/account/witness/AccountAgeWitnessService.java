@@ -175,8 +175,7 @@ public class AccountAgeWitnessService {
 
         accountAgeWitnessUtils = new AccountAgeWitnessUtils(
                 this,
-                signedWitnessService,
-                keyRing);
+                signedWitnessService);
 
         // We need to add that early (before onAllServicesInitialized) as it will be used at startup.
         appendOnlyDataStoreService.addService(accountAgeWitnessStorageService);
@@ -754,8 +753,7 @@ public class AccountAgeWitnessService {
         checkNotNull(trade.getTradePeer().getPubKeyRing(), "Peer must have a keyring");
         PublicKey peersPubKey = trade.getTradePeer().getPubKeyRing().getSignaturePubKey();
         checkNotNull(peersPubKey, "Peers pub key must not be null");
-        AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElse(null);
-        checkNotNull(peersWitness, "Not able to find peers witness, unable to sign for trade " + trade.toString());
+        AccountAgeWitness peersWitness = findTradePeerWitness(trade).orElseGet(() -> publishTradePeerWitness(trade));
         BigInteger tradeAmount = trade.getAmount();
         checkNotNull(tradeAmount, "Trade amount must not be null");
 
@@ -765,6 +763,18 @@ public class AccountAgeWitnessService {
             log.warn("Trader failed to sign witness, exception {}", e.toString());
         }
         return Optional.empty();
+    }
+
+    // A witness which never reached the network would leave the peer's account unsignable; its hash derives from the
+    // verified payment account, and a new date does not bypass signing-age trade limits.
+    private AccountAgeWitness publishTradePeerWitness(Trade trade) {
+        TradePeer tradePeer = trade.getTradePeer();
+        checkNotNull(tradePeer.getPaymentAccountPayload(), "Peer must have a payment account payload");
+        AccountAgeWitness peersWitness = getNewWitness(tradePeer.getPaymentAccountPayload(), tradePeer.getPubKeyRing());
+        log.info("Publishing missing account age witness {} of peer for trade {}", Utilities.bytesAsHexString(peersWitness.getHash()), trade.getId());
+        p2PService.addPersistableNetworkPayload(peersWitness, false);
+        tradePeer.setAccountAgeWitness(peersWitness);
+        return peersWitness;
     }
 
     // Called by the buyer with its seller-signed witness from the PaymentReceivedMessage; all fields are
@@ -982,12 +992,18 @@ public class AccountAgeWitnessService {
         checkNotNull(trade.getOffer(), "offer must not be null");
         PaymentAccountPayload sellerPaymentAccountPayload = trade.getSeller().getPaymentAccountPayload();
         AccountAgeWitness myWitness = getMyWitness(sellerPaymentAccountPayload);
-
-        getAccountAgeWitnessUtils().witnessDebugLog(trade, myWitness);
-
-        return accountIsSigner(myWitness) &&
-                !peerHasSignedWitness(trade) &&
-                tradeAmountIsSufficient(trade.getAmount());
+        boolean isSigner = accountIsSigner(myWitness);
+        boolean peerHasSignedWitness = peerHasSignedWitness(trade);
+        boolean amountIsSufficient = tradeAmountIsSufficient(trade.getAmount());
+        log.info("Account signing check for {} {}: my witness {} (signer={}), peer witness {} (signed={}), trade amount sufficient={}",
+                trade.getClass().getSimpleName(),
+                trade.getId(),
+                getSignState(myWitness).name(),
+                isSigner,
+                findTradePeerWitness(trade).map(witness -> getSignState(witness).name()).orElse("missing"),
+                peerHasSignedWitness,
+                amountIsSufficient);
+        return isSigner && !peerHasSignedWitness && amountIsSufficient;
     }
 
     public String getSignInfoFromAccount(PaymentAccount paymentAccount) {
