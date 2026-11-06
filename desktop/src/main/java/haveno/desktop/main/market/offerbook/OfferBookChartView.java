@@ -111,6 +111,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private AnchorPane chartPane;
     private Pane deviationScalePane;
     private Pane gridLinesPane;
+    private Label pricesLoadingLabel;
     private boolean chartOverlaysRedrawScheduled;
     private AutocompleteComboBox<CurrencyListItem> currencyComboBox;
     private Subscription tradeCurrencySubscriber;
@@ -119,6 +120,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     private final StringProperty amountSellColumnLabel = new SimpleStringProperty();
     private final StringProperty amountBuyColumnLabel = new SimpleStringProperty();
     private final StringProperty priceColumnLabel = new SimpleStringProperty();
+    private final StringProperty placeholderLabel = new SimpleStringProperty();
     private AutoTooltipButton sellButton;
     private AutoTooltipButton buyButton;
     private ChangeListener<Number> selectedTabIndexListener;
@@ -408,7 +410,15 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         AnchorPane.setLeftAnchor(gridLinesPane, 0d);
         AnchorPane.setRightAnchor(gridLinesPane, 0d);
 
-        chartPane.getChildren().addAll(gridLinesPane, areaChart, deviationScalePane);
+        // shown in place of the deviation scale, which needs a market price
+        pricesLoadingLabel = new Label(Res.get("market.offerBook.loadingPrices"));
+        pricesLoadingLabel.getStyleClass().add("deviation-scale-label");
+        pricesLoadingLabel.setAlignment(Pos.CENTER);
+        AnchorPane.setTopAnchor(pricesLoadingLabel, 13d);
+        AnchorPane.setLeftAnchor(pricesLoadingLabel, 0d);
+        AnchorPane.setRightAnchor(pricesLoadingLabel, 0d);
+
+        chartPane.getChildren().addAll(gridLinesPane, areaChart, deviationScalePane, pricesLoadingLabel);
 
         InvalidationListener overlayRedrawTrigger = observable -> scheduleChartOverlaysRedraw();
         xAxis.lowerBoundProperty().addListener(overlayRedrawTrigger);
@@ -424,6 +434,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         chartMarketPrice = model.getMarketPriceAsDouble()
                 .filter(price -> Double.isFinite(price) && price > 0)
                 .orElse(0d);
+
+        // market priced offers are left out until the first market prices arrive
+        boolean awaitingPrices = model.isAwaitingPrices();
+        pricesLoadingLabel.setVisible(awaitingPrices);
+        placeholderLabel.set(awaitingPrices ? pricesLoadingLabel.getText() : Res.get("table.placeholder.noItems", Res.get("shared.multipleOffers")));
 
         // update volume headers
         Volume volumeSell = model.getTotalVolume(OfferDirection.SELL);
@@ -879,7 +894,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tableView.getColumns().add(avatarColumn);
 
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        Label placeholder = new AutoTooltipLabel(Res.get("table.placeholder.noItems", Res.get("shared.multipleOffers")));
+        Label placeholder = new AutoTooltipLabel();
+        placeholder.textProperty().bind(placeholderLabel);
         placeholder.setWrapText(true);
         tableView.setPlaceholder(placeholder);
 

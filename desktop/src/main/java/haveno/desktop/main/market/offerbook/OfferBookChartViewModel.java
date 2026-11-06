@@ -286,6 +286,13 @@ class OfferBookChartViewModel extends ActivatableViewModel {
         return Optional.of(marketPrice.getPrice());
     }
 
+    // Market priced offers have no price until the first market prices arrive.
+    public boolean isAwaitingPrices() {
+        return !priceFeedService.hasExternalPrices() && offerBookListItems.stream()
+                .map(OfferBookListItem::getOffer)
+                .anyMatch(offer -> offer.getCounterCurrencyCode().equals(getCurrencyCode()) && offer.getPrice() == null);
+    }
+
     public ObservableList<OfferBookListItem> getOfferBookListItems() {
         return offerBookListItems;
     }
