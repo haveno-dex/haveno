@@ -26,6 +26,7 @@ import common.utils.JsonUtils;
 import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.UserThread;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
 import haveno.common.util.Utilities;
@@ -688,7 +689,7 @@ public class XmrWalletService extends XmrWalletBase {
 
     private MoneroWalletConfig getWalletConfig(String walletName) {
         MoneroWalletConfig config = new MoneroWalletConfig().setPath(getWalletPath(walletName)).setPassword(getWalletPassword(walletName));
-        if (isNativeLibraryApplied()) config.setNetworkType(getMoneroNetworkType());
+        if (isNativeLibraryApplied()) config.setNetworkType(getMoneroNetworkType()).setRegtest(Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL);
         return config;
     }
 
@@ -816,7 +817,7 @@ public class XmrWalletService extends XmrWalletBase {
             String redactedPath = Utilities.redactSensitiveInfo(path);
             if (!new File(path).delete()) throw new RuntimeException("Failed to delete wallet cache file: " + redactedPath);
             if (!new File(path + KEYS_FILE_POSTFIX).delete()) throw new RuntimeException("Failed to delete wallet keys file: " + redactedPath + KEYS_FILE_POSTFIX);
-            if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && !Config.baseCurrencyNetwork().isMainnet()) throw new RuntimeException("Failed to delete wallet address file: " + redactedPath + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
+            if (!new File(path + ADDRESS_FILE_POSTFIX).delete() && MONERO_NETWORK_TYPE != MoneroNetworkType.MAINNET) throw new RuntimeException("Failed to delete wallet address file: " + redactedPath + ADDRESS_FILE_POSTFIX); // mainnet does not have address file by default
         } finally {
             walletLifecycleLock.readLock().unlock();
         }
@@ -1888,7 +1889,7 @@ public class XmrWalletService extends XmrWalletBase {
     public static MoneroNetworkType getMoneroNetworkType() {
         switch (Config.baseCurrencyNetwork()) {
         case XMR_LOCAL:
-            return MoneroNetworkType.TESTNET;
+            return MoneroNetworkType.MAINNET; // regtest uses mainnet address encoding
         case XMR_STAGENET:
             return MoneroNetworkType.STAGENET;
         case XMR_MAINNET:
@@ -2280,8 +2281,8 @@ public class XmrWalletService extends XmrWalletBase {
             cmd.add("--" + MONERO_NETWORK_TYPE.toString().toLowerCase());
         }
 
-        // testnet may use custom hard fork heights
-        if (MONERO_NETWORK_TYPE == MoneroNetworkType.TESTNET) {
+        // regtest activates the latest hard fork at height 1
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
             cmd.add("--allow-mismatched-daemon-version");
         }
 
@@ -2782,7 +2783,7 @@ public class XmrWalletService extends XmrWalletBase {
             // skip polling if trades are reserving main wallet (disable if testnet or too long since last poll)
             List<Trade> tradesReservingMainWallet = HavenoUtils.tradeManager.getTradesReservingMainWallet();
             boolean lastPollWithinTolerance = System.currentTimeMillis() - lastPollTxsTimestamp <= POLL_TXS_TOLERANCE_MS;
-            if (!tradesReservingMainWallet.isEmpty() && lastPollWithinTolerance && !Config.baseCurrencyNetwork().isTestnet()) {
+            if (!tradesReservingMainWallet.isEmpty() && lastPollWithinTolerance && !Config.baseCurrencyNetwork().isLocal()) {
                 List<String> tradeIds = tradesReservingMainWallet.stream().map(Trade::getShortId).collect(Collectors.toList());
                 log.info("Skipping main wallet poll because trades are reserving main wallet: " + tradeIds);
                 return;
@@ -2882,7 +2883,7 @@ public class XmrWalletService extends XmrWalletBase {
         }
 
         // log wallet balances
-        if (getMoneroNetworkType() != MoneroNetworkType.MAINNET) {
+        if (!Config.baseCurrencyNetwork().isMainnet()) {
             BigInteger balance = getBalance();
             BigInteger unlockedBalance = getAvailableBalance();
             log.info("Monero wallet unlocked balance={}, pending balance={}, total balance={}", unlockedBalance, balance.subtract(unlockedBalance), balance);

@@ -698,7 +698,7 @@ public class HavenoSetup {
     }
 
     private void maybeShowTorAddressUpgradeInformation() {
-        if (Config.baseCurrencyNetwork().isTestnet() ||
+        if (Config.baseCurrencyNetwork().isLocal() ||
                 Utils.isV3Address(Objects.requireNonNull(p2PService.getNetworkNode().getNodeAddress()).getHostName())) {
             return;
         }

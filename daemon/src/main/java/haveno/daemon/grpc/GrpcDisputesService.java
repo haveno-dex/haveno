@@ -159,11 +159,11 @@ public class GrpcDisputesService extends DisputesImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
-                            put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 10 : 1, SECONDS));
-                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 40 : 1, SECONDS));
-                            put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 20 : 1, SECONDS));
-                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 40 : 2, SECONDS));
+                            put(getGetDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 20 : 1, SECONDS));
+                            put(getGetDisputesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 10 : 1, SECONDS));
+                            put(getResolveDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 40 : 1, SECONDS));
+                            put(getOpenDisputeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 20 : 1, SECONDS));
+                            put(getSendDisputeChatMessageMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 40 : 2, SECONDS));
                         }}
                 )));
     }

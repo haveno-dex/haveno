@@ -26,7 +26,7 @@ import org.bitcoinj.utils.MonetaryFormat;
 public enum BaseCurrencyNetwork {
     XMR_MAINNET(new XmrMainNetParams(), "XMR", "MAINNET", "Monero"), // TODO (woodser): network params are part of bitcoinj and shouldn't be needed. only used to get MonetaryFormat? replace with MonetaryFormat if so
     XMR_STAGENET(new XmrStageNetParams(), "XMR", "STAGENET", "Monero"),
-    XMR_LOCAL(new XmrTestNetParams(), "XMR", "TESTNET", "Monero");
+    XMR_LOCAL(new XmrRegTestParams(), "XMR", "REGTEST", "Monero");
 
     @Getter
     private final NetworkParameters parameters;
@@ -48,7 +48,7 @@ public enum BaseCurrencyNetwork {
         return "XMR_MAINNET".equals(name());
     }
 
-    public boolean isTestnet() {
+    public boolean isLocal() {
         return "XMR_LOCAL".equals(name());
     }
 
@@ -69,7 +69,7 @@ public enum BaseCurrencyNetwork {
         }
     }
 
-    private static class XmrTestNetParams extends RegTestParams {
+    private static class XmrRegTestParams extends RegTestParams {
         @Override
         public MonetaryFormat getMonetaryFormat() {
             return XMR_MONETARY_FORMAT;

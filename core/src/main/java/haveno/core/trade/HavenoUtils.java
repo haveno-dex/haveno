@@ -119,7 +119,7 @@ public class HavenoUtils {
     public static final int PRIVATE_OFFER_PASSPHRASE_NUM_WORDS = 8; // number of words in a private offer passphrase
     private static final boolean GENERAL_PRIVATE_OFFERS_ENABLED = true; // allow private offers with a buyer deposit (false = no-deposit sell offers only); requires a mandatory update to change
     public static final boolean RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT = true; // recommend waiting additional confirmations before sending payment
-    public static final long ARBITRATOR_IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isTestnet() ? 75000 : 12 * 60 * 60 * 1000; // refresh arbitrator trade wallets once every 12 hours
+    public static final long ARBITRATOR_IDLE_SYNC_PERIOD_MS = Config.baseCurrencyNetwork().isLocal() ? 75000 : 12 * 60 * 60 * 1000; // refresh arbitrator trade wallets once every 12 hours
 
     public static boolean isGeneralPrivateOffersEnabled() {
         return GENERAL_PRIVATE_OFFERS_ENABLED;
@@ -573,7 +573,7 @@ public class HavenoUtils {
     public static String getGlobalTradeFeeAddress() {
         switch (Config.baseCurrencyNetwork()) {
         case XMR_LOCAL:
-            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
+            return "87JzVW4vxiBRvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYLAvv34b";
         case XMR_STAGENET:
             return "5B11hTJdG2XDNwjdKGLRxwSLwDhkbGg7C7UEAZBxjE6FbCeRMjudrpNACmDNtWPiSnNfjDQf39QRjdtdgoL69txv81qc2Mc";
         case XMR_MAINNET:
@@ -586,7 +586,7 @@ public class HavenoUtils {
     public static String getBurnAddress() {
         switch (Config.baseCurrencyNetwork()) {
         case XMR_LOCAL:
-            return "Bd37nTGHjL3RvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYL9jYj88";
+            return "87JzVW4vxiBRvPxc9dypzpWiXQrPzxxG4RsWAasD9CV2iZ1xfFZ7mzTKNDxWBfsqQSUimctAsGtTZ8c8bZJy35BYLAvv34b";
         case XMR_STAGENET:
             return "577XbZ8yGfrWJM3aAoCpHVgDCm5higshGVJBb4ZNpTYARp8rLcCdcA1J8QgRfFWTzmJ8QgRfFWTzmJ8QgRfFWTzmCbXF9hd";
         case XMR_MAINNET:
@@ -660,7 +660,7 @@ public class HavenoUtils {
 
     public static int getDefaultMoneroPort() {
         if (Config.baseCurrencyNetwork().isMainnet()) return 18081;
-        else if (Config.baseCurrencyNetwork().isTestnet()) return 28081;
+        else if (Config.baseCurrencyNetwork().isLocal()) return 28081;
         else if (Config.baseCurrencyNetwork().isStagenet()) return 38081;
         else throw new RuntimeException("Base network is not local testnet, stagenet, or mainnet");
     }

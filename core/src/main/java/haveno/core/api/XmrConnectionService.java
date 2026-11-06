@@ -749,7 +749,7 @@ public final class XmrConnectionService {
     public synchronized boolean requestConnectionSwitch(MoneroRpcConnection sourceConnection, XmrWalletBase requester, boolean skipCooldown) {
         log.warn("Requesting connection switch to next best monerod, source monerod={}, proxyUri={}, skipCooldown={}", sourceConnection == null ? null : sourceConnection.getUri(), sourceConnection == null ? null : sourceConnection.getProxyUri(), skipCooldown);
         if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
-            log.warn("Requesting connection switch on testnet", new RuntimeException("Stack trace"));
+            log.warn("Requesting connection switch on local network", new RuntimeException("Stack trace"));
         }
 
         // skip if shut down started
@@ -1056,6 +1056,9 @@ public final class XmrConnectionService {
             connection.setTimeout(getTimeoutMs(connection));
             MoneroDaemonRpc monerod = new MoneroDaemonRpc(connection);
             MoneroDaemonInfo info = monerod.getInfo();
+            if (Boolean.TRUE.equals(info.isRegtest()) != (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL)) {
+                throw new IllegalStateException("Monero node regtest mode does not match the configured network");
+            }
             connection.setOnline(getNumOutgoingConnections(info) != 0);
             connection.setAuthenticated(true);
             connection.setAttribute(LAST_INFO_KEY, info);

@@ -32,7 +32,7 @@ Close Haveno and all its wallet processes, and back up the complete application 
 java -cp daemon/build/libs/daemon-all.jar haveno.core.util.RecoverPassword '/path/to/application-data/xmr_mainnet'
 ```
 
-Build the jar with `./gradlew :daemon:shadowJar` if needed. Use `xmr_local` for local/testnet or `xmr_stagenet` for stagenet. The tool also accepts `xmr_testnet`. The directory must contain `keys` and `wallet`.
+Build the jar with `./gradlew :daemon:shadowJar` if needed. Use `xmr_local` for the local network or `xmr_stagenet` for stagenet. The tool also accepts `xmr_testnet`. The directory must contain `keys` and `wallet`.
 
 Enter the current account password at the hidden prompt and repeat it at the confirmation prompt, leaving both empty if unset. A mismatch stops recovery before any files are changed. Then enter the other password from the interrupted change; finish with an empty entry. If earlier changes used additional passwords, enter those too. Unset passwords are tried automatically. Passwords are never command arguments or written to a recovery file.
 

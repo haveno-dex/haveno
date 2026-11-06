@@ -101,13 +101,12 @@ Steps:
 
 If you are a developer who wants to test Haveno in a more controlled way, follow the next steps to build a local test environment.
 
-#### Run a local XMR testnet
+#### Run a local XMR regtest network
 
-1. In a new terminal window run `make monerod1-local`
-1. In a new terminal window run `make monerod2-local`
-3. Now mine the first 150 blocks to a random address before using, so wallets only use the latest output type. Run in one of the terminal windows opened above:
+1. In a new terminal window run `make monerod1-local`.
+2. In a new terminal window run `make monerod2-local`.
 
-`start_mining 9tsUiG9bwcU7oTbAdBwBk2PzxFtysge5qcEsHEpetmEKgerHQa1fDqH7a4FiquZmms7yM22jdifVAD7jAb2e63GSJMuhY75 1`
+The local network is a standard Monero regtest network. The latest protocol is active from height 1, and wallets use mainnet address encoding. Each node keeps its chain under `.localnet/xmr_local/node*/fake` across restarts.
 
 #### Deploy
 
@@ -129,9 +128,9 @@ If this is the first time launching the arbitrator desktop application, register
 
 When running user1 and user2, you'll see a Monero address prompted in the terminal. Send test XMR to the addresses of both user1 and user2 to be able to initiate a trade.
 
-You can fund the two wallets by mining some test XMR coins to those addresses. To do so, open a terminal where you ran monerod and run: `start_mining ADDRESS 1`.
+You can fund the two wallets by mining some test XMR coins to those addresses. To do so, open a new terminal window and run: `make miner-local ADDRESS=<address>`.
 
-monerod will start mining local testnet coins on your device using one thread. Replace `ADDRESS` with the address of user1 first, and then user2's. Run `stop_mining` to stop mining.
+This mines local regtest blocks at random intervals averaging one second, like mined blocks, until stopped with `ctrl+c`. Replace `<address>` with the address of user1 first, and then user2's. Coinbase rewards become spendable after 60 blocks.
 
 #### Start testing
 
