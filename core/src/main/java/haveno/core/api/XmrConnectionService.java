@@ -534,7 +534,7 @@ public final class XmrConnectionService {
             if (wasMonerodSynced) {
                 updatePolling(info); // restart polling off thread after connection established
             } else {
-                tryPollMonerod(info); // poll immediately before connection established
+                tryPollMonerod(info, null, null); // poll immediately before connection established
                 if (connection != getConnection()) return true; // polling can change connection
                 UserThread.runAfter(() -> updatePolling(null), getInternalRefreshPeriodMs() / 1000);
             }
@@ -1377,13 +1377,7 @@ public final class XmrConnectionService {
             numConsecutiveErrors = 0;
             AtomicBoolean firstPoll = new AtomicBoolean(true);
             MoneroDaemonRpc polledDaemon = monerod;
-            monerodPoller = new TaskLooper(() -> {
-                synchronized (pollLock) {
-                    if (polledDaemon != monerod || !isPolling()) return; // discard a stopped poll waiting behind a connection change
-                    if (!pollInProgress) tryPollMonerod(firstPoll.get() ? applyInfo : null);
-                    firstPoll.set(false);
-                }
-            });
+            monerodPoller = new TaskLooper(() -> pollMonerod(polledDaemon, firstPoll.getAndSet(false) ? applyInfo : null));
             monerodPoller.start(getInternalRefreshPeriodMs());
         }
     }
@@ -1403,9 +1397,41 @@ public final class XmrConnectionService {
         }
     }
 
-    private void tryPollMonerod(MoneroDaemonInfo applyInfo) {
+    // polls for the poll loop, checking the node before taking the poll lock so node edits do not wait for the request
+    private void pollMonerod(MoneroDaemonRpc polledDaemon, MoneroDaemonInfo applyInfo) {
+        MoneroRpcConnection connection = null;
+        MoneroRpcConnection probe = null;
+        if (applyInfo == null) {
+            try {
+                if (isShutDownStarted || polledDaemon != monerod || !isPolling()) return;
+                if (HavenoUtils.xmrWalletService != null && HavenoUtils.xmrWalletService.isSyncingWithProgress()) return; // as the poll skips fetching
+                connection = getConnection();
+                if (connection != null) {
+                    probe = new MoneroRpcConnection(connection); // the result is applied under the lock, so a discarded poll leaves the node alone
+                    checkConnection(probe);
+                }
+            } catch (Exception e) {
+                // the poll handles the error
+            }
+        }
+        synchronized (pollLock) {
+            if (polledDaemon != monerod || !isPolling()) return; // discard a stopped poll waiting behind a connection change
+            if (!pollInProgress) tryPollMonerod(applyInfo, connection, probe);
+        }
+    }
+
+    // copies a check result onto the listed connection
+    private static void applyCheck(MoneroRpcConnection checked, MoneroRpcConnection connection) {
+        connection.setTimeout(checked.getTimeout());
+        connection.setOnline(checked.isOnline());
+        connection.setAuthenticated(checked.isAuthenticated());
+        connection.setResponseTime(checked.getResponseTime());
+        for (String key : List.of(LAST_INFO_KEY, LAST_ERROR_KEY, LAST_CHECKED_KEY)) connection.setAttribute(key, checked.getAttribute(key));
+    }
+
+    private void tryPollMonerod(MoneroDaemonInfo applyInfo, MoneroRpcConnection probed, MoneroRpcConnection probe) {
         try {
-            doPollMonerod(applyInfo);
+            doPollMonerod(applyInfo, probed, probe);
         } catch (Exception e) {
             // error is already handled
         }
@@ -1415,8 +1441,10 @@ public final class XmrConnectionService {
      * Polls monerod for the latest info and updates the connection if necessary.
      * 
      * @param applyInfo applies the given info instead of fetching from monerod
+     * @param probed connection checked for this poll before taking the lock
+     * @param probe result of that check, applied instead of checking the connection again
      */
-    private void doPollMonerod(MoneroDaemonInfo applyInfo) {
+    private void doPollMonerod(MoneroDaemonInfo applyInfo, MoneroRpcConnection probed, MoneroRpcConnection probe) {
         synchronized (pollLock) {
             if (isShutDownStarted) return;
             MoneroRpcConnection connection = getConnection();
@@ -1436,7 +1464,8 @@ public final class XmrConnectionService {
 
                     // check the monero connection or use applied info
                     if (applyInfo == null) {
-                        checkConnection(connection);
+                        if (probe != null && probed == connection) applyCheck(probe, connection);
+                        else checkConnection(connection);
                         if (isShutDownStarted || connection != getConnection()) return; // a normal switch may finish while this probe is waiting
                         MoneroDaemonInfo info = getCachedDaemonInfo(connection);
                         if (info == null) {
