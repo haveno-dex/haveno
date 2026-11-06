@@ -27,6 +27,7 @@ import java.util.Map;
 public class ClosedTradableUtil {
     public static BigInteger getTotalAmount(List<Tradable> tradableList) {
         return BigInteger.valueOf(tradableList.stream()
+                .filter(tradable -> !isCanceledByArbitration(tradable))
                 .flatMap(tradable -> tradable.getOptionalAmount().stream())
                 .mapToLong(value -> value.longValueExact())
                 .sum());
@@ -44,7 +45,7 @@ public class ClosedTradableUtil {
                 .filter(tradable -> {
                     if (tradable instanceof Trade) {
                         Trade trade = castToTrade(tradable);
-                        return trade.isCompleted(); // TODO: does not consider if trade was reverted by arbitrator
+                        return trade.isCompleted() && !isCanceledByArbitration(trade);
                     } else {
                         return false;
                     }
@@ -60,6 +61,12 @@ public class ClosedTradableUtil {
 
     public static BigInteger getTotalTxFee(Tradable tradable) {
         return tradable.getTotalTxFee();
+    }
+
+    // an arbitrator's ruling can return the trade amount to the seller
+    private static boolean isCanceledByArbitration(Tradable tradable) {
+        BigInteger arbitratedBuyerGain = tradable instanceof Trade ? castToTrade(tradable).getArbitratedBuyerGain() : null;
+        return arbitratedBuyerGain != null && arbitratedBuyerGain.signum() <= 0;
     }
 
     public static boolean isOpenOffer(Tradable tradable) {
