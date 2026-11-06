@@ -25,7 +25,6 @@ import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.OpenOffer;
-import haveno.core.support.dispute.DisputeResult;
 import static haveno.core.trade.ClosedTradableUtil.castToTrade;
 import static haveno.core.trade.ClosedTradableUtil.getTotalTxFee;
 import static haveno.core.trade.ClosedTradableUtil.getTotalVolumeByCurrency;
@@ -40,11 +39,9 @@ import static haveno.core.util.FormattingUtils.formatToPercentWithSymbol;
 import static haveno.core.util.VolumeUtil.formatVolume;
 import static haveno.core.util.VolumeUtil.formatVolumeWithCode;
 import java.math.BigInteger;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Monetary;
 
@@ -156,9 +153,11 @@ public class ClosedTradableFormatter {
 
         if (isHavenoV1Trade(tradable)) {
             Trade trade = castToTrade(tradable);
-            String arbitratedState = getArbitratedStateAsString(trade);
-            if (arbitratedState != null) {
-                return arbitratedState;
+            BigInteger arbitratedBuyerGain = trade.getArbitratedBuyerGain();
+            if (arbitratedBuyerGain != null) {
+                if (arbitratedBuyerGain.signum() <= 0) return Res.get("portfolio.closed.canceledByArbitration");
+                if (arbitratedBuyerGain.compareTo(trade.getAmount()) >= 0) return Res.get("portfolio.closed.completedByArbitration");
+                return Res.get("portfolio.closed.ticketClosed");
             } else if (trade.isCompleted() || trade.isPayoutPublished()) {
                 return Res.get("portfolio.closed.completed");
             } else if (trade.getDisputeState() == DISPUTE_CLOSED) {
@@ -191,21 +190,5 @@ public class ClosedTradableFormatter {
             }
         }
         return Res.get("shared.na");
-    }
-
-    // null unless an arbitrator's ruling paid out the trade, which the seller confirming the payment precludes
-    @Nullable
-    private static String getArbitratedStateAsString(Trade trade) {
-        if (!trade.getDisputeState().isDisputed() || !trade.isPayoutPublished() || trade.isPaymentReceived()) return null;
-        DisputeResult ruling = trade.getDisputes().stream() // an arbitrator's mirrored ticket can lack the ruling
-                .map(dispute -> dispute.getDisputeResultProperty().get())
-                .filter(result -> result != null && result.getWinner() != null) // tickets can close without a ruling
-                .max(Comparator.comparing(DisputeResult::getCloseDate))
-                .orElse(null);
-        if (ruling == null) return null;
-        BigInteger buyerGain = ruling.getBuyerPayoutAmountBeforeCost().subtract(trade.getBuyer().getSecurityDeposit());
-        if (buyerGain.signum() <= 0) return Res.get("portfolio.closed.canceledByArbitration");
-        if (buyerGain.compareTo(trade.getAmount()) >= 0) return Res.get("portfolio.closed.completedByArbitration");
-        return Res.get("portfolio.closed.ticketClosed");
     }
 }

@@ -134,6 +134,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -2607,6 +2608,18 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return getDisputes().get(getDisputes().size() - 1).getDisputeResultProperty().get();
     }
 
+    // amount an arbitrator's ruling paid the buyer beyond their security deposit, or null if no ruling paid out the trade
+    @Nullable
+    public BigInteger getArbitratedBuyerGain() {
+        if (!isPayoutPublished() || isPaymentReceived()) return null; // confirmed payments take precedence, as in setPayoutTx
+        DisputeResult ruling = getDisputes().stream() // an arbitrator's mirrored ticket can lack the ruling
+                .map(dispute -> dispute.getDisputeResultProperty().get())
+                .filter(result -> result != null && result.getWinner() != null) // tickets can close without a ruling
+                .max(Comparator.comparing(DisputeResult::getCloseDate))
+                .orElse(null);
+        return ruling == null ? null : ruling.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getSecurityDeposit());
+    }
+
     @Nullable
     public MoneroTx getPayoutTx() {
         if (payoutTx == null && payoutTxId != null) {
@@ -3265,7 +3278,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     }
     
     private boolean tradeAmountTransferred() {
-        return isPayoutPublished() && (isPaymentReceived() || (getDisputeResult() != null && getDisputeResult().getWinner() == DisputeResult.Winner.SELLER));
+        if (isPayoutPublished() && isPaymentReceived()) return true;
+        BigInteger arbitratedBuyerGain = getArbitratedBuyerGain();
+        return arbitratedBuyerGain != null && arbitratedBuyerGain.compareTo(getAmount()) >= 0;
     }
 
     private void doPublishTradeStatistics() {
