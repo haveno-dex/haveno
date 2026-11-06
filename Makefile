@@ -120,7 +120,12 @@ deploy-tmux:
 
 monerod1-local:
 	./.localnet/monerod \
-		--testnet \
+		--regtest \
+		--keep-fakechain \
+		--check-updates disabled \
+		--p2p-bind-port 28080 \
+		--rpc-bind-port 28081 \
+		--zmq-rpc-bind-port 28082 \
 		--no-igd \
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node1 \
@@ -129,7 +134,7 @@ monerod1-local:
 		--add-exclusive-node 127.0.0.1:48080 \
 		--add-exclusive-node 127.0.0.1:58080 \
 		--rpc-access-control-origins http://localhost:8080 \
-		--fixed-difficulty 500 \
+		--fixed-difficulty 1 \
 		--disable-rpc-ban \
 		--rpc-max-connections 1000 \
 		--max-connections-per-ip 10 \
@@ -137,7 +142,9 @@ monerod1-local:
 
 monerod2-local:
 	./.localnet/monerod \
-		--testnet \
+		--regtest \
+		--keep-fakechain \
+		--check-updates disabled \
 		--no-igd \
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node2 \
@@ -149,7 +156,7 @@ monerod2-local:
 		--add-exclusive-node 127.0.0.1:28080 \
 		--add-exclusive-node 127.0.0.1:58080 \
 		--rpc-access-control-origins http://localhost:8080 \
-		--fixed-difficulty 500 \
+		--fixed-difficulty 1 \
 		--disable-rpc-ban \
 		--rpc-max-connections 1000 \
 		--max-connections-per-ip 10 \
@@ -157,7 +164,9 @@ monerod2-local:
 
 monerod3-local:
 	./.localnet/monerod \
-		--testnet \
+		--regtest \
+		--keep-fakechain \
+		--check-updates disabled \
 		--no-igd \
 		--hide-my-port \
 		--data-dir .localnet/xmr_local/node3 \
@@ -169,7 +178,7 @@ monerod3-local:
 		--add-exclusive-node 127.0.0.1:28080 \
 		--add-exclusive-node 127.0.0.1:48080 \
 		--rpc-access-control-origins http://localhost:8080 \
-		--fixed-difficulty 500 \
+		--fixed-difficulty 1 \
 		--disable-rpc-ban \
 		--rpc-max-connections 1000 \
 		--max-connections-per-ip 10 \
@@ -179,13 +188,23 @@ monerod3-local:
 
 funding-wallet-local:
 	./.localnet/monero-wallet-rpc \
-		--testnet \
 		--allow-mismatched-daemon-version \
 		--daemon-address http://localhost:28081 \
 		--rpc-bind-port 28084 \
 		--rpc-login rpc_user:abc123 \
 		--rpc-access-control-origins http://localhost:8080 \
 		--wallet-dir ./.localnet \
+
+# mine blocks at random intervals averaging one second, e.g. make miner-local ADDRESS=<address>
+miner-local:
+	@test -n "$(ADDRESS)" || { echo "Usage: make miner-local ADDRESS=<address>"; exit 1; }
+	@echo "Mining a block about every second to $(ADDRESS)"
+	@while true; do \
+		curl -s http://localhost:28081/json_rpc -H 'Content-Type: application/json' \
+			-d '{"jsonrpc":"2.0","id":"0","method":"generateblocks","params":{"amount_of_blocks":1,"wallet_address":"$(ADDRESS)"}}' \
+			| grep -q '"status": "OK"' || echo "Could not mine a block, are monerod1-local and monerod2-local running?"; \
+		sleep $$(awk -v seed=$$RANDOM 'BEGIN { srand(seed); printf "%.3f", -log(1 - rand()) }'); \
+	done
 
 funding-wallet-stagenet:
 	./.localnet/monero-wallet-rpc \

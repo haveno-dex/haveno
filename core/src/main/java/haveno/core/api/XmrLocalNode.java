@@ -80,7 +80,14 @@ public class XmrLocalNode {
         MONEROD_ARGS.add("--hide-my-port");
         MONEROD_ARGS.add("--p2p-bind-ip");
         MONEROD_ARGS.add(NetworkUtils.LOOPBACK_HOST);
-        if (!Config.baseCurrencyNetwork().isMainnet()) MONEROD_ARGS.add("--" + Config.baseCurrencyNetwork().getNetwork().toLowerCase());
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
+            MONEROD_ARGS.addAll(List.of(
+                    "--regtest", "--keep-fakechain",
+                    "--add-exclusive-node", "127.0.0.1:48080",
+                    "--add-exclusive-node", "127.0.0.1:58080"));
+        } else if (!Config.baseCurrencyNetwork().isMainnet()) {
+            MONEROD_ARGS.add("--" + Config.baseCurrencyNetwork().getNetwork().toLowerCase());
+        }
     }
 
     @Inject
@@ -254,6 +261,22 @@ public class XmrLocalNode {
         }
 
         var flags = settings.getStartupFlags();
+        if (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL) {
+
+            // same as the local nodes in the Makefile unless set by the startup flags
+            List<String> defaultFlags = List.of(
+                    "--p2p-bind-port=28080",
+                    "--rpc-bind-port=28081",
+                    "--zmq-rpc-bind-port=28082",
+                    "--fixed-difficulty=1",
+                    "--check-updates=disabled");
+            for (String option : defaultFlags) {
+                String name = option.substring(0, option.indexOf('='));
+                if (flags == null || flags.stream().noneMatch(flag -> flag.equals(name) || flag.startsWith(name + "="))) {
+                    args.add(option);
+                }
+            }
+        }
         if (flags != null) {
             args.addAll(flags);
         }

@@ -109,8 +109,8 @@ public final class RecoverPassword {
         networkDir = networkDir.toAbsolutePath().normalize();
         MoneroNetworkType network;
         switch (networkDir.getFileName().toString()) {
-            case "xmr_mainnet": network = MoneroNetworkType.MAINNET; break;
-            case "xmr_local":
+            case "xmr_mainnet":
+            case "xmr_local": network = MoneroNetworkType.MAINNET; break; // regtest uses mainnet address encoding
             case "xmr_testnet": network = MoneroNetworkType.TESTNET; break;
             case "xmr_stagenet": network = MoneroNetworkType.STAGENET; break;
             default: throw new IllegalArgumentException("Expected an xmr_mainnet, xmr_local or xmr_stagenet data directory");

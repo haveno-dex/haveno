@@ -214,11 +214,11 @@ class GrpcPaymentAccountsService extends PaymentAccountsImplBase {
         return getCustomRateMeteringInterceptor(coreApi.getConfig().appDataDir, this.getClass())
                 .or(() -> Optional.of(CallRateMeteringInterceptor.valueOf(
                         new HashMap<>() {{
-                            put(getCreatePaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getCreateCryptoCurrencyPaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, Config.baseCurrencyNetwork().isTestnet() ? SECONDS : MINUTES));
-                            put(getGetPaymentAccountsMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS));
-                            put(getGetPaymentMethodsMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS));
-                            put(getGetPaymentAccountFormMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isTestnet() ? 100 : 1, SECONDS));
+                            put(getCreatePaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 100 : 1, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
+                            put(getCreateCryptoCurrencyPaymentAccountMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 100 : 1, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
+                            put(getGetPaymentAccountsMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 100 : 1, SECONDS));
+                            put(getGetPaymentMethodsMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 100 : 1, SECONDS));
+                            put(getGetPaymentAccountFormMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 100 : 1, SECONDS));
                         }}
                 )));
     }
