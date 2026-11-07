@@ -31,6 +31,12 @@ public class CoreNotificationService {
         }
     }
 
+    public void removeListener(@NonNull NotificationListener listener) {
+        synchronized (lock) {
+            listeners.remove(listener);
+        }
+    }
+
     public void sendNotification(@NonNull NotificationMessage notification) {
         synchronized (lock) {
             for (Iterator<NotificationListener> iter = listeners.iterator(); iter.hasNext(); ) {

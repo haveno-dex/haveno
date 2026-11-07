@@ -46,7 +46,9 @@ class GrpcNotificationsService extends NotificationsImplBase {
         Context ctx = Context.current().fork(); // context is independent for long-lived request
         ctx.run(() -> {
             try {
-                coreApi.addNotificationListener(new GrpcNotificationListener(responseObserver));
+                GrpcNotificationListener listener = new GrpcNotificationListener(responseObserver);
+                ((ServerCallStreamObserver<NotificationMessage>) responseObserver).setOnCancelHandler(() -> coreApi.removeNotificationListener(listener)); // dropped as soon as the client cancels
+                coreApi.addNotificationListener(listener);
                 // No onNext / onCompleted, as the response observer should be kept open
             } catch (Throwable t) {
                 exceptionHandler.handleException(log, t, responseObserver);
@@ -91,9 +93,9 @@ class GrpcNotificationsService extends NotificationsImplBase {
 
         @Override
         public void onMessage(@NonNull NotificationMessage message) {
-            if (!((ServerCallStreamObserver<NotificationMessage>) responseObserver).isCancelled()) {
-                responseObserver.onNext(message);
-            }
+            // throwing drops this listener from the notification service
+            if (((ServerCallStreamObserver<NotificationMessage>) responseObserver).isCancelled()) throw new IllegalStateException("Notification stream is cancelled");
+            responseObserver.onNext(message);
         }
     }
 

@@ -363,6 +363,10 @@ public class CoreApi {
         notificationService.addListener(listener);
     }
 
+    public void removeNotificationListener(NotificationListener listener) {
+        notificationService.removeListener(listener);
+    }
+
     public void sendNotification(NotificationMessage notification) {
         notificationService.sendNotification(notification);
     }
