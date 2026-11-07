@@ -405,6 +405,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         applyNodeSettings(option, getEffectiveNetworkSettings().customNodes());
     }
 
+    public synchronized void setCustomNodes(String customNodes) {
+        applyNodeSettings(getEffectiveNetworkSettings().nodes(), customNodes);
+    }
+
     public synchronized void applyNodeSettings(MoneroNodesOption nodes, String customNodes) {
         captureEffectiveNetworkSettings();
         synchronized (prefPayload) { // serialization reads both fields, so write them under the payload lock
