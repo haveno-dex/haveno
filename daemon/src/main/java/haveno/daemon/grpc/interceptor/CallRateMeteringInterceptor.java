@@ -49,25 +49,27 @@ public final class CallRateMeteringInterceptor implements ServerInterceptor {
                                                                  Metadata headers,
                                                                  ServerCallHandler<ReqT, RespT> serverCallHandler) {
         Optional<Map.Entry<String, GrpcCallRateMeter>> rateMeterKV = getRateMeterKV(serverCall);
-        rateMeterKV.ifPresentOrElse(
-                (kv) -> checkRateMeterAndMaybeCloseCall(kv, serverCall),
-                () -> handleMissingRateMeterConfiguration(serverCall));
-
-        // We leave it to the gRPC framework to clean up if the server call was closed
-        // above.  But we still have to invoke startCall here because the method must
-        // return a ServerCall.Listener<RequestT>.
+        if (rateMeterKV.isPresent()) {
+            // a closed call must not reach the handler, so hand back a listener that ignores the request
+            if (!checkRateMeterAndMaybeCloseCall(rateMeterKV.get(), serverCall)) return new ServerCall.Listener<>() {};
+        } else {
+            handleMissingRateMeterConfiguration(serverCall);
+        }
         return serverCallHandler.startCall(serverCall, headers);
     }
 
-    private void checkRateMeterAndMaybeCloseCall(Map.Entry<String, GrpcCallRateMeter> rateMeterKV,
-                                                 ServerCall<?, ?> serverCall) {
+    // Returns whether the call is within its rate limit, otherwise it has been closed.
+    private boolean checkRateMeterAndMaybeCloseCall(Map.Entry<String, GrpcCallRateMeter> rateMeterKV,
+                                                    ServerCall<?, ?> serverCall) {
         String methodName = rateMeterKV.getKey();
         GrpcCallRateMeter rateMeter = rateMeterKV.getValue();
 
-        if (!rateMeter.checkAndIncrement())
+        if (!rateMeter.checkAndIncrement()) {
             handlePermissionDeniedWarningAndCloseCall(methodName, rateMeter, serverCall);
-        else
-            log.debug(rateMeter.getCallsCountProgress(methodName));
+            return false;
+        }
+        log.debug(rateMeter.getCallsCountProgress(methodName));
+        return true;
     }
 
     private void handleMissingRateMeterConfiguration(ServerCall<?, ?> serverCall)

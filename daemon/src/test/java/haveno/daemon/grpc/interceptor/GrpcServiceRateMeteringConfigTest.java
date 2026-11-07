@@ -22,8 +22,10 @@ import haveno.proto.grpc.GetVersionGrpc;
 import haveno.proto.grpc.GetVersionReply;
 import haveno.proto.grpc.GetVersionRequest;
 import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
 import io.grpc.Server;
 import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -42,6 +44,7 @@ import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -131,6 +134,44 @@ public class GrpcServiceRateMeteringConfigTest {
         assertEquals(Status.Code.UNAUTHENTICATED, error.getStatus().getCode());
         assertEquals(1, meter.getCallsCount());
         assertEquals(0, admitted.get());
+    }
+
+    @Test
+    public void rateLimitedCallNeverStartsHandlerEvenIfMessagesArriveAfterClose() {
+        CallRateMeteringInterceptor interceptor = new CallRateMeteringInterceptor(Map.of(
+                GetVersionGrpc.getGetVersionMethod().getFullMethodName(), new GrpcCallRateMeter(1, MINUTES)));
+        AtomicInteger closed = new AtomicInteger();
+        ServerCall<GetVersionRequest, GetVersionReply> call = new ServerCall<>() {
+            @Override public void request(int count) {}
+            @Override public void sendHeaders(Metadata headers) {}
+            @Override public void sendMessage(GetVersionReply reply) {}
+            @Override public boolean isCancelled() { return false; }
+            @Override public MethodDescriptor<GetVersionRequest, GetVersionReply> getMethodDescriptor() {
+                return GetVersionGrpc.getGetVersionMethod();
+            }
+            @Override public void close(Status status, Metadata trailers) {
+                assertEquals(Status.Code.PERMISSION_DENIED, status.getCode());
+                closed.incrementAndGet();
+            }
+        };
+        AtomicInteger started = new AtomicInteger();
+        AtomicInteger messages = new AtomicInteger();
+        ServerCallHandler<GetVersionRequest, GetVersionReply> handler = (serverCall, headers) -> {
+            started.incrementAndGet();
+            return new ServerCall.Listener<>() {
+                @Override
+                public void onMessage(GetVersionRequest request) {
+                    messages.incrementAndGet();
+                }
+            };
+        };
+        interceptor.interceptCall(call, new Metadata(), handler).onMessage(GetVersionRequest.getDefaultInstance());
+        ServerCall.Listener<GetVersionRequest> rejected = interceptor.interceptCall(call, new Metadata(), handler);
+        rejected.onMessage(GetVersionRequest.getDefaultInstance());
+        rejected.onHalfClose();
+        assertEquals(1, started.get());
+        assertEquals(1, messages.get());
+        assertEquals(1, closed.get());
     }
 
     @Test
