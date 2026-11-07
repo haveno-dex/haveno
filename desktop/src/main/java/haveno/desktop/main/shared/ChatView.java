@@ -40,6 +40,7 @@ import haveno.network.p2p.network.Connection;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.ByteStreams;
 
 import haveno.desktop.util.GlyphsDude;
@@ -102,6 +103,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -119,6 +123,7 @@ import javax.annotation.Nullable;
 public class ChatView extends AnchorPane {
 
     private static final PseudoClass INPUT_VISIBLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("input-visible");
+    private static final String DEFAULT_ATTACHMENT_NAME = "attachment";
 
     // UI
     private TextArea inputTextArea;
@@ -748,7 +753,9 @@ public class ChatView extends AnchorPane {
             return;
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle(Res.get("support.save"));
-        fileChooser.setInitialFileName(attachment.getFileName());
+        // the peer names the attachment, so offer a bare file name: a path or a traversal here would
+        // preselect a destination outside the folder the dialog shows, and the save writes the peer's bytes there
+        fileChooser.setInitialFileName(bareFileName(attachment.getFileName()));
     /* if (Utilities.isUnix())
             fileChooser.setInitialDirectory(new File(System.getProperty("user.home")));*/
         File file = fileChooser.showSaveDialog(getScene().getWindow());
@@ -758,6 +765,21 @@ public class ChatView extends AnchorPane {
             } catch (IOException e) {
                 log.error("Error opening attachment: {}\n", e.getMessage(), e);
             }
+        }
+    }
+
+    // reduce the peer's name to a bare file name before passing it to the native save dialog
+    @VisibleForTesting
+    static String bareFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) return DEFAULT_ATTACHMENT_NAME;
+        try {
+            Path name = Paths.get(fileName.replace('\\', '/')).getFileName(); // '\' is a separator on Windows and a legal character elsewhere
+            if (name == null) return DEFAULT_ATTACHMENT_NAME; // e.g. "/" or "C:\"
+            String bare = name.toString();
+            if (bare.isBlank() || ".".equals(bare) || "..".equals(bare)) return DEFAULT_ATTACHMENT_NAME;
+            return bare.replaceAll("^[~.]|%", "_"); // GTK resolves a leading ~ as a home directory, a leading . hides the file on Unix and the Windows dialog expands %VAR%
+        } catch (InvalidPathException e) {
+            return DEFAULT_ATTACHMENT_NAME; // name this filesystem rejects
         }
     }
 
