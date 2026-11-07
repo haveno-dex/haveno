@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -283,7 +284,8 @@ public class PasswordRecoveryApp extends Application {
                         busy = false;
                         close.setDisable(false);
                         repair.setDisable(false);
-                        setStatus(Res.get("password.recovery.launchFailed"), true);
+                        setStatus(Res.get("password.recovery.launchFailed") + "\n\n" + Res.get("password.recovery.launchFailed.manual",
+                                Objects.requireNonNullElse(error.getMessage(), error.toString()), PasswordRecoveryLauncher.manualCommand(networkDir)), true);
                     }
                 }));
             });

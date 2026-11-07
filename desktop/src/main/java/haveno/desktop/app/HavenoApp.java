@@ -71,6 +71,7 @@ import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.ImageUtil;
 import haveno.desktop.util.Transitions;
 import java.io.File;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -570,14 +571,16 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
             if (!confirmed || openingPasswordRecovery || shutDownRequested) return;
             openingPasswordRecovery = true;
             scene.getRoot().setDisable(true);
-            PasswordRecoveryLauncher.start(injector.getInstance(Config.class).walletDir.toPath().getParent())
+            Path networkDir = injector.getInstance(Config.class).walletDir.toPath().getParent();
+            PasswordRecoveryLauncher.start(networkDir)
                     .whenComplete((result, error) -> UserThread.execute(() -> {
                         if (error == null) {
                             stop();
                         } else {
                             openingPasswordRecovery = false;
                             scene.getRoot().setDisable(false);
-                            showError.accept(Res.get("password.recovery.launchFailed"));
+                            showError.accept(Res.get("password.recovery.launchFailed") + "\n\n"
+                                    + Res.get("password.recovery.launchFailed.manual", getMessage(error), PasswordRecoveryLauncher.manualCommand(networkDir)));
                         }
                     }));
         });
