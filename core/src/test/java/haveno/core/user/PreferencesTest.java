@@ -33,9 +33,11 @@ import haveno.core.locale.TraditionalCurrency;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.xmr.model.EncryptedConnectionList;
 import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.P2PService;
 import monero.common.MoneroRpcConnection;
+import monero.daemon.MoneroDaemonRpc;
 import monero.daemon.model.MoneroDaemonInfo;
 import haveno.core.xmr.nodes.XmrNodes;
 import haveno.core.xmr.nodes.XmrNodesSetupPreferences;
@@ -50,8 +52,14 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
@@ -65,14 +73,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -81,6 +92,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -290,6 +302,16 @@ public class PreferencesTest {
         preferences.setPublicMoneroNodesBlocked(true);
         assertEquals(new NetworkSettings(MoneroNodesOption.PROVIDED, UseTorForXmr.ON, "custom.example:18081"), preferences.getNetworkSettings());
         assertEquals(new NetworkSettings(MoneroNodesOption.PROVIDED, UseTorForXmr.OFF, "custom.example:18081"), preferences.getEffectiveNetworkSettings());
+    }
+
+    @Test
+    public void testCustomNodesSaveWithoutChangingTheSourceOrPendingTor() {
+        preferences.setUseTorForXmrOrdinal(UseTorForXmr.OFF.ordinal());
+        preferences.applyNodeSettings(MoneroNodesOption.PUBLIC, "custom.example:18081");
+        preferences.setTorForNextStart(UseTorForXmr.ON);
+        preferences.setCustomNodes("custom.example:18081,other.example:18081");
+        assertEquals(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.ON, "custom.example:18081,other.example:18081"), preferences.getNetworkSettings());
+        assertEquals(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.OFF, "custom.example:18081,other.example:18081"), preferences.getEffectiveNetworkSettings());
     }
 
     @Test
@@ -572,6 +594,119 @@ public class PreferencesTest {
             assertThrows(IllegalStateException.class, () -> context.service.connectToNode(added, checked, () -> true));
             assertSame(context.previous, context.service.getConnection());
             assertSame(context.previous, context.service.getMonerod().getRpcConnection());
+        }
+    }
+
+    @Test
+    public void testNodeSwitchConnectsToTheNamedNode() throws Exception {
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM)) {
+            AtomicReference<MoneroRpcConnection> checked = new AtomicReference<>();
+            doAnswer(invocation -> {
+                assertSame(context.service.getConnection(context.publicUri), invocation.getArgument(0)); // the entry of the new list keeps its priority
+                checked.set(context.checkedConnection(invocation.getArgument(0)));
+                return checked.get();
+            }).when(context.service).probeConnection(any());
+
+            context.service.setNodeSettings(MoneroNodesOption.PUBLIC, context.previous.getUri(), context.publicUri);
+
+            verify(context.service, never()).getBestConnection();
+            assertSame(checked.get(), context.service.getConnection());
+            assertSame(checked.get(), context.service.getMonerod().getRpcConnection());
+            assertEquals(1, checked.get().getPriority());
+            assertEquals(MoneroNodesOption.PUBLIC, preferences.getEffectiveNetworkSettings().nodes());
+            assertFalse(context.service.isReloadingConnections());
+        }
+    }
+
+    @Test
+    public void testNodeSwitchToUnusableNamedNodeRollsBack() throws Exception {
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM)) {
+            doAnswer(invocation -> {
+                MoneroRpcConnection checked = context.checkedConnection(invocation.getArgument(0));
+                checked.setOnline(false);
+                return checked;
+            }).when(context.service).probeConnection(any());
+
+            assertThrows(IllegalStateException.class, () -> context.service.setNodeSettings(MoneroNodesOption.PUBLIC, context.previous.getUri(), context.publicUri));
+            assertThrows(IllegalStateException.class, () -> context.service.setNodeSettings(MoneroNodesOption.PUBLIC, context.previous.getUri(), "http://missing.example:18081"));
+
+            verify(context.service, never()).getBestConnection();
+            assertSame(context.previous, context.service.getConnection());
+            assertSame(context.previous, context.service.getMonerod().getRpcConnection());
+            assertEquals(List.of(context.previous), context.service.getConnections());
+            assertEquals(MoneroNodesOption.CUSTOM, preferences.getEffectiveNetworkSettings().nodes());
+            assertFalse(context.service.isReloadingConnections());
+        }
+    }
+
+    @Test
+    public void testNodeEditsDoNotWaitForThePolledNodeRequest() throws Exception {
+        XmrWalletService previousWalletService = HavenoUtils.xmrWalletService;
+        CountDownLatch requested = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(1);
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM);
+             ServerSocket node = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
+            HavenoUtils.xmrWalletService = null; // a syncing wallet skips the poll request
+            Thread unresponsive = new Thread(() -> {
+                try (Socket request = node.accept()) {
+                    requested.countDown();
+                    done.await(); // accept the poll request without answering it
+                } catch (Exception e) {
+                    // closed by the test
+                }
+            });
+            unresponsive.setDaemon(true);
+            unresponsive.start();
+
+            context.service.setConnection(new MoneroRpcConnection("http://127.0.0.1:" + node.getLocalPort()));
+            Method startPolling = XmrConnectionService.class.getDeclaredMethod("startPolling", MoneroDaemonInfo.class);
+            startPolling.setAccessible(true);
+            startPolling.invoke(context.service, (MoneroDaemonInfo) null);
+
+            assertTrue(requested.await(10, TimeUnit.SECONDS));
+            assertNotNull(assertTimeoutPreemptively(Duration.ofSeconds(2), () -> context.service.addCustomNode("127.0.0.1:1")));
+        } finally {
+            done.countDown(); // the context stops polling before the request is released
+            HavenoUtils.xmrWalletService = previousWalletService;
+        }
+    }
+
+    @Test
+    public void testDiscardedPollLeavesTheNodeStateAlone() throws Exception {
+        XmrWalletService previousWalletService = HavenoUtils.xmrWalletService;
+        CountDownLatch requested = new CountDownLatch(1);
+        CountDownLatch replaced = new CountDownLatch(1);
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM);
+             ServerSocket node = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
+            HavenoUtils.xmrWalletService = null; // a syncing wallet skips the poll request
+            Thread delayed = new Thread(() -> {
+                try (Socket request = node.accept()) {
+                    requested.countDown();
+                    replaced.await(); // fail the poll request once a switch has replaced the polled daemon
+                    request.getOutputStream().write("HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n".getBytes(StandardCharsets.US_ASCII));
+                } catch (Exception e) {
+                    // closed by the test
+                }
+            });
+            delayed.setDaemon(true);
+            delayed.start();
+
+            MoneroRpcConnection polled = new MoneroRpcConnection("http://127.0.0.1:" + node.getLocalPort());
+            context.service.setConnection(polled);
+            Method startPolling = XmrConnectionService.class.getDeclaredMethod("startPolling", MoneroDaemonInfo.class);
+            startPolling.setAccessible(true);
+            startPolling.invoke(context.service, (MoneroDaemonInfo) null);
+
+            assertTrue(requested.await(10, TimeUnit.SECONDS));
+            context.setField("monerod", new MoneroDaemonRpc(polled)); // a rolled back switch keeps the node but replaces its daemon
+            replaced.countDown();
+            delayed.join(10000);
+            for (long end = System.currentTimeMillis() + 1000; System.currentTimeMillis() < end && polled.isOnline() == null;) Thread.sleep(20); // the discarded poll finishes within this
+            assertNull(polled.isOnline());
+            assertNull(XmrConnectionService.getLastCheckedTimestamp(polled));
+        } finally {
+            replaced.countDown();
+            HavenoUtils.xmrWalletService = previousWalletService;
         }
     }
 

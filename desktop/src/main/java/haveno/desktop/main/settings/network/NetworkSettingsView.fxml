@@ -53,16 +53,20 @@
                 <Label fx:id="statusTitle" styleClass="network-setting-title" wrapText="true"/>
                 <Label fx:id="statusDetail" styleClass="network-help" wrapText="true"/>
             </VBox>
-            <HBox styleClass="network-source-row" alignment="CENTER_LEFT" spacing="32">
-                <VBox spacing="2" HBox.hgrow="ALWAYS" minWidth="0">
-                    <Label fx:id="sourceLabel" styleClass="network-setting-title"/>
-                    <TextFlow>
-                        <Text fx:id="sourceHelp" styleClass="network-source-help"/>
-                        <Hyperlink fx:id="remoteNodeLink" styleClass="network-link"/>
-                    </TextFlow>
-                </VBox>
-                <ComboBox fx:id="source" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
-            </HBox>
+            <VBox styleClass="network-source-row">
+                <Label fx:id="sourceLabel" styleClass="network-setting-title"/>
+                <HBox fx:id="sourceTabs" styleClass="network-source-tabs">
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="useSourceButton" styleClass="network-button,network-primary">
+                        <HBox.margin><Insets bottom="4"/></HBox.margin>
+                    </Button>
+                </HBox>
+                <TextFlow>
+                    <VBox.margin><Insets top="12"/></VBox.margin>
+                    <Text fx:id="sourceHelp" styleClass="network-source-help"/>
+                    <Hyperlink fx:id="remoteNodeLink" styleClass="network-link"/>
+                </TextFlow>
+            </VBox>
             <StackPane styleClass="network-table-frame">
                 <VBox fx:id="nodeCard">
                     <TableView fx:id="moneroConnectionsTableView" styleClass="network-table,network-nodes">
@@ -89,7 +93,7 @@
                     </VBox>
                     <ComboBox fx:id="tor" styleClass="network-select" minWidth="300" prefWidth="300" maxWidth="300"/>
                 </HBox>
-                <HBox fx:id="torPending" styleClass="network-tor-pending">
+                <HBox fx:id="torPending" styleClass="network-pending">
                     <VBox.margin><Insets top="12"/></VBox.margin>
                     <Label fx:id="pendingText" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                     <Button fx:id="shutdownButton" styleClass="network-button"/>
