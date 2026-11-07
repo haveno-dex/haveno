@@ -94,8 +94,17 @@ public class MoneroWalletRpcManager {
             byte[] secret = new byte[32];
             new SecureRandom().nextBytes(secret);
             String password = Utilities.encodeToHex(secret);
-            Files.writeString(rpcConfig, "rpc-login=" + RPC_USERNAME + ":" + password + "\n", StandardCharsets.UTF_8);
             cmd = new ArrayList<>(cmd);
+            StringBuilder config = new StringBuilder("rpc-login=" + RPC_USERNAME + ":" + password + "\n");
+            int daemonLoginIndex = cmd.indexOf("--daemon-login");
+            String daemonLogin = daemonLoginIndex < 0 ? null : cmd.get(daemonLoginIndex + 1);
+            // the config file trims whitespace and cuts at a comment or line break, so such a login stays in the arguments
+            if (daemonLogin != null && daemonLogin.equals(daemonLogin.strip()) && !daemonLogin.matches("(?s).*[#\\r\\n].*")) {
+                config.append("daemon-login=").append(daemonLogin).append("\n");
+                cmd.remove(daemonLoginIndex + 1);
+                cmd.remove(daemonLoginIndex);
+            }
+            Files.writeString(rpcConfig, config.toString(), StandardCharsets.UTF_8);
             cmd.add("--config-file");
             cmd.add(rpcConfig.toString());
             MoneroWalletRpc walletRpc = startInstanceInternal(cmd);
