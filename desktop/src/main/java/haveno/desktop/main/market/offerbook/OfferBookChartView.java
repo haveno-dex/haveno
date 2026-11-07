@@ -1304,9 +1304,9 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     // Distances count from the market price, or the best price without one, and as at least 5% of that price.
     private static final double RANGE_NEAR_PRICE_RATIO = 0.05;
     // The range runs on past the farthest earning offer to show its surroundings: by twice that offer's distance
-    // from the market price, or from the best price if that is nearer the other side, at most 6% of its price.
+    // from the market price, or from the best price if that is nearer the other side, at most 7% of its price.
     private static final double RANGE_CONTEXT_RATIO = 2;
-    private static final double RANGE_CONTEXT_PRICE_RATIO = 0.06;
+    private static final double RANGE_CONTEXT_PRICE_RATIO = 0.07;
     // The range reaches at least the tenth offer of the side, so thin books show in full.
     private static final int RANGE_MIN_OFFERS = 10;
     // The range ends short of 3x the farther of the market price and the best price.

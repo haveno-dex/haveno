@@ -270,12 +270,12 @@ public class OfferBookChartViewModelTest {
     public void testRangeEndShowsSurroundings() {
         for (OfferDirection direction : OfferDirection.values()) {
             boolean sell = direction == OfferDirection.SELL;
-            // offers earning the range out to 20% of the market price add 6% of their price, which shows light offers
+            // offers earning the range out to 20% of the market price add 7% of their price, which shows light offers
             double[] earning = sell ? new double[]{108, 112, 120} : new double[]{92, 88, 80};
-            double[] light = sell ? new double[]{108, 112, 120, 126, 128} : new double[]{92, 88, 80, 76, 75};
+            double[] light = sell ? new double[]{108, 112, 120, 126, 129} : new double[]{92, 88, 80, 76, 74};
             double[] lightAmounts = {4, 4, 8, 0.001, 0.001};
             double[] shownLight = sell ? new double[]{108, 112, 120, 126} : new double[]{92, 88, 80, 76};
-            double rangeEnd = sell ? 127.2 : 75.2;
+            double rangeEnd = sell ? 128.4 : 74.4;
             assertEquals(shown(direction, earning), filterTail(direction, 100, 5, earning, new double[]{4, 4, 8}));
             assertEquals(shown(direction, shownLight), filterTail(direction, 100, 5, light, lightAmounts));
             assertEquals(rangeEnd, rangeEnd(direction, 100, withCore(direction, 100, earning), withCore(direction, 5, 4, 4, 8)), 1e-9);
@@ -329,9 +329,9 @@ public class OfferBookChartViewModelTest {
     @Test
     public void testOffersNearMarketPriceEarnTheRange() {
         // a light offer within 5% of the market price earns the range, the same offer at 7% from a lower one does not
-        assertEquals(110.24, rangeEnd(OfferDirection.SELL, 100, withCore(OfferDirection.SELL, 100, 104), withCore(OfferDirection.SELL, 5, 0.001)), 1e-9);
+        assertEquals(111.28, rangeEnd(OfferDirection.SELL, 100, withCore(OfferDirection.SELL, 100, 104), withCore(OfferDirection.SELL, 5, 0.001)), 1e-9);
         assertEquals(106, rangeEnd(OfferDirection.SELL, 97, withCore(OfferDirection.SELL, 100, 104), withCore(OfferDirection.SELL, 5, 0.001)), 1e-9);
-        assertEquals(90.24, rangeEnd(OfferDirection.BUY, 100, withCore(OfferDirection.BUY, 100, 96), withCore(OfferDirection.BUY, 5, 0.001)), 1e-9);
+        assertEquals(89.28, rangeEnd(OfferDirection.BUY, 100, withCore(OfferDirection.BUY, 100, 96), withCore(OfferDirection.BUY, 5, 0.001)), 1e-9);
         assertEquals(94, rangeEnd(OfferDirection.BUY, 103, withCore(OfferDirection.BUY, 100, 96), withCore(OfferDirection.BUY, 5, 0.001)), 1e-9);
     }
 
