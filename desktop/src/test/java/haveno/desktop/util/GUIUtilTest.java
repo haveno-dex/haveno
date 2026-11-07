@@ -293,7 +293,11 @@ public class GUIUtilTest {
             directories = mockConstruction(DirectoryChooser.class, (chooser, context) -> when(chooser.showDialog(any())).thenReturn(dir.toFile()));
             files = mockConstruction(FileChooser.class, (chooser, context) -> when(chooser.showOpenDialog(any())).thenAnswer(invocation -> file.toFile()));
             popups = mockConstruction(Popup.class, withSettings().defaultAnswer(RETURNS_SELF));
-            UserThread.setExecutor(callbacks::add);
+            // capture only the worker's callbacks; timer threads keep running theirs directly
+            UserThread.setExecutor(callback -> {
+                if (Thread.currentThread().getName().equals("PaymentAccountIO")) callbacks.add(callback);
+                else callback.run();
+            });
         }
 
         private void runCallback() throws InterruptedException {
