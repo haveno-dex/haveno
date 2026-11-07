@@ -29,7 +29,7 @@ jobs:
         run: ./gradlew clean build -x checkstyleMain -x checkstyleTest -x shadowJar
 
       - name: Run codacy coverage reporter
-        uses: codacy/codacy-coverage-reporter-action@v1.3.0
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699 # v1.3.0
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: ${{ github.workspace }}/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml

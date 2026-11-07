@@ -5,12 +5,15 @@ on:
     types: [labeled]
   workflow_call:
 
+permissions:
+  issues: write
+
 jobs:
   issueLabeled:
     runs-on: ubuntu-24.04
     steps:
       - name: Bounty explanation
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@23ff15729ef2fc348714a3bb66d2f655ca9066f2 # v3.1.0
         if: github.event.label.name == '💰bounty'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

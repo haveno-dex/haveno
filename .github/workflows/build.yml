@@ -3,6 +3,9 @@
 #  git push origin 1.0.19-1
 name: CI
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +20,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write # the release step publishes installers on tag pushes
     # Installers always build (to validate packaging) but are attached only on
     # tags, manual dispatch with the option enabled, or an [attach-installers] commit.
     env:
@@ -83,6 +88,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix314rtm/wix314.exe' -OutFile wix314.exe
+          if ((Get-FileHash wix314.exe -Algorithm SHA256).Hash -ne '704439EA88FC9E5A3647EEDEEB45943F9A392E3D209F58512280130096847937') { throw 'wix314.exe checksum mismatch' }
           .\wix314.exe /quiet /norestart
         shell: powershell
       - name: Build Haveno Installer with tests
@@ -253,7 +259,7 @@ jobs:
           path: ${{ github.workspace }}/release-daemon-windows
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
