@@ -311,8 +311,13 @@ public final class XmrConnectionService {
         return selected.stream().anyMatch(node -> !(config.ignoreLocalXmrNode && xmrLocalNode.equalsUri(node.getUri())));
     }
 
-    // serialize node edits with polling; callers must stay off the user thread
     public void setNodeSettings(MoneroNodesOption option, String customNodes) {
+        setNodeSettings(option, customNodes, null);
+    }
+
+    // serialize node edits with polling; callers must stay off the user thread
+    // connectUri names a node of the new source to connect to instead of searching for the best node
+    public void setNodeSettings(MoneroNodesOption option, String customNodes, String connectUri) {
         accountService.checkAccountOpen();
         synchronized (pollLock) {
             requireEditableNodes();
@@ -328,7 +333,7 @@ public final class XmrConnectionService {
                 numConsecutiveErrors = 0;
                 lastFallbackInvocation = null;
                 UserThread.execute(() -> connectionServiceFallbackType.set(null));
-                initializeConnections(new NetworkSettings(option, previous.tor(), customNodes));
+                initializeConnections(new NetworkSettings(option, previous.tor(), customNodes), connectUri);
             } catch (Exception e) {
                 preferences.restoreNodeSettings(previous);
                 synchronized (connections) {
@@ -357,6 +362,16 @@ public final class XmrConnectionService {
             addConnection(connection);
             preferences.applyNodeSettings(MoneroNodesOption.CUSTOM, customNodes);
             return connection;
+        }
+    }
+
+    // saves the custom list while another source is in use; the running custom list is edited with addCustomNode and removeCustomNode
+    public void setCustomNodes(String customNodes) {
+        accountService.checkAccountOpen();
+        synchronized (pollLock) {
+            requireEditableNodes();
+            if (isCustomConnections()) throw new IllegalStateException("Node configuration has changed");
+            preferences.setCustomNodes(customNodes);
         }
     }
 
@@ -577,11 +592,15 @@ public final class XmrConnectionService {
     public void connectToNode(MoneroRpcConnection original, MoneroRpcConnection checked, BooleanSupplier isCurrent) {
         accountService.checkAccountOpen();
         if (isShutDownStarted || isFixedConnection()) throw new IllegalStateException("Connection cannot be changed");
+        setConnection(checked, requireUsable(checked), original, null, isCurrent);
+    }
+
+    private static MoneroDaemonInfo requireUsable(MoneroRpcConnection checked) {
         MoneroDaemonInfo info = getCachedDaemonInfo(checked);
         if (!Boolean.TRUE.equals(checked.isConnected()) || info == null || !isSyncedWithinTolerance(info)) {
             throw new IllegalStateException("Node is unavailable or is not synchronized");
         }
-        setConnection(checked, info, original, null, isCurrent);
+        return info;
     }
 
     public void connectToNodeIfDisconnected(MoneroRpcConnection original, MoneroRpcConnection checked) {
@@ -1186,16 +1205,16 @@ public final class XmrConnectionService {
     }
 
     private void initializeConnections() {
-        initializeConnections(null);
+        initializeConnections(null, null);
     }
 
-    private void initializeConnections(NetworkSettings expectedSettings) {
+    private void initializeConnections(NetworkSettings expectedSettings, String connectUri) {
         synchronized (pollLock) {
-            if (!isShutDownStarted) doInitializeConnections(expectedSettings);
+            if (!isShutDownStarted) doInitializeConnections(expectedSettings, connectUri);
         }
     }
 
-    private void doInitializeConnections(NetworkSettings expectedSettings) {
+    private void doInitializeConnections(NetworkSettings expectedSettings, String connectUri) {
         preferences.captureEffectiveNetworkSettings();
         MoneroRpcConnection initialConnection = null;
         MoneroDaemonInfo initialInfo = null;
@@ -1327,7 +1346,13 @@ public final class XmrConnectionService {
         }
 
         // check nodes outside the state lock so shutdown does not wait for network requests
-        if (canSwitchToBestConnection()) {
+        if (connectUri != null) {
+            MoneroRpcConnection connection = getConnection(connectUri);
+            if (connection == null) throw new IllegalStateException("Node configuration has changed");
+            MoneroRpcConnection checked = probeConnection(connection);
+            requireUsable(checked);
+            initialConnection = checked;
+        } else if (canSwitchToBestConnection()) {
             MoneroRpcConnection bestConnection = getBestConnection();
             if (bestConnection != null) initialConnection = bestConnection;
         }

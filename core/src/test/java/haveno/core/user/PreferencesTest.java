@@ -73,6 +73,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,6 +92,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -300,6 +302,16 @@ public class PreferencesTest {
         preferences.setPublicMoneroNodesBlocked(true);
         assertEquals(new NetworkSettings(MoneroNodesOption.PROVIDED, UseTorForXmr.ON, "custom.example:18081"), preferences.getNetworkSettings());
         assertEquals(new NetworkSettings(MoneroNodesOption.PROVIDED, UseTorForXmr.OFF, "custom.example:18081"), preferences.getEffectiveNetworkSettings());
+    }
+
+    @Test
+    public void testCustomNodesSaveWithoutChangingTheSourceOrPendingTor() {
+        preferences.setUseTorForXmrOrdinal(UseTorForXmr.OFF.ordinal());
+        preferences.applyNodeSettings(MoneroNodesOption.PUBLIC, "custom.example:18081");
+        preferences.setTorForNextStart(UseTorForXmr.ON);
+        preferences.setCustomNodes("custom.example:18081,other.example:18081");
+        assertEquals(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.ON, "custom.example:18081,other.example:18081"), preferences.getNetworkSettings());
+        assertEquals(new NetworkSettings(MoneroNodesOption.PUBLIC, UseTorForXmr.OFF, "custom.example:18081,other.example:18081"), preferences.getEffectiveNetworkSettings());
     }
 
     @Test
@@ -582,6 +594,48 @@ public class PreferencesTest {
             assertThrows(IllegalStateException.class, () -> context.service.connectToNode(added, checked, () -> true));
             assertSame(context.previous, context.service.getConnection());
             assertSame(context.previous, context.service.getMonerod().getRpcConnection());
+        }
+    }
+
+    @Test
+    public void testNodeSwitchConnectsToTheNamedNode() throws Exception {
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM)) {
+            AtomicReference<MoneroRpcConnection> checked = new AtomicReference<>();
+            doAnswer(invocation -> {
+                assertSame(context.service.getConnection(context.publicUri), invocation.getArgument(0)); // the entry of the new list keeps its priority
+                checked.set(context.checkedConnection(invocation.getArgument(0)));
+                return checked.get();
+            }).when(context.service).probeConnection(any());
+
+            context.service.setNodeSettings(MoneroNodesOption.PUBLIC, context.previous.getUri(), context.publicUri);
+
+            verify(context.service, never()).getBestConnection();
+            assertSame(checked.get(), context.service.getConnection());
+            assertSame(checked.get(), context.service.getMonerod().getRpcConnection());
+            assertEquals(1, checked.get().getPriority());
+            assertEquals(MoneroNodesOption.PUBLIC, preferences.getEffectiveNetworkSettings().nodes());
+            assertFalse(context.service.isReloadingConnections());
+        }
+    }
+
+    @Test
+    public void testNodeSwitchToUnusableNamedNodeRollsBack() throws Exception {
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM)) {
+            doAnswer(invocation -> {
+                MoneroRpcConnection checked = context.checkedConnection(invocation.getArgument(0));
+                checked.setOnline(false);
+                return checked;
+            }).when(context.service).probeConnection(any());
+
+            assertThrows(IllegalStateException.class, () -> context.service.setNodeSettings(MoneroNodesOption.PUBLIC, context.previous.getUri(), context.publicUri));
+            assertThrows(IllegalStateException.class, () -> context.service.setNodeSettings(MoneroNodesOption.PUBLIC, context.previous.getUri(), "http://missing.example:18081"));
+
+            verify(context.service, never()).getBestConnection();
+            assertSame(context.previous, context.service.getConnection());
+            assertSame(context.previous, context.service.getMonerod().getRpcConnection());
+            assertEquals(List.of(context.previous), context.service.getConnections());
+            assertEquals(MoneroNodesOption.CUSTOM, preferences.getEffectiveNetworkSettings().nodes());
+            assertFalse(context.service.isReloadingConnections());
         }
     }
 
