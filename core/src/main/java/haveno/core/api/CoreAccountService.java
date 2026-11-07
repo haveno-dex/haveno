@@ -148,6 +148,7 @@ public class CoreAccountService {
         try {
             if (accountExists()) throw new IllegalStateException("Cannot create account if account already exists");
             if ("".equals(password)) password = null;
+            if (password == null && config.passwordRequired) throw new IllegalArgumentException("A password is required to create an account");
             this.password = password; // wallets are encrypted with the account password
             try {
                 synchronized (listeners) {
