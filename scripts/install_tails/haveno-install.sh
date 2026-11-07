@@ -141,8 +141,10 @@ fi
 
 
 # The check above only says the signature is good, not which key made it, so read the
-# signing key from the status output and require it to be the expected one
-signing_fingerprint=$(printf '%s\n' "${OUTPUT}" | awk '/^\[GNUPG:\] VALIDSIG /{print $3}')
+# signing key from the status output and require it to be the expected one. The last
+# field of VALIDSIG is the primary key, which is what the expected fingerprint names;
+# the first field would be a signing subkey's own fingerprint
+signing_fingerprint=$(printf '%s\n' "${OUTPUT}" | awk '/^\[GNUPG:\] VALIDSIG /{print $NF}')
 if [ "${signing_fingerprint}" != "${formatted_expected_fingerprint}" ]; then
     echo_red "Signed by an unexpected key: ${signing_fingerprint:-none}"
     exit 1
