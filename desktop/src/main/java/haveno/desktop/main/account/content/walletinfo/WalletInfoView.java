@@ -31,6 +31,7 @@ import haveno.desktop.common.view.ActivatableView;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
+import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import static haveno.desktop.util.FormBuilder.addButtonAfterGroup;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
@@ -49,6 +50,7 @@ import static org.bitcoinj.wallet.Wallet.BalanceType.ESTIMATED_SPENDABLE;
 public class WalletInfoView extends ActivatableView<GridPane, Void> {
 
     private final WalletsManager walletsManager;
+    private final WalletPasswordWindow walletPasswordWindow;
     private final BtcWalletService btcWalletService;
     private final CoinFormatter btcFormatter;
     private int gridRow = 0;
@@ -63,9 +65,11 @@ public class WalletInfoView extends ActivatableView<GridPane, Void> {
 
     @Inject
     private WalletInfoView(WalletsManager walletsManager,
+                           WalletPasswordWindow walletPasswordWindow,
                            BtcWalletService btcWalletService,
                            @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter) {
         this.walletsManager = walletsManager;
+        this.walletPasswordWindow = walletPasswordWindow;
         this.btcWalletService = btcWalletService;
         this.btcFormatter = btcFormatter;
     }
@@ -103,7 +107,7 @@ public class WalletInfoView extends ActivatableView<GridPane, Void> {
 
         openDetailsButton.setOnAction(e -> {
             if (walletsManager.areWalletsAvailable()) {
-                new ShowWalletDataWindow(walletsManager).width(root.getWidth()).show();
+                new ShowWalletDataWindow(walletsManager, walletPasswordWindow).width(root.getWidth()).show();
             } else {
                 new Popup().warning(Res.get("popup.warning.walletNotInitialized")).show();
             }

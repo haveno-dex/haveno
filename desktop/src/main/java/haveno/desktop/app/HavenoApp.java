@@ -65,6 +65,7 @@ import haveno.desktop.main.overlays.windows.FilterWindow;
 import haveno.desktop.main.overlays.windows.SendAlertMessageWindow;
 import haveno.desktop.main.overlays.windows.ShowWalletDataWindow;
 import haveno.desktop.main.overlays.windows.TacContent;
+import haveno.desktop.main.overlays.windows.WalletPasswordWindow;
 import haveno.desktop.util.CssTheme;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.GUIUtil;
@@ -728,7 +729,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
                 } else if (Utilities.isAltOrCtrlPressed(KeyCode.J, keyEvent)) {
                     WalletsManager walletsManager = injector.getInstance(WalletsManager.class);
                     if (walletsManager.areWalletsAvailable())
-                        new ShowWalletDataWindow(walletsManager).show();
+                        new ShowWalletDataWindow(walletsManager, injector.getInstance(WalletPasswordWindow.class)).show();
                     else
                         new Popup().warning(Res.get("popup.warning.walletNotInitialized")).show();
                 } else if (DevEnv.isDevMode()) {
