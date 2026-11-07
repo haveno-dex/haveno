@@ -14,6 +14,8 @@ Haveno closes and opens a separate recovery screen for the same profile. Wait fo
 
 Enter the **current account password**, repeat it in **Confirm password**, and enter the **previous or attempted password** from the failed change. Leave both current-password fields empty if the account has no password. A mismatch stops recovery before any files are changed. If the account key must be restored from a backup, the confirmed password becomes the password for the recovered account. Unset passwords are always tried automatically, including the internal wallet default `password` and a literal empty password used by accounts created without one before it was normalized; there is no need to type that default. Use **Add another password** if several changes failed with different passwords.
 
+If the recovery screen cannot be opened, the message names the cause and shows the terminal command that opens it for your installation; run it after Haveno has closed, using PowerShell on Windows. For a failed launch from the main Haveno window, the cause and captured output are also in the application log.
+
 Select **Repair wallets** after confirming the backup. Recovery runs offline, without trading or synchronization. Keep the window open until it finishes. On success, close recovery and start Haveno normally. If it fails, **Try again** opens a fresh recovery screen; re-enter all relevant passwords. If the current account password was rejected, try the other password in the first field. Unknown passwords cannot be recovered or bypassed.
 
 The screen is also available from the desktop launcher with `--recover-password` followed by the network data directory. For example, with an updated macOS installation:
