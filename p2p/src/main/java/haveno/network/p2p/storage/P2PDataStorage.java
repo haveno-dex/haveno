@@ -75,6 +75,8 @@ import haveno.network.p2p.storage.persistence.ProtectedDataStoreService;
 import haveno.network.p2p.storage.persistence.RemovedPayloadsService;
 import haveno.network.p2p.storage.persistence.ResourceDataStoreService;
 import haveno.network.p2p.storage.persistence.SequenceNumberMap;
+import haveno.network.utils.EventThrottler;
+import haveno.network.utils.LeakyBucket;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Clock;
@@ -142,6 +144,9 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
     private final Set<AppendOnlyDataStoreListener> appendOnlyDataStoreListeners = new CopyOnWriteArraySet<>();
     private final RemovedPayloadsService removedPayloadsService;
     private final Clock clock;
+    // append only payloads are kept forever, so new ones from broadcasts are admitted at a bounded rate
+    private final LeakyBucket newPayloadAdmission = new LeakyBucket(5, 500, 0);
+    private final EventThrottler admissionLogThrottler = new EventThrottler(10, TimeUnit.SECONDS);
 
     /// The maximum number of items that must exist in the SequenceNumberMap before it is scheduled for a purge
     /// which removes entries after PURGE_AGE_DAYS.
@@ -801,6 +806,11 @@ public class P2PDataStorage implements MessageListener, ConnectionListener, Pers
         if (checkDate && payload instanceof DateTolerantPayload && !((DateTolerantPayload) payload).isDateInTolerance((clock))) {
             log.warn("addPersistableNetworkPayload failed due to payload time outside tolerance.\n" +
                     "Payload={}; now={}", payload.toString(), new Date());
+            return false;
+        }
+
+        if (checkDate && !payloadHashAlreadyInStore && newPayloadAdmission.isSpamming(1)) {
+            if (!admissionLogThrottler.onEvent().throttled) log.warn("Ignoring new {} from the network because the admission rate is exceeded", payload.getClass().getSimpleName());
             return false;
         }
 

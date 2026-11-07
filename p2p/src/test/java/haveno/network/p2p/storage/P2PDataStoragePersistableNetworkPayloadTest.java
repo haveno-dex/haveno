@@ -22,16 +22,22 @@ import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
 import haveno.network.p2p.storage.mocks.DateTolerantPayloadStub;
 import haveno.network.p2p.storage.mocks.PersistableNetworkPayloadStub;
 import haveno.network.p2p.storage.payload.PersistableNetworkPayload;
+import haveno.network.utils.LeakyBucket;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.reflect.Field;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static haveno.network.p2p.storage.TestState.SavedTestState;
 import static java.util.stream.Stream.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +57,39 @@ import static org.mockito.Mockito.when;
  * 3.    onMessage() [onMessage(AddPersistableNetworkPayloadMessage)]
  */
 public class P2PDataStoragePersistableNetworkPayloadTest {
+
+    @Test
+    public void broadcastAdmissionCountsOnlyNewPayloadsAndDoesNotLimitLocalAdds() throws Exception {
+        TestState state = new TestState();
+        Field field = P2PDataStorage.class.getDeclaredField("newPayloadAdmission");
+        field.setAccessible(true);
+        LeakyBucket admission = new LeakyBucket(0, 2, 0);
+        field.set(state.mockedStorage, admission);
+        Connection connection = mock(Connection.class);
+        when(connection.getPeersNodeAddressOptional()).thenReturn(Optional.of(TestState.getTestNodeAddress()));
+        PersistableNetworkPayload first = new PersistableNetworkPayloadStub(new byte[]{1});
+        PersistableNetworkPayload second = new PersistableNetworkPayloadStub(new byte[]{2});
+        PersistableNetworkPayload third = new PersistableNetworkPayloadStub(new byte[]{3});
+        state.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(new PersistableNetworkPayloadStub(false)), connection);
+        state.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(first), connection);
+        state.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(first), connection);
+        state.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(second), connection);
+        state.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(third), connection);
+        assertTrue(state.mockedStorage.appendOnlyDataStoreService.containsKey(first, new P2PDataStorage.ByteArray(first.getHash())));
+        assertTrue(state.mockedStorage.appendOnlyDataStoreService.containsKey(second, new P2PDataStorage.ByteArray(second.getHash())));
+        assertFalse(state.mockedStorage.appendOnlyDataStoreService.containsKey(third, new P2PDataStorage.ByteArray(third.getHash())));
+        Field strikesField = LeakyBucket.class.getDeclaredField("strikes");
+        strikesField.setAccessible(true);
+        AtomicInteger strikes = (AtomicInteger) strikesField.get(admission);
+        strikes.set(Integer.MAX_VALUE - 1);
+        for (int i = 0; i < 3; i++) {
+            state.mockedStorage.onMessage(new AddPersistableNetworkPayloadMessage(third), connection);
+            assertFalse(state.mockedStorage.appendOnlyDataStoreService.containsKey(third, new P2PDataStorage.ByteArray(third.getHash())));
+        }
+        assertEquals(Integer.MAX_VALUE, strikes.get());
+        assertTrue(state.mockedStorage.addPersistableNetworkPayload(third, null, false));
+        assertTrue(state.mockedStorage.appendOnlyDataStoreService.containsKey(third, new P2PDataStorage.ByteArray(third.getHash())));
+    }
 
     public abstract static class AddPersistableNetworkPayloadTest {
         TestState testState;

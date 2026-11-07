@@ -59,7 +59,7 @@ public class LeakyBucket {
             // check for overflow
             if (nextLevel > burstCapacity) {
                 if (state.compareAndSet(oldState, new State(burstCapacity, now))) {
-                    return strikes.incrementAndGet() >= maxStrikes;
+                    return strikes.updateAndGet(value -> value == Integer.MAX_VALUE ? value : value + 1) >= maxStrikes;
                 }
                 continue; // collision, retry
             }
