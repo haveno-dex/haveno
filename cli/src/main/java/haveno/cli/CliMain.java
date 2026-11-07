@@ -81,6 +81,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -189,6 +190,7 @@ import static java.util.TimeZone.getTimeZone;
  */
 @Slf4j
 public class CliMain {
+    private static final String ENV_PASSWORD = "HAVENO_API_PASSWORD";
 
     private static final int RESTORE_ACCOUNT_CHUNK_SIZE = 2 * 1024 * 1024;
 
@@ -216,7 +218,7 @@ public class CliMain {
                 .ofType(Integer.class)
                 .defaultsTo(9998);
 
-        var passwordOpt = parser.accepts(OPT_PASSWORD, "rpc server password")
+        var passwordOpt = parser.accepts(OPT_PASSWORD, "rpc server password, or set " + ENV_PASSWORD)
                 .withRequiredArg();
 
         // Parse the CLI opts host, port, password, method name, and help.  The help opt
@@ -243,6 +245,14 @@ public class CliMain {
         var host = options.valueOf(hostOpt);
         var port = options.valueOf(portOpt);
         var password = options.valueOf(passwordOpt);
+        if (password == null) password = System.getenv(ENV_PASSWORD); // keeps the password out of the process arguments
+        if (password == null && System.console() != null) {
+            char[] entered = System.console().readPassword("rpc server password: ");
+            if (entered != null) {
+                if (entered.length > 0) password = new String(entered);
+                Arrays.fill(entered, '\0');
+            }
+        }
         if (password == null)
             throw new IllegalArgumentException("missing required 'password' option");
 
