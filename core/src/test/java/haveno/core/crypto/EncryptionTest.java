@@ -183,7 +183,7 @@ public class EncryptionTest {
     }
 
     private CoreAccountService account(String password) throws Exception {
-        CoreAccountService account = new CoreAccountService(null, keyStorage, new KeyRing(keyStorage));
+        CoreAccountService account = new CoreAccountService(new Config("--appDataDir=" + dir), keyStorage, new KeyRing(keyStorage));
         account.openAccount(password);
         ready(account);
         return account;
@@ -437,7 +437,7 @@ public class EncryptionTest {
     @Test
     public void testCreateAccountRetainsWalletOrphanedByInterruptedImport() throws Exception {
         KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "orphan-import").toPath()).toFile());
-        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        CoreAccountService account = new CoreAccountService(new Config("--appDataDir=" + dir), storage, new KeyRing(storage));
         XmrWalletService service = walletService(account);
         Files.write(walletDir.toPath().resolve("haveno_XMR.keys"), new byte[] {1}); // created from a seed with another password
         account.createAccount(null);
@@ -1031,9 +1031,23 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testPasswordRequiredRejectsAccountCreationBeforeCreatingWalletOrKeys() throws Exception {
+        KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "required-password").toPath()).toFile());
+        CoreAccountService account = new CoreAccountService(new Config("--appDataDir=" + dir, "--passwordRequired=true"), storage, new KeyRing(storage));
+        Runnable createWallet = () -> { throw new AssertionError("wallet creation ran without a password"); };
+        assertThrows(IllegalArgumentException.class, () -> account.createAccount(null, createWallet));
+        assertThrows(IllegalArgumentException.class, () -> account.createAccount("", createWallet));
+        assertFalse(account.accountExists());
+        assertNull(account.getPassword());
+        account.createAccount("test-password");
+        assertTrue(account.accountExists());
+        account.verifyPassword("test-password");
+    }
+
+    @Test
     public void testCreatingAccountWithEmptyPasswordUsesUnsetPassword() throws Exception {
         KeyStorage storage = new KeyStorage(Files.createDirectory(new File(dir, "empty-password").toPath()).toFile());
-        CoreAccountService account = new CoreAccountService(null, storage, new KeyRing(storage));
+        CoreAccountService account = new CoreAccountService(new Config("--appDataDir=" + dir), storage, new KeyRing(storage));
         account.createAccount("");
         ready(account);
         assertNull(account.getPassword());
