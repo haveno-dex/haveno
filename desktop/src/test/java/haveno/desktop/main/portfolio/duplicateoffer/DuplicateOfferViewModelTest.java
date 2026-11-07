@@ -161,10 +161,14 @@ public class DuplicateOfferViewModelTest {
 
     private void activateDuplicate(OfferPayload payload) {
         Executor executor = UserThread.getExecutor();
+        Thread testThread = Thread.currentThread();
         Queue<Runnable> callbacks = new ArrayDeque<>();
         try {
             // defer focus-out callbacks until after activation, as in the JavaFX event loop
-            UserThread.setExecutor(callbacks::add);
+            UserThread.setExecutor(callback -> {
+                if (Thread.currentThread() == testThread) callbacks.add(callback);
+                else callback.run();
+            });
             UserThread.execute(() -> {
                 model.initWithData(payload);
                 model.activate();
