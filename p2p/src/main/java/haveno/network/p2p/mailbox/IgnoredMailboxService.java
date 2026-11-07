@@ -37,7 +37,8 @@ public class IgnoredMailboxService implements PersistedDataHost {
     @Inject
     public IgnoredMailboxService(PersistenceManager<IgnoredMailboxMap> persistenceManager) {
         this.persistenceManager = persistenceManager;
-        this.persistenceManager.initialize(ignoredMailboxMap, PersistenceManager.Source.PRIVATE_LOW_PRIO);
+        // Use a separate cache so legacy sender-chosen uids cannot be mistaken for hashes.
+        this.persistenceManager.initialize(ignoredMailboxMap, "IgnoredMailboxMapByHash", PersistenceManager.Source.PRIVATE_LOW_PRIO);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -58,12 +59,12 @@ public class IgnoredMailboxService implements PersistedDataHost {
                 completeHandler);
     }
 
-    public boolean isIgnored(String uid) {
-        return ignoredMailboxMap.containsKey(uid);
+    public boolean isIgnored(String hash) {
+        return ignoredMailboxMap.containsKey(hash);
     }
 
-    public void ignore(String uid, long creationTimeStamp) {
-        ignoredMailboxMap.put(uid, creationTimeStamp);
+    public void ignore(String hash, long creationTimeStamp) {
+        ignoredMailboxMap.put(hash, creationTimeStamp);
         persistenceManager.requestPersistence();
     }
 }

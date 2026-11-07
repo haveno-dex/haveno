@@ -17,7 +17,9 @@
 
 package haveno.network.crypto;
 
+import com.google.protobuf.ByteString;
 import haveno.common.app.Version;
+import haveno.common.util.Utilities;
 import haveno.common.crypto.CryptoException;
 import haveno.common.crypto.KeyRing;
 import haveno.common.crypto.KeyStorage;
@@ -26,6 +28,7 @@ import haveno.common.proto.ProtobufferException;
 import haveno.common.proto.ProtobufferRuntimeException;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.common.proto.persistable.PersistenceProtoResolver;
 import haveno.common.crypto.SealedAndSigned;
 import haveno.common.persistence.PersistenceManager;
 import haveno.network.p2p.AckMessage;
@@ -34,9 +37,11 @@ import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.PrefixedSealedAndSignedMessage;
 import haveno.network.p2p.mailbox.IgnoredMailboxService;
+import haveno.network.p2p.mailbox.IgnoredMailboxMap;
 import haveno.network.p2p.mailbox.MailboxItem;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
+import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.MailboxStoragePayload;
 import haveno.network.p2p.storage.payload.ProtectedMailboxStorageEntry;
 import org.junit.jupiter.api.Test;
@@ -46,7 +51,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -64,6 +72,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -92,6 +101,70 @@ public class EncryptionServiceTests {
     }
 
     @Test
+    public void legacyMailboxUidsCannotSuppressHashesAfterUpgrade() throws Exception {
+        String poisonedHash = "01".repeat(32);
+        String ignoredHash = "02".repeat(32);
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, String> cache : Map.of("IgnoredMailboxMap", poisonedHash,
+                "IgnoredMailboxMapByHash", ignoredHash).entrySet()) {
+            try (var output = Files.newOutputStream(dir.toPath().resolve(cache.getKey()))) {
+                new IgnoredMailboxMap(Map.of(cache.getValue(), now)).toProtoMessage().writeDelimitedTo(output);
+            }
+        }
+        PersistenceProtoResolver resolver = mock(PersistenceProtoResolver.class);
+        when(resolver.fromProto(any(protobuf.PersistableEnvelope.class))).thenAnswer(invocation ->
+                IgnoredMailboxMap.fromProto(((protobuf.PersistableEnvelope) invocation.getArgument(0)).getIgnoredMailboxMap()));
+        PersistenceManager<IgnoredMailboxMap> persistence = new PersistenceManager<>(dir, resolver, null, null);
+        try {
+            IgnoredMailboxService ignored = new IgnoredMailboxService(persistence);
+            CountDownLatch loaded = new CountDownLatch(1);
+            ignored.readPersisted(loaded::countDown);
+            assertTrue(loaded.await(5, TimeUnit.SECONDS));
+            assertFalse(ignored.isIgnored(poisonedHash));
+            assertTrue(ignored.isIgnored(ignoredHash));
+            assertTrue(Files.exists(dir.toPath().resolve("IgnoredMailboxMap")));
+        } finally {
+            persistence.shutdown();
+        }
+    }
+
+    @Test
+    public void forgedMailboxTwinDoesNotSuppressValidMessageWithSameUid() throws Exception {
+        Version.setBaseCryptoNetworkId(1);
+        NodeAddress sender = new NodeAddress("peer:9999");
+        AckMessage ack = new AckMessage(sender, AckMessageSourceType.TRADE_MESSAGE, "message", "uid", "trade", true, null);
+        NetworkProtoResolver resolver = mock(NetworkProtoResolver.class);
+        when(resolver.fromProto(any(protobuf.NetworkEnvelope.class))).thenReturn(ack);
+        EncryptionService encryption = new EncryptionService(keyRing, resolver);
+        IgnoredMailboxService ignored = new IgnoredMailboxService(mock(PersistenceManager.class));
+        MailboxMessageService service = new MailboxMessageService(null, null, null, encryption, ignored,
+                mock(PersistenceManager.class), keyRing, Clock.systemUTC(), false);
+        PrefixedSealedAndSignedMessage valid = new PrefixedSealedAndSignedMessage(sender,
+                encryption.encryptAndSign(keyRing.getPubKeyRing(), ack));
+        protobuf.PrefixedSealedAndSignedMessage.Builder forged = valid.toProtoNetworkEnvelope()
+                .getPrefixedSealedAndSignedMessage().toBuilder();
+        forged.setSealedAndSigned(forged.getSealedAndSigned().toBuilder()
+                .setEncryptedPayloadWithHmac(ByteString.copyFrom(new byte[32])));
+        PrefixedSealedAndSignedMessage twin = PrefixedSealedAndSignedMessage.fromProto(forged.build(), valid.getMessageVersion());
+        ProtectedMailboxStorageEntry validEntry = mailboxEntry(valid);
+        ProtectedMailboxStorageEntry forgedEntry = mailboxEntry(twin);
+        for (ProtectedMailboxStorageEntry entry : List.of(validEntry, forgedEntry)) {
+            PrefixedSealedAndSignedMessage envelope = entry.getMailboxStoragePayload().getPrefixedSealedAndSignedMessage();
+            when(entry.getMailboxStoragePayload().toProtoMessage()).thenReturn(protobuf.StoragePayload.newBuilder()
+                    .setMailboxStoragePayload(protobuf.MailboxStoragePayload.newBuilder()
+                            .setPrefixedSealedAndSignedMessage(envelope.toProtoNetworkEnvelope().getPrefixedSealedAndSignedMessage()))
+                    .build());
+        }
+        Method decrypt = MailboxMessageService.class.getDeclaredMethod("tryDecryptProtectedMailboxStorageEntry", ProtectedMailboxStorageEntry.class);
+        decrypt.setAccessible(true);
+        assertEquals(valid.getUid(), twin.getUid());
+        assertFalse(((MailboxItem) decrypt.invoke(service, forgedEntry)).isMine());
+        assertTrue(ignored.isIgnored(ignoreKey(forgedEntry)));
+        assertTrue(((MailboxItem) decrypt.invoke(service, validEntry)).isMine());
+        assertFalse(ignored.isIgnored(ignoreKey(validEntry)));
+    }
+
+    @Test
     public void lockedKeysDoNotPermanentlyIgnoreValidMailboxMessages() throws Exception {
         Version.setBaseCryptoNetworkId(1);
         NodeAddress sender = new NodeAddress("peer:9999");
@@ -114,7 +187,7 @@ public class EncryptionServiceTests {
         keyRing.lockKeys();
         assertFalse(((MailboxItem) decrypt.invoke(service, entry)).isMine());
         keyRing.unlockKeys(null, false);
-        assertFalse(ignored.isIgnored(envelope.getUid()));
+        assertFalse(ignored.isIgnored(ignoreKey(entry)));
         doAnswer(invocation -> {
             keyRing.lockKeys();
             return invocation.callRealMethod();
@@ -145,7 +218,7 @@ public class EncryptionServiceTests {
                     .thenReturn(new DecryptedMessageWithPubKey(ack, keyRing.getSignatureKeyPair().getPublic()));
             Set<MailboxItem> beforeUpgrade = (Set<MailboxItem>) decryptBatch.invoke(service, List.of(entry));
             assertFalse(beforeUpgrade.iterator().next().isMine());
-            assertFalse(ignored.isIgnored(envelope.getUid()));
+            assertFalse(ignored.isIgnored(ignoreKey(entry)));
             Set<MailboxItem> afterUpgrade = (Set<MailboxItem>) decryptBatch.invoke(service, List.of(entry));
             assertTrue(afterUpgrade.iterator().next().isMine());
         }
@@ -175,7 +248,7 @@ public class EncryptionServiceTests {
         Set<MailboxItem> items = (Set<MailboxItem>) decryptBatch.invoke(service, List.of(poisonEntry, validEntry));
         assertEquals(2, items.size());
         assertEquals(1, items.stream().filter(MailboxItem::isMine).count());
-        verify(ignored).ignore(poisonEnvelope.getUid(), poisonEntry.getCreationTimeStamp());
+        verify(ignored).ignore(ignoreKey(poisonEntry), poisonEntry.getCreationTimeStamp());
 
         when(encryption.decryptAndVerify(poison, keyRing.getEncryptionKeyPair().getPrivate())).thenThrow(new IllegalArgumentException("malformed protobuf"));
         items = (Set<MailboxItem>) decryptBatch.invoke(service, List.of(poisonEntry, validEntry));
@@ -215,7 +288,14 @@ public class EncryptionServiceTests {
         MailboxStoragePayload payload = mock(MailboxStoragePayload.class);
         when(entry.getMailboxStoragePayload()).thenReturn(payload);
         when(payload.getPrefixedSealedAndSignedMessage()).thenReturn(envelope);
+        when(payload.toProtoMessage()).thenReturn(protobuf.StoragePayload.newBuilder().setMailboxStoragePayload(
+                protobuf.MailboxStoragePayload.newBuilder().setPrefixedSealedAndSignedMessage(
+                        protobuf.PrefixedSealedAndSignedMessage.newBuilder().setUid(envelope.getUid()))).build());
         return entry;
+    }
+
+    private static String ignoreKey(ProtectedMailboxStorageEntry entry) {
+        return Utilities.encodeToHex(P2PDataStorage.get32ByteHash(entry.getMailboxStoragePayload()));
     }
 
     //TODO Use NetworkProtoResolver, PersistenceProtoResolver or ProtoResolver which are all in io.haveno.common.

@@ -501,7 +501,9 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
                 .getPrefixedSealedAndSignedMessage();
         SealedAndSigned sealedAndSigned = prefixedSealedAndSignedMessage.getSealedAndSigned();
         String uid = prefixedSealedAndSignedMessage.getUid();
-        if (ignoredMailboxService.isIgnored(uid)) {
+        // ignored entries are keyed by payload hash since the uid is sender chosen and shared by forged twins
+        String hash = Utilities.encodeToHex(P2PDataStorage.get32ByteHash(protectedMailboxStorageEntry.getMailboxStoragePayload()));
+        if (ignoredMailboxService.isIgnored(hash)) {
             // We had persisted a past failed decryption attempt on that message so we don't try again and return early
             return new MailboxItem(protectedMailboxStorageEntry, null);
         }
@@ -515,13 +517,13 @@ public class MailboxMessageService implements HashMapChangedListener, PersistedD
         } catch (CryptoException ignore) {
             // Expected if message was not intended for us
             // We persist those entries so at the next startup we do not need to try to decrypt it anymore
-            ignoredMailboxService.ignore(uid, protectedMailboxStorageEntry.getCreationTimeStamp());
+            ignoredMailboxService.ignore(hash, protectedMailboxStorageEntry.getCreationTimeStamp());
         } catch (ProtobufferException | ProtobufferRuntimeException e) {
             // Keep unknown message types retryable after an upgrade
             log.warn("Could not decode mailbox entry {}", uid, e);
         } catch (RuntimeException e) {
             log.warn("Ignoring malformed mailbox entry {}", uid, e);
-            ignoredMailboxService.ignore(uid, protectedMailboxStorageEntry.getCreationTimeStamp());
+            ignoredMailboxService.ignore(hash, protectedMailboxStorageEntry.getCreationTimeStamp());
         }
         return new MailboxItem(protectedMailboxStorageEntry, null);
     }
