@@ -35,14 +35,16 @@ import static haveno.desktop.util.FormBuilder.addTopLabelTextArea;
 
 public class ShowWalletDataWindow extends Overlay<ShowWalletDataWindow> {
     private final WalletsManager walletsManager;
+    private final WalletPasswordWindow walletPasswordWindow;
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Public API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public ShowWalletDataWindow(WalletsManager walletsManager) {
+    public ShowWalletDataWindow(WalletsManager walletsManager, WalletPasswordWindow walletPasswordWindow) {
         this.walletsManager = walletsManager;
+        this.walletPasswordWindow = walletPasswordWindow;
         type = Type.Attention;
     }
 
@@ -92,7 +94,16 @@ public class ShowWalletDataWindow extends Overlay<ShowWalletDataWindow> {
         isUpdateCheckBox.setSelected(false);
 
         isUpdateCheckBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            showWallet(textArea, isUpdateCheckBox);
+            // private keys need the wallet password
+            if (newValue && walletsManager.areWalletsEncrypted()) {
+                if (walletPasswordWindow.isDisplayed()) return; // the prompt blocks only the main window
+                walletPasswordWindow.onSuccess(() -> showWallet(textArea, isUpdateCheckBox))
+                        .onClose(() -> isUpdateCheckBox.setSelected(false))
+                        .hideForgotPasswordButton()
+                        .show();
+            } else {
+                showWallet(textArea, isUpdateCheckBox);
+            }
         });
 
         showWallet(textArea, isUpdateCheckBox);
