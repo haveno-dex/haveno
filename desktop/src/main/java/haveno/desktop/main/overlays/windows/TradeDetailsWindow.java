@@ -28,6 +28,7 @@ import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.support.dispute.arbitration.ArbitrationManager;
+import haveno.core.trade.ClosedTradableFormatter;
 import haveno.core.trade.Contract;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
@@ -76,6 +77,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
     protected static final Logger log = LoggerFactory.getLogger(TradeDetailsWindow.class);
 
     private final CoinFormatter formatter;
+    private final ClosedTradableFormatter closedTradableFormatter;
     private final ArbitrationManager arbitrationManager;
     private final TradeManager tradeManager;
     private final BtcWalletService btcWalletService;
@@ -91,11 +93,13 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
 
     @Inject
     public TradeDetailsWindow(@Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
+                              ClosedTradableFormatter closedTradableFormatter,
                               ArbitrationManager arbitrationManager,
                               TradeManager tradeManager,
                               BtcWalletService btcWalletService,
                               AccountAgeWitnessService accountAgeWitnessService) {
         this.formatter = formatter;
+        this.closedTradableFormatter = closedTradableFormatter;
         this.arbitrationManager = arbitrationManager;
         this.tradeManager = tradeManager;
         this.btcWalletService = btcWalletService;
@@ -128,7 +132,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         Offer offer = trade.getOffer();
         Contract contract = trade.getContract();
 
-        int rows = 9;
+        int rows = 11;
         addTitledGroupBg(gridPane, ++rowIndex, rows, Res.get("tradeDetailsWindow.headline"));
 
         boolean myOffer = tradeManager.isMyOffer(offer);
@@ -159,6 +163,9 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.tradePrice"),
                 FormattingUtils.formatPrice(trade.getPrice()));
+        addSeparator(gridPane, ++rowIndex);
+        addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.deviation"),
+                closedTradableFormatter.getPriceDeviationAsString(trade));
         String paymentMethodText = Res.get(offer.getPaymentMethod().getId());
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), paymentMethodText);
