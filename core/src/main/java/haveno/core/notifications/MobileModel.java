@@ -24,10 +24,8 @@ import java.util.Arrays;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Data
-@Slf4j
 @Singleton
 public class MobileModel {
     public static final String PHONE_SEPARATOR_ESCAPED = "\\|"; // see https://stackoverflow.com/questions/5675704/java-string-split-not-returning-the-right-values
@@ -68,7 +66,6 @@ public class MobileModel {
     }
 
     public void applyKeyAndToken(String keyAndToken) {
-        log.info("applyKeyAndToken: keyAndToken={}", keyAndToken.substring(0, 20) + "...(truncated in log for privacy reasons)");
         String[] tokens = keyAndToken.split(PHONE_SEPARATOR_ESCAPED);
         String magic = tokens[0];
         descriptor = tokens[1];

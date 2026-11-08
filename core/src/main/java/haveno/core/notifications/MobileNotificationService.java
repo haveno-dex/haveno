@@ -189,13 +189,8 @@ public class MobileNotificationService {
         if (!doSend)
             return false;
 
-        log.info("Send message: '{}'", message.getMessage());
-
-
-        log.info("sendMessage message={}", message);
         Gson gson = new Gson();
         String json = gson.toJson(message);
-        log.info("json " + json);
 
         StringBuilder padded = new StringBuilder(json);
         while (padded.length() % 16 != 0) {
@@ -209,9 +204,6 @@ public class MobileNotificationService {
         String iv = uuid.substring(0, 16);
 
         String cipher = mobileMessageEncryption.encrypt(json, iv);
-        log.info("key = " + mobileModel.getKey());
-        log.info("iv = " + iv);
-        log.info("encryptedJson = " + cipher);
 
         doSendMessage(iv, cipher, useSound, resultHandler, errorHandler);
         return true;
@@ -281,11 +273,6 @@ public class MobileNotificationService {
                 "&snd=" + useSound +
                 "&token=" + tokenAsHex + "&" +
                 "msg=" + msgAsHex;
-
-        log.info("Send: token={}", mobileModel.getToken());
-        log.info("Send: msg={}", msg);
-        log.info("Send: isAndroid={}\nuseSound={}\ntokenAsHex={}\nmsgAsHex={}",
-                isAndroid, useSound, tokenAsHex, msgAsHex);
 
         String threadName = "sendMobileNotification-" + msgAsHex.substring(0, 5) + "...";
         ListenableFuture<String> future = executorService.submit(() -> {
