@@ -378,6 +378,19 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         // Convert to the proto envelope only once; it is reused for the actual send below.
         protobuf.NetworkEnvelope proto = networkEnvelope.toProtoNetworkEnvelope();
         int networkEnvelopeSize = proto.getSerializedSize();
+        if (networkEnvelopeSize > MAX_PERMITTED_MESSAGE_SIZE) {
+            if (networkEnvelope instanceof BundleOfEnvelopes) {
+                List<NetworkEnvelope> envelopes = ((BundleOfEnvelopes) networkEnvelope).getEnvelopes();
+                if (envelopes.size() > 1) {
+                    // Split on the send path so the caller succeeds only after every part is written.
+                    int midpoint = envelopes.size() / 2;
+                    sendMessage(new BundleOfEnvelopes(new ArrayList<>(envelopes.subList(0, midpoint))));
+                    sendMessage(new BundleOfEnvelopes(new ArrayList<>(envelopes.subList(midpoint, envelopes.size()))));
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Network envelope exceeds maximum size: " + networkEnvelopeSize);
+        }
         try {
             // Throttle outbound network_messages
             long now = System.currentTimeMillis();
