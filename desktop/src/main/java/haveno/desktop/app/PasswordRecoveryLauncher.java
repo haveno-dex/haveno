@@ -56,7 +56,10 @@ final class PasswordRecoveryLauncher {
                 // an empty marker signals that the child's screen has opened; its output is kept until then
                 readinessDir = Files.createTempDirectory("haveno-recovery-");
                 Path ready = readinessDir.resolve("ready");
-                process = new ProcessBuilder(command(networkDir, ready)).redirectErrorStream(true).start();
+                ProcessBuilder builder = new ProcessBuilder(command(networkDir, ready)).redirectErrorStream(true);
+                // jpackage's linux launcher reads this inherited variable as a JVM restart and would pass the arguments to the JVM
+                builder.environment().remove("_JPACKAGE_LAUNCHER");
+                process = builder.start();
                 process.getOutputStream().close();
                 long started = System.nanoTime();
                 while (!Files.exists(ready)) {
