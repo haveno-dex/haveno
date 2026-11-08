@@ -560,10 +560,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         seriesBuy.getData().clear();
         areaChart.getData().clear();
 
-        areaChart.setRangeEnds(getRangeEnd(model.getBuyData(), OfferDirection.BUY, chartMarketPrice),
-                getRangeEnd(model.getSellData(), OfferDirection.SELL, chartMarketPrice));
-        seriesSell.getData().addAll(filterOutliers(model.getSellData(), OfferDirection.SELL, chartMarketPrice));
-        seriesBuy.getData().addAll(filterOutliers(model.getBuyData(), OfferDirection.BUY, chartMarketPrice));
+        RangeEnds rangeEnds = getRangeEnds(model.getBuyData(), model.getSellData(), chartMarketPrice);
+        areaChart.setRangeEnds(rangeEnds);
+        seriesSell.getData().addAll(filterOutliers(model.getSellData(), OfferDirection.SELL, rangeEnds.asks()));
+        seriesBuy.getData().addAll(filterOutliers(model.getBuyData(), OfferDirection.BUY, rangeEnds.bids()));
         plottedAsks = getPlottedOffers(model.getTopSellOfferList(), seriesSell);
         plottedBids = getPlottedOffers(model.getTopBuyOfferList(), seriesBuy);
         glowNewOffers();
@@ -1312,16 +1312,36 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     // The range ends short of 3x the farther of the market price and the best price.
     private static final double RANGE_MAX_PRICE_RATIO = 3;
 
-    static List<XYChart.Data<Number, Number>> filterOutliers(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double marketPrice) {
+    // The offers of a side out to its range end.
+    static List<XYChart.Data<Number, Number>> filterOutliers(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double rangeEnd) {
         synchronized (data) {
-            double rangeEnd = getRangeEnd(data, direction, marketPrice);
             return data.stream()
                     .filter(o -> direction == OfferDirection.SELL ? o.getXValue().doubleValue() <= rangeEnd : o.getXValue().doubleValue() >= rangeEnd)
                     .collect(Collectors.toList());
         }
     }
 
-    // The price out to which a side shows, or NaN without offers.
+    // The prices out to which the bids and the asks show, or NaN for an empty side with no mirrored range.
+    record RangeEnds(double bids, double asks) {}
+
+    // Both sides reach as far from the market price as the farther one does, so the market price centers the chart.
+    // Without a market price, or with a side that ends short of it, each side keeps its own range end.
+    static RangeEnds getRangeEnds(List<XYChart.Data<Number, Number>> buyData, List<XYChart.Data<Number, Number>> sellData, double marketPrice) {
+        double bids = getRangeEnd(buyData, OfferDirection.BUY, marketPrice);
+        double asks = getRangeEnd(sellData, OfferDirection.SELL, marketPrice);
+        if (!(Double.isFinite(marketPrice) && marketPrice > 0)) return new RangeEnds(bids, asks);
+        double bidReach = Double.isNaN(bids) ? 0 : marketPrice - bids;
+        double askReach = Double.isNaN(asks) ? 0 : asks - marketPrice;
+        double reach = Math.max(bidReach, askReach);
+        if (bidReach < 0 || askReach < 0 || reach == 0) return new RangeEnds(bids, asks);
+        // an ask reach can pass the market price, where the mirrored bid end stops at the price limit
+        double mirroredBids = Math.max(marketPrice - reach, Math.nextUp(marketPrice / RANGE_MAX_PRICE_RATIO));
+        double mirroredAsks = marketPrice + reach;
+        return new RangeEnds(Double.isNaN(bids) ? mirroredBids : Math.min(bids, mirroredBids),
+                Double.isNaN(asks) ? mirroredAsks : Math.max(asks, mirroredAsks));
+    }
+
+    // The price out to which a side shows on its own, or NaN without offers.
     static double getRangeEnd(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double marketPrice) {
         boolean farSideHigh = direction == OfferDirection.SELL;
         synchronized (data) {
@@ -1805,7 +1825,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     // Area chart whose bid and ask plateaus run flat to the chart edges, as depth past the outermost offer stays at its total.
     static class DepthChart extends AreaChart<Number, Number> {
         private final XYChart.Series<Number, Number> bids, asks;
-        private double bidRangeEnd = Double.NaN, askRangeEnd = Double.NaN;
+        private RangeEnds rangeEnds = new RangeEnds(Double.NaN, Double.NaN);
 
         DepthChart(NumberAxis xAxis, NumberAxis yAxis, XYChart.Series<Number, Number> bids, XYChart.Series<Number, Number> asks) {
             super(xAxis, yAxis);
@@ -1813,10 +1833,9 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             this.asks = asks;
         }
 
-        // The prices out to which the bids and the asks show, NaN without offers, for the price axis to keep in view.
-        void setRangeEnds(double bidRangeEnd, double askRangeEnd) {
-            this.bidRangeEnd = bidRangeEnd;
-            this.askRangeEnd = askRangeEnd;
+        // The prices out to which the bids and the asks show, for the price axis to keep in view.
+        void setRangeEnds(RangeEnds rangeEnds) {
+            this.rangeEnds = rangeEnds;
         }
 
         @Override
@@ -1825,8 +1844,8 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             if (!getXAxis().isAutoRanging()) return;
             List<Number> prices = new ArrayList<>();
             getData().forEach(series -> series.getData().forEach(item -> prices.add(item.getXValue())));
-            if (!Double.isNaN(bidRangeEnd)) prices.add(bidRangeEnd);
-            if (!Double.isNaN(askRangeEnd)) prices.add(askRangeEnd);
+            if (!Double.isNaN(rangeEnds.bids())) prices.add(rangeEnds.bids());
+            if (!Double.isNaN(rangeEnds.asks())) prices.add(rangeEnds.asks());
             getXAxis().invalidateRange(prices);
         }
 
