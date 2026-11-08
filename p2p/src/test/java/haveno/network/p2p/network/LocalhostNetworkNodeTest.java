@@ -19,11 +19,15 @@ package haveno.network.p2p.network;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import com.google.protobuf.ByteString;
+import haveno.common.ThreadUtils;
 import haveno.common.Timer;
 import haveno.common.config.Config;
 import haveno.network.utils.LeakyBucket;
 import haveno.common.UserThread;
+import haveno.common.app.Version;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.TestUtils;
 import haveno.network.p2p.peers.keepalive.messages.Ping;
@@ -43,6 +47,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
@@ -59,6 +65,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -68,7 +75,9 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -266,6 +275,62 @@ public class LocalhostNetworkNodeTest {
         Ping message = new Ping(1, 0);
         assertSame(sendFuture, node.sendMessage(address, message));
         verify(node).sendMessage(receiving, message);
+    }
+
+    @Test
+    public void testOversizedBundleIsSplitWithoutLosingEnvelopes() throws Exception {
+        Version.setBaseCryptoNetworkId(1);
+        Connection connection = mock(Connection.class, CALLS_REAL_METHODS);
+        doReturn(true).when(connection).testCapability(any());
+        ProtoOutputStream output = mock(ProtoOutputStream.class);
+        Field field = Connection.class.getDeclaredField("protoOutputStream");
+        field.setAccessible(true);
+        field.set(connection, output);
+        List<NetworkEnvelope> envelopes = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            NetworkEnvelope envelope = mock(NetworkEnvelope.class);
+            when(envelope.toProtoNetworkEnvelope()).thenReturn(protobuf.NetworkEnvelope.newBuilder()
+                    .setPrefixedSealedAndSignedMessage(protobuf.PrefixedSealedAndSignedMessage.newBuilder()
+                            .setUid(Integer.toString(i))
+                            .setSealedAndSigned(protobuf.SealedAndSigned.newBuilder()
+                                    .setEncryptedPayloadWithHmac(ByteString.copyFrom(new byte[6 * 1024 * 1024]))))
+                    .build());
+            envelopes.add(envelope);
+        }
+        try (MockedStatic<ThreadUtils> ignored = mockStatic(ThreadUtils.class)) {
+            connection.sendMessage(new BundleOfEnvelopes(envelopes));
+        }
+        ArgumentCaptor<protobuf.NetworkEnvelope> frames = ArgumentCaptor.forClass(protobuf.NetworkEnvelope.class);
+        verify(output, times(3)).writeEnvelope(any(), frames.capture());
+        List<String> received = new ArrayList<>();
+        for (protobuf.NetworkEnvelope frame : frames.getAllValues()) {
+            assertTrue(frame.getSerializedSize() <= Connection.getMaxPermittedMessageSize());
+            frame.getBundleOfEnvelopes().getEnvelopesList().forEach(envelope ->
+                    received.add(envelope.getPrefixedSealedAndSignedMessage().getUid()));
+        }
+        assertEquals(List.of("0", "1", "2"), received);
+        assertFalse(connection.isStopped());
+    }
+
+    @Test
+    public void testOversizedSingleEnvelopeFailsWithoutWritingOrClosingConnection() throws Exception {
+        Version.setBaseCryptoNetworkId(1);
+        Connection connection = mock(Connection.class, CALLS_REAL_METHODS);
+        doReturn(true).when(connection).testCapability(any());
+        ProtoOutputStream output = mock(ProtoOutputStream.class);
+        Field field = Connection.class.getDeclaredField("protoOutputStream");
+        field.setAccessible(true);
+        field.set(connection, output);
+        NetworkEnvelope envelope = mock(NetworkEnvelope.class);
+        when(envelope.toProtoNetworkEnvelope()).thenReturn(protobuf.NetworkEnvelope.newBuilder()
+                .setPrefixedSealedAndSignedMessage(protobuf.PrefixedSealedAndSignedMessage.newBuilder()
+                        .setSealedAndSigned(protobuf.SealedAndSigned.newBuilder()
+                                .setEncryptedPayloadWithHmac(ByteString.copyFrom(new byte[Connection.getMaxPermittedMessageSize()]))))
+                .build());
+        assertThrows(IllegalArgumentException.class, () -> connection.sendMessage(envelope));
+        assertThrows(IllegalArgumentException.class, () -> connection.sendMessage(new BundleOfEnvelopes(List.of(envelope))));
+        verify(output, never()).writeEnvelope(any(), any());
+        assertFalse(connection.isStopped());
     }
 
     @Test
