@@ -47,6 +47,7 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
@@ -91,12 +92,11 @@ public class ChartCalculations {
     }
 
     static CompletableFuture<List<TradeStatistics3>> getTradeStatisticsForCurrency(List<TradeStatistics3> tradeStatisticsList,
-                                                                                   String currencyCode,
-                                                                                   boolean showAllTradeCurrencies) {
+                                                                                   Predicate<String> currencyFilter) {
         return CompletableFuture.supplyAsync(() -> {
             synchronized (tradeStatisticsList) {
                 return tradeStatisticsList.stream()
-                        .filter(e -> showAllTradeCurrencies || e.getCurrency().equals(currencyCode))
+                        .filter(e -> currencyFilter.test(e.getCurrency()))
                         .collect(Collectors.toList());
             }
         });

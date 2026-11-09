@@ -59,12 +59,12 @@ public class CurrencyListItem {
 
     public String codeDashNameString() {
         if (isSpecialShowAllItem())
-            return Res.get(GUIUtil.SHOW_ALL_FLAG);
+            return Res.get(tradeCurrency.getCode());
         else
             return tradeCurrency.getName() + " (" + tradeCurrency.getCode() + ")";
     }
 
     private boolean isSpecialShowAllItem() {
-        return tradeCurrency.getCode().equals(GUIUtil.SHOW_ALL_FLAG);
+        return GUIUtil.isShowAllFlag(tradeCurrency.getCode());
     }
 }

@@ -104,7 +104,7 @@ public class CurrencyListTest {
 
         List<TradeCurrency> currencies = Lists.newArrayList(USD, RUR, USD, ETH, ETH, BTC);
         CurrencyListItem first = new CurrencyListItem(BTC, 5);
-        testedEntity.updateWithCurrencies(currencies, first);
+        testedEntity.updateWithCurrencies(currencies, List.of(first));
 
         List<CurrencyListItem> expected = Lists.newArrayList(
                 first,

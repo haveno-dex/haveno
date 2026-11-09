@@ -99,7 +99,6 @@ import org.jetbrains.annotations.NotNull;
 
 @FxmlView
 public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesChartsViewModel> {
-    private static final int SHOW_ALL = 0;
 
     static class CurrencyStringConverter extends StringConverter<CurrencyListItem> {
         private final ComboBox<CurrencyListItem> comboBox;
@@ -284,10 +283,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         currencyComboBox.setAutocompleteItems(model.getCurrencyListItems());
         currencyComboBox.setVisibleRowCount(10);
 
-        if (model.showAllTradeCurrenciesProperty.get())
-            currencyComboBox.getSelectionModel().select(SHOW_ALL);
-        else if (model.getSelectedCurrencyListItem().isPresent())
-            currencyComboBox.getSelectionModel().select(model.getSelectedCurrencyListItem().get());
+        model.getSelectedCurrencyListItem().ifPresent(item -> currencyComboBox.getSelectionModel().select(item));
         currencyComboBox.getEditor().setText(new CurrencyStringConverter(currencyComboBox).toString(currencyComboBox.getSelectionModel().getSelectedItem()));
 
         currencyComboBox.setOnChangeConfirmed(e -> UserThread.execute(() -> {
