@@ -55,6 +55,7 @@ import javafx.scene.paint.Paint;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -355,6 +356,31 @@ public class GUIUtilTest {
                 assertEquals(1, invalidations.get());
                 assertEquals(0, changes.get());
             }
+        }
+    }
+
+    @Test
+    public void testRecoveryRepaintsNullFilledPopupWithoutChangingFill() throws Exception {
+        Window window = mock(javafx.stage.Popup.class);
+        Scene scene = mock(Scene.class);
+        SimpleObjectProperty<Paint> fill = new SimpleObjectProperty<>();
+        AtomicInteger invalidations = new AtomicInteger();
+        fill.addListener((InvalidationListener) observable -> invalidations.incrementAndGet());
+        when(window.isShowing()).thenReturn(true);
+        when(window.getScene()).thenReturn(scene);
+        when(scene.fillProperty()).thenReturn(fill);
+        when(scene.getFill()).thenAnswer(invocation -> fill.get());
+        doAnswer(invocation -> {
+            fill.set(invocation.getArgument(0));
+            return null;
+        }).when(scene).setFill(any());
+
+        Method repaint = GUIUtil.class.getDeclaredMethod("repaint", Window.class);
+        repaint.setAccessible(true);
+        for (int pulse = 1; pulse <= 2; pulse++) {
+            repaint.invoke(null, window);
+            assertNull(fill.get());
+            assertEquals(pulse, invalidations.get());
         }
     }
 

@@ -1420,23 +1420,41 @@ public class GUIUtil {
     // TODO: workaround for JDK-8351867, remove once JavaFX is bumped to a release with the fix
     public static void repaintOnRestore(Stage stage) {
         stage.iconifiedProperty().addListener((observable, wasIconified, iconified) -> {
-            if (!iconified) Platform.runLater(() -> {
-                Scene scene = stage.getScene();
-                if (!stage.isShowing() || stage.isIconified() || scene == null || scene.fillProperty().isBound()) return;
-                if (scene.getFill() instanceof Color fill) {
-                    // an equal but distinct fill forces a full repaint and refreshes JavaFX's cached minimized state
-                    // after restore (JDK-8351867), without changing the background color
-                    scene.setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), fill.getOpacity()));
-                }
-            });
+            if (!iconified) Platform.runLater(() -> repaint(stage));
         });
     }
 
+    // an equal but distinct fill forces a full repaint and refreshes JavaFX's cached minimized state
+    // after restore (JDK-8351867), without changing the background color
+    private static void repaint(Window window) {
+        Scene scene = window.getScene();
+        if (!window.isShowing() || window instanceof Stage stage && stage.isIconified() || scene == null || scene.fillProperty().isBound()) return;
+        if (scene.getFill() instanceof Color fill) scene.setFill(new Color(fill.getRed(), fill.getGreen(), fill.getBlue(), fill.getOpacity()));
+        else if (scene.getFill() == null) {
+            // popup windows use a null fill; restore it before the next render pulse
+            scene.setFill(Color.TRANSPARENT);
+            scene.setFill(null);
+        }
+    }
+
+    private static void repaintAfterRenderDeviceRecovery() {
+        new AnimationTimer() {
+            private int pulses;
+
+            @Override
+            public void handle(long now) {
+                // a transparent window's first paint may only discard its disposed resource factory
+                Window.getWindows().forEach(GUIUtil::repaint);
+                if (++pulses == 2) stop();
+            }
+        }.start();
+    }
+
     private static final long RENDER_DEVICE_LOST_NANOS = TimeUnit.SECONDS.toNanos(10);
-    private static long renderDeviceLostSince; // nanoTime of the first failed check, 0 while the device is ready, render thread only
+    private static long renderDeviceLostSince; // nanoTime of the first failed check or the last reinitialize, 0 while the device is ready, render thread only
 
     // JavaFX resets a lost D3D device only once Windows reports it resettable, so a device left lost after a system resume
-    // never paints again; reinitialize as JavaFX does for a removed device. Needs the com.sun.prism and tk.quantum opens.
+    // never paints again; reinitialize as JavaFX does for a removed device. Needs the com.sun.prism, prism.d3d and tk.quantum opens.
     public static void recoverLostRenderDevice() {
         if (!Utilities.isWindows()) return;
         try {
@@ -1461,11 +1479,13 @@ public class GUIUtil {
                     Object factory = getDefaultResourceFactory.invoke(null);
                     long now = System.nanoTime();
                     if (factory != null && (boolean) isDeviceReady.invoke(factory)) {
+                        // transparent windows drop a paint on a lost device without retrying it
+                        if (renderDeviceLostSince != 0) Platform.runLater(GUIUtil::repaintAfterRenderDeviceRecovery);
                         renderDeviceLostSince = 0;
                     } else if (renderDeviceLostSince == 0) {
                         renderDeviceLostSince = now;
                     } else if (now - renderDeviceLostSince >= RENDER_DEVICE_LOST_NANOS) { // elapsed time, so queued checks cannot fire early
-                        renderDeviceLostSince = 0;
+                        renderDeviceLostSince = now; // lost until a check finds the device ready
                         log.warn("Reinitializing the D3D render pipeline after its device stayed lost");
                         reinitialize.invoke(pipeline);
                     }
