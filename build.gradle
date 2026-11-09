@@ -28,6 +28,8 @@ configure(rootProject) {
             '--add-opens=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
             '--add-opens=javafx.graphics/com.sun.javafx.scene.text=ALL-UNNAMED',
             '--add-opens=javafx.graphics/com.sun.javafx.css=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.prism=ALL-UNNAMED',
+            '--add-opens=javafx.graphics/com.sun.javafx.tk.quantum=ALL-UNNAMED',
             '--add-opens=javafx.graphics/javafx.stage=ALL-UNNAMED',
             '--add-opens=javafx.graphics/javafx.scene=ALL-UNNAMED',
             '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
@@ -35,7 +37,7 @@ configure(rootProject) {
             '--add-opens=java.base/java.util=ALL-UNNAMED',
             '--add-opens=java.base/java.nio=ALL-UNNAMED',
             '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
-        ]
+        ] + (Os.isFamily(Os.FAMILY_WINDOWS) ? ['--add-opens=javafx.graphics/com.sun.prism.d3d=ALL-UNNAMED'] : []) // the d3d package only ships in the Windows JavaFX jar
 
         // Shared runtime flags for all Haveno JVM processes
         havenoCommonJvmArgs = [

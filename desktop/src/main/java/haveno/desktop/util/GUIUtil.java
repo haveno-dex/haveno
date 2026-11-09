@@ -29,7 +29,9 @@ import com.google.zxing.qrcode.QRCodeWriter;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
+import haveno.common.BackgroundTimer;
 import haveno.common.ThreadUtils;
+import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.file.FileUtil;
@@ -157,6 +159,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -174,7 +177,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -1436,6 +1443,62 @@ public class GUIUtil {
                 }
             });
         });
+    }
+
+    private static final long RENDER_DEVICE_LOST_NANOS = TimeUnit.SECONDS.toNanos(10);
+    private static long renderDeviceLostSince; // nanoTime of the first failed check, 0 while the device is ready, render thread only
+
+    // JavaFX resets a lost D3D device only once Windows reports it resettable, so a device left lost after a system resume
+    // never paints again; reinitialize as JavaFX does for a removed device. Needs the com.sun.prism and tk.quantum opens.
+    public static void recoverLostRenderDevice() {
+        if (!Utilities.isWindows()) return;
+        try {
+            Class<?> graphicsPipeline = Class.forName("com.sun.prism.GraphicsPipeline");
+            Object pipeline = graphicsPipeline.getMethod("getPipeline").invoke(null);
+            if (pipeline == null || !pipeline.getClass().getName().equals("com.sun.prism.d3d.D3DPipeline")) return;
+            Method getDefaultResourceFactory = graphicsPipeline.getMethod("getDefaultResourceFactory");
+            Method isDeviceReady = Class.forName("com.sun.prism.ResourceFactory").getMethod("isDeviceReady");
+            Method reinitialize = pipeline.getClass().getDeclaredMethod("reinitialize");
+            reinitialize.setAccessible(true);
+            Method getRenderer = Class.forName("com.sun.javafx.tk.quantum.QuantumRenderer").getDeclaredMethod("getInstance");
+            getRenderer.setAccessible(true);
+            Executor renderer = (Executor) getRenderer.invoke(null);
+            Field renderLockField = Class.forName("com.sun.javafx.tk.quantum.ViewPainter").getDeclaredField("renderLock");
+            renderLockField.setAccessible(true);
+            ReentrantLock renderLock = (ReentrantLock) renderLockField.get(null);
+
+            Timer timer = new BackgroundTimer();
+            Runnable check = () -> {
+                renderLock.lock(); // held by the painters and by JavaFX's own reinitialize
+                try {
+                    Object factory = getDefaultResourceFactory.invoke(null);
+                    long now = System.nanoTime();
+                    if (factory != null && (boolean) isDeviceReady.invoke(factory)) {
+                        renderDeviceLostSince = 0;
+                    } else if (renderDeviceLostSince == 0) {
+                        renderDeviceLostSince = now;
+                    } else if (now - renderDeviceLostSince >= RENDER_DEVICE_LOST_NANOS) { // elapsed time, so queued checks cannot fire early
+                        renderDeviceLostSince = 0;
+                        log.warn("Reinitializing the D3D render pipeline after its device stayed lost");
+                        reinitialize.invoke(pipeline);
+                    }
+                } catch (Exception e) {
+                    timer.stop();
+                    log.warn("Cannot check the D3D render device, a window may stay unpainted after resume", e);
+                } finally {
+                    renderLock.unlock();
+                }
+            };
+            timer.runPeriodically(java.time.Duration.ofSeconds(5), () -> {
+                try {
+                    renderer.execute(check);
+                } catch (RejectedExecutionException e) {
+                    timer.stop(); // renderer shut down
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Cannot watch the D3D render device, a window may stay unpainted after resume", e);
+        }
     }
 
     private static final String CURSOR_REFRESH = "haveno.cursorRefresh";
