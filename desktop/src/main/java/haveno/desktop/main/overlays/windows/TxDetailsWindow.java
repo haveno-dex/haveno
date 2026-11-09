@@ -76,6 +76,7 @@ public class TxDetailsWindow extends TxHeroWindow<TxDetailsWindow> {
         this.xmrWalletService = xmrWalletService;
         this.preferences = preferences;
         this.priceFeedService = priceFeedService;
+        maxHeight = Double.MAX_VALUE; // the sheet grows to the window before it scrolls
     }
 
     public void show(TransactionsListItem item, Runnable onMemoSaved) {

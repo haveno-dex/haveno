@@ -171,6 +171,7 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     protected int rowIndex = -1;
     protected double width = DEFAULT_WIDTH;
+    protected double maxHeight = Layout.MAX_POPUP_HEIGHT; // fixed cap under the owner window and screen
     protected double buttonDistance = 20;
 
     protected boolean showReportErrorButtons;
@@ -875,7 +876,7 @@ public abstract class Overlay<T extends Overlay<T>> {
         Rectangle2D screenBounds = getScreenBounds();
         Scene ownerScene = owner.getScene();
         double ownerHeight = ownerScene != null && ownerScene.getHeight() > 0 ? ownerScene.getHeight() : screenBounds.getHeight();
-        return Math.min(Math.min(screenBounds.getHeight(), ownerHeight) - 2 * CAP_MARGIN, Layout.MAX_POPUP_HEIGHT);
+        return Math.min(Math.min(screenBounds.getHeight(), ownerHeight) - 2 * CAP_MARGIN, maxHeight);
     }
 
     // re-fit the stage to the content and the cap budget: engage the cap once the content outgrows
