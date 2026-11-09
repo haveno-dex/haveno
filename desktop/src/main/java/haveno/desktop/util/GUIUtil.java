@@ -186,6 +186,8 @@ import static haveno.desktop.util.FormBuilder.addTopLabelComboBoxComboBox;
 @Slf4j
 public class GUIUtil {
     public final static String SHOW_ALL_FLAG = "list.currency.showAll"; // Used for accessing the i18n resource
+    public final static String SHOW_FIAT_FLAG = "list.currency.showFiat";
+    public final static String SHOW_CRYPTO_FLAG = "list.currency.showCrypto";
     public final static String EDIT_FLAG = "list.currency.editList"; // Used for accessing the i18n resource
 
     public final static String OPEN_WEB_PAGE_KEY = "warnOpenURLWhenTorEnabled";
@@ -437,6 +439,16 @@ public class GUIUtil {
                             label1.setText(Res.get("shared.all"));
                             label2.setText(Res.get("list.currency.showAll"));
                             announced = Res.get("list.currency.showAll");
+                            break;
+                        case GUIUtil.SHOW_FIAT_FLAG:
+                            label1.setText(Res.get("shared.fiat"));
+                            label2.setText(Res.get("list.currency.showFiat"));
+                            announced = Res.get("list.currency.showFiat");
+                            break;
+                        case GUIUtil.SHOW_CRYPTO_FLAG:
+                            label1.setText(Res.get("shared.crypto"));
+                            label2.setText(Res.get("list.currency.showCrypto"));
+                            announced = Res.get("list.currency.showCrypto");
                             break;
                         case GUIUtil.EDIT_FLAG:
                             label1.setText(Res.get("shared.edit"));
@@ -1931,10 +1943,15 @@ public class GUIUtil {
         return getCurrencyIcon(currencyCode, size);
     }
 
+    // the show all entries: every trade currency, or every currency of one asset class
+    public static boolean isShowAllFlag(String code) {
+        return SHOW_ALL_FLAG.equals(code) || SHOW_FIAT_FLAG.equals(code) || SHOW_CRYPTO_FLAG.equals(code);
+    }
+
     // logo for the currency a collapsed field shows; none for the show all and edit list entries
     public static Node getCurrencyFieldGraphic(TradeCurrency currency) {
         String code = currency.getCode();
-        if (code.equals(SHOW_ALL_FLAG) || code.equals(EDIT_FLAG)) return null;
+        if (isShowAllFlag(code) || code.equals(EDIT_FLAG)) return null;
         return getCurrencyGraphic(code, CURRENCY_GRAPHIC_FIELD_SIZE);
     }
 

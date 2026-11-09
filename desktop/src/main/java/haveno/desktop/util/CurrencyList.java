@@ -55,9 +55,9 @@ public class CurrencyList {
         return FXCollections.observableList(delegate);
     }
 
-    public void updateWithCurrencies(List<TradeCurrency> currencies, @Nullable CurrencyListItem first) {
+    public void updateWithCurrencies(List<TradeCurrency> currencies, @Nullable List<CurrencyListItem> first) {
         List<CurrencyListItem> result = Lists.newLinkedList();
-        Optional.ofNullable(first).ifPresent(result::add);
+        Optional.ofNullable(first).ifPresent(result::addAll);
         result.addAll(getPartitionedSortedItems(currencies));
         delegate.clear();
         delegate.addAll(result);
