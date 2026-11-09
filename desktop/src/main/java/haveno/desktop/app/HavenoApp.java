@@ -163,6 +163,7 @@ public class HavenoApp extends Application implements UncaughtExceptionHandler {
         GUIUtil.dismissContextMenusOnShadowPress();
         GUIUtil.keepScrollGesturesAttached(); // keep trackpad scrolling and inertia going when list cells rebuild
         GUIUtil.repaintOnRestore(stage);
+        GUIUtil.recoverLostRenderDevice();
 
         appLaunchedHandler.accept(this);
     }
