@@ -53,14 +53,18 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -191,6 +195,21 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
         memoColumn.setComparator(Comparator.comparing(TransactionsListItem::getMemo, Comparator.nullsLast(Comparator.naturalOrder())));
         dateColumn.setSortType(TableColumn.SortType.DESCENDING);
         tableView.getSortOrder().add(dateColumn);
+
+        tableView.setRowFactory(
+                tv -> {
+                    TableRow<TransactionsListItem> row = new TableRow<>();
+                    row.setOnMouseClicked(event -> {
+                        if (event.getButton() != MouseButton.PRIMARY || event.getClickCount() != 2 || row.isEmpty()) return;
+                        for (Node node = (Node) event.getTarget(); node != null && node != row; node = node.getParent()) {
+                            // row actions keep their own behavior
+                            if (node instanceof ButtonBase || node.getOnMouseClicked() != null) return;
+                        }
+                        openTxDetailPopup(row.getItem());
+                        event.consume();
+                    });
+                    return row;
+                });
 
         keyEventEventHandler = event -> {
             // unused
