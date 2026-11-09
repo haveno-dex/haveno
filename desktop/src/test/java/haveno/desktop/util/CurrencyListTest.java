@@ -41,6 +41,7 @@ public class CurrencyListTest {
     private static final TradeCurrency RUR = new TraditionalCurrency(Currency.getInstance("RUR"), locale);
     private static final TradeCurrency BTC = new CryptoCurrency("BTC", "Bitcoin");
     private static final TradeCurrency ETH = new CryptoCurrency("ETH", "Ether");
+    private static final TradeCurrency XAU = new TraditionalCurrency("XAU", "Gold");
 
     private Preferences preferences;
     private List<CurrencyListItem> delegate;
@@ -55,11 +56,13 @@ public class CurrencyListTest {
         when(predicates.isCryptoCurrency(RUR)).thenReturn(false);
         when(predicates.isCryptoCurrency(BTC)).thenReturn(true);
         when(predicates.isCryptoCurrency(ETH)).thenReturn(true);
+        when(predicates.isCryptoCurrency(XAU)).thenReturn(false);
 
-        when(predicates.isTraditionalCurrency(USD)).thenReturn(true);
-        when(predicates.isTraditionalCurrency(RUR)).thenReturn(true);
-        when(predicates.isTraditionalCurrency(BTC)).thenReturn(false);
-        when(predicates.isTraditionalCurrency(ETH)).thenReturn(false);
+        when(predicates.isFiatCurrency(USD)).thenReturn(true);
+        when(predicates.isFiatCurrency(RUR)).thenReturn(true);
+        when(predicates.isFiatCurrency(BTC)).thenReturn(false);
+        when(predicates.isFiatCurrency(ETH)).thenReturn(false);
+        when(predicates.isFiatCurrency(XAU)).thenReturn(false);
 
         this.preferences = mock(Preferences.class);
         this.delegate = new ArrayList<>();
@@ -70,14 +73,32 @@ public class CurrencyListTest {
     public void testUpdateWhenSortNumerically() {
         when(preferences.isSortMarketCurrenciesNumerically()).thenReturn(true);
 
-        List<TradeCurrency> currencies = Lists.newArrayList(USD, RUR, USD, ETH, ETH, BTC);
+        List<TradeCurrency> currencies = Lists.newArrayList(USD, RUR, USD, ETH, ETH, BTC, XAU);
         testedEntity.updateWithCurrencies(currencies, null);
 
         List<CurrencyListItem> expected = Lists.newArrayList(
                 new CurrencyListItem(USD, 2),
-                new CurrencyListItem(RUR, 1),
                 new CurrencyListItem(ETH, 2),
-                new CurrencyListItem(BTC, 1));
+                new CurrencyListItem(RUR, 1),
+                new CurrencyListItem(BTC, 1),
+                new CurrencyListItem(XAU, 1));
+
+        assertEquals(expected, delegate);
+    }
+
+    @Test
+    public void testUpdateWhenSortNumericallyPlacesPreferredWithoutOffersLast() {
+        when(preferences.isSortMarketCurrenciesNumerically()).thenReturn(true);
+        when(preferences.getTraditionalCurrencies()).thenReturn(Lists.newArrayList((TraditionalCurrency) RUR));
+
+        List<TradeCurrency> currencies = Lists.newArrayList(USD, ETH, ETH, BTC);
+        testedEntity.updateWithCurrencies(currencies, null);
+
+        List<CurrencyListItem> expected = Lists.newArrayList(
+                new CurrencyListItem(ETH, 2),
+                new CurrencyListItem(USD, 1),
+                new CurrencyListItem(BTC, 1),
+                new CurrencyListItem(RUR, 0));
 
         assertEquals(expected, delegate);
     }
@@ -86,14 +107,15 @@ public class CurrencyListTest {
     public void testUpdateWhenNotSortNumerically() {
         when(preferences.isSortMarketCurrenciesNumerically()).thenReturn(false);
 
-        List<TradeCurrency> currencies = Lists.newArrayList(USD, RUR, USD, ETH, ETH, BTC);
+        List<TradeCurrency> currencies = Lists.newArrayList(USD, RUR, USD, ETH, ETH, BTC, XAU);
         testedEntity.updateWithCurrencies(currencies, null);
 
         List<CurrencyListItem> expected = Lists.newArrayList(
                 new CurrencyListItem(RUR, 1),
                 new CurrencyListItem(USD, 2),
                 new CurrencyListItem(BTC, 1),
-                new CurrencyListItem(ETH, 2));
+                new CurrencyListItem(ETH, 2),
+                new CurrencyListItem(XAU, 1));
 
         assertEquals(expected, delegate);
     }
@@ -109,8 +131,8 @@ public class CurrencyListTest {
         List<CurrencyListItem> expected = Lists.newArrayList(
                 first,
                 new CurrencyListItem(USD, 2),
-                new CurrencyListItem(RUR, 1),
                 new CurrencyListItem(ETH, 2),
+                new CurrencyListItem(RUR, 1),
                 new CurrencyListItem(BTC, 1));
 
         assertEquals(expected, delegate);

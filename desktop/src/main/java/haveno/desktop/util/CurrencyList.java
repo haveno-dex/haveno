@@ -19,7 +19,6 @@ package haveno.desktop.util;
 
 import com.google.common.collect.Lists;
 
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.user.Preferences;
 import javafx.collections.FXCollections;
@@ -58,54 +57,33 @@ public class CurrencyList {
     public void updateWithCurrencies(List<TradeCurrency> currencies, @Nullable List<CurrencyListItem> first) {
         List<CurrencyListItem> result = Lists.newLinkedList();
         Optional.ofNullable(first).ifPresent(result::addAll);
-        result.addAll(getPartitionedSortedItems(currencies));
+        result.addAll(getSortedItems(currencies));
         delegate.clear();
         delegate.addAll(result);
     }
 
-    private List<CurrencyListItem> getPartitionedSortedItems(List<TradeCurrency> currencies) {
-        Map<TradeCurrency, Integer> tradesPerCurrency = countTrades(currencies);
-        List<CurrencyListItem> fiatCurrencies = new ArrayList<>();
-        List<CurrencyListItem> traditionalCurrencies = new ArrayList<>();
-        List<CurrencyListItem> cryptoCurrencies = new ArrayList<>();
-
-        for (Map.Entry<TradeCurrency, Integer> entry : tradesPerCurrency.entrySet()) {
-            TradeCurrency currency = entry.getKey();
-            Integer count = entry.getValue();
-            CurrencyListItem item = new CurrencyListItem(currency, count);
-
-            if (predicates.isFiatCurrency(currency)) {
-                fiatCurrencies.add(item);
-            } else if (predicates.isTraditionalCurrency(currency)) {
-                traditionalCurrencies.add(item);
-            }
-
-            if (predicates.isCryptoCurrency(currency)) {
-                cryptoCurrencies.add(item);
-            }
-        }
-
-        Comparator<CurrencyListItem> comparator = getComparator();
-        fiatCurrencies.sort(comparator);
-        traditionalCurrencies.sort(comparator);
-        cryptoCurrencies.sort(comparator);
-
-        List<CurrencyListItem> result = new ArrayList<>();
-        result.addAll(fiatCurrencies);
-        result.addAll(traditionalCurrencies);
-        result.addAll(cryptoCurrencies);
-
-        return result;
+    private List<CurrencyListItem> getSortedItems(List<TradeCurrency> currencies) {
+        List<CurrencyListItem> items = new ArrayList<>();
+        countTrades(currencies).forEach((currency, count) -> items.add(new CurrencyListItem(currency, count)));
+        items.sort(getComparator());
+        return items;
     }
 
+    // Busiest markets first across all currency types; alphabetical keeps the fiat, crypto, other sections
     private Comparator<CurrencyListItem> getComparator() {
+        Comparator<CurrencyListItem> byType = Comparator.comparingInt(this::getTypeRank);
+        Comparator<CurrencyListItem> byName = Comparator.comparing(item -> predicates.isCryptoCurrency(item.tradeCurrency) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
         if (preferences.isSortMarketCurrenciesNumerically()) {
-            return Comparator
-                .comparingInt((CurrencyListItem item) -> item.numTrades).reversed()
-                .thenComparing(item -> CurrencyUtil.isCryptoCurrency(item.tradeCurrency.getCode()) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
+            return Comparator.comparingInt((CurrencyListItem item) -> item.numTrades).reversed().thenComparing(byType).thenComparing(byName);
         } else {
-            return Comparator.comparing(item -> CurrencyUtil.isCryptoCurrency(item.tradeCurrency.getCode()) ? item.tradeCurrency.getName() : item.tradeCurrency.getCode());
+            return byType.thenComparing(byName);
         }
+    }
+
+    private int getTypeRank(CurrencyListItem item) {
+        if (predicates.isFiatCurrency(item.tradeCurrency)) return 0;
+        if (predicates.isCryptoCurrency(item.tradeCurrency)) return 1;
+        return 2;
     }
 
     private Map<TradeCurrency, Integer> countTrades(List<TradeCurrency> currencies) {
