@@ -419,6 +419,8 @@ public class GUIUtil {
                     String code = item.tradeCurrency.getCode();
 
                     boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
+                    // crypto rows carry the name in label2 and the show all entries have none, so label3 is free for the pill
+                    boolean hasName = !isCrypto && !isShowAllFlag(code);
 
                     HBox box = new HBox();
                     box.setSpacing(20);
@@ -427,28 +429,35 @@ public class GUIUtil {
                     label1.getStyleClass().add("currency-label-small");
                     Label label2 = new AutoTooltipLabel(isCrypto ? item.tradeCurrency.getNameAndCode() : code);
                     label2.getStyleClass().add("currency-label");
-                    Label label3 = new AutoTooltipLabel(isCrypto ? "" : item.tradeCurrency.getName());
-                    if (!isCrypto) label3.getStyleClass().add("currency-label");
+                    Label label3 = new AutoTooltipLabel(hasName ? item.tradeCurrency.getName() : "");
+                    if (hasName) label3.getStyleClass().add("currency-label");
                     Label label4 = new AutoTooltipLabel();
 
-                    boolean showOfferCount = false;
+                    Label offersTarget = hasName ? label4 : label3;
+                    boolean showOfferCount = item.numTrades > 0;
+                    if (showOfferCount) {
+                        HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
+                        offersTarget.getStyleClass().add("offer-label");
+                        offersTarget.setText(item.numTrades + " " + (item.numTrades == 1 ? postFixSingle : postFixMulti));
+                    }
+                    String announcedCount = showOfferCount ? ", " + offersTarget.getText() : "";
                     String announced; // name-first for screen readers; the visible row leads with the code
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
                             label1.setText(Res.get("shared.all"));
                             label2.setText(Res.get("list.currency.showAll"));
-                            announced = Res.get("list.currency.showAll");
+                            announced = Res.get("list.currency.showAll") + announcedCount;
                             break;
                         case GUIUtil.SHOW_FIAT_FLAG:
                             label1.setText(Res.get("shared.fiat"));
                             label2.setText(Res.get("list.currency.showFiat"));
-                            announced = Res.get("list.currency.showFiat");
+                            announced = Res.get("list.currency.showFiat") + announcedCount;
                             break;
                         case GUIUtil.SHOW_CRYPTO_FLAG:
                             label1.setText(Res.get("shared.crypto"));
                             label2.setText(Res.get("list.currency.showCrypto"));
-                            announced = Res.get("list.currency.showCrypto");
+                            announced = Res.get("list.currency.showCrypto") + announcedCount;
                             break;
                         case GUIUtil.EDIT_FLAG:
                             label1.setText(Res.get("shared.edit"));
@@ -464,21 +473,13 @@ public class GUIUtil {
                                 label1.setGraphic(currencyIcon);
                             }
 
-                            if (item.numTrades > 0) {
-                                Label offersTarget = isCrypto ? label3 : label4;
-                                HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
-                                offersTarget.getStyleClass().add("offer-label");
-                                offersTarget.setText(item.numTrades + " " + (item.numTrades == 1 ? postFixSingle : postFixMulti));
-                                showOfferCount = true;
-                            }
-                            announced = item.tradeCurrency.getName() + ", " + Accessibility.spellOut(code)
-                                    + (showOfferCount ? ", " + (isCrypto ? label3 : label4).getText() : "");
+                            announced = item.tradeCurrency.getName() + ", " + Accessibility.spellOut(code) + announcedCount;
                     }
 
                     // append the offer pill only when present so the row ends at real content
                     box.getChildren().addAll(label1, label2);
-                    if (!isCrypto) box.getChildren().add(label3);
-                    if (showOfferCount) box.getChildren().add(isCrypto ? label3 : label4);
+                    if (hasName) box.getChildren().add(label3);
+                    if (showOfferCount) box.getChildren().add(offersTarget);
 
                     setGraphic(box);
                     setAccessibleRowText(this, box, announced);

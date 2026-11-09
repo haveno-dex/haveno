@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.market.trades;
 
+import haveno.common.UserThread;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
@@ -30,12 +31,14 @@ import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.market.trades.charts.CandleData;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.util.Pair;
 import org.bitcoinj.core.Coin;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,12 +48,19 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class TradesChartsViewModelTest {
     TradesChartsViewModel model;
@@ -108,6 +118,34 @@ public class TradesChartsViewModelTest {
         dir.delete();
         //noinspection ResultOfMethodCallIgnored
         dir.mkdir();
+    }
+
+    @Test
+    public void testCurrencyCountsRefreshAfterInactiveTrades() {
+        long now = System.currentTimeMillis();
+        ObservableList<TradeStatistics3> trades = FXCollections.observableArrayList(
+                new TradeStatistics3("EUR", 1, 1, PaymentMethod.BLOCK_CHAINS_ID, now, null, null, null),
+                new TradeStatistics3("BTC", 1, 1, PaymentMethod.BLOCK_CHAINS_ID, now, null, null, null));
+        when(tradeStatisticsManager.getObservableTradeStatisticsList()).thenReturn(trades);
+        model.selectedTradeCurrencyProperty.set(new TraditionalCurrency("EUR"));
+        model.showAllTradeCurrenciesProperty.set(true);
+
+        try (MockedStatic<ChartCalculations> charts = mockStatic(ChartCalculations.class);
+             MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            charts.when(() -> ChartCalculations.getUsdAveragePriceMapsPerTickUnit(trades)).thenReturn(new CompletableFuture<>());
+            charts.when(() -> ChartCalculations.getTradeStatisticsForCurrency(eq(trades), any())).thenReturn(new CompletableFuture<>());
+
+            model.activate();
+            assertEquals(List.of(2, 1, 1), model.getCurrencyListItems().subList(0, 3).stream().map(item -> item.numTrades).toList());
+            model.deactivate();
+
+            trades.add(new TradeStatistics3("USD", 1, 1, PaymentMethod.BLOCK_CHAINS_ID, now, null, null, null));
+            model.activate();
+            assertEquals(List.of(3, 2, 1), model.getCurrencyListItems().subList(0, 3).stream().map(item -> item.numTrades).toList());
+            assertEquals(3, model.getSelectedCurrencyListItem().orElseThrow().numTrades);
+            assertTrue(model.getCurrencyListItems().stream().anyMatch(item -> item.tradeCurrency.getCode().equals("USD")));
+            model.deactivate();
+        }
     }
 
     @SuppressWarnings("ConstantConditions")
