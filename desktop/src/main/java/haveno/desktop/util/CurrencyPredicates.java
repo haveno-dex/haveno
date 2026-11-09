@@ -28,8 +28,4 @@ class CurrencyPredicates {
     boolean isFiatCurrency(TradeCurrency currency) {
         return CurrencyUtil.isFiatCurrency(currency.getCode());
     }
-
-    boolean isTraditionalCurrency(TradeCurrency currency) {
-        return CurrencyUtil.isTraditionalCurrency(currency.getCode());
-    }
 }
