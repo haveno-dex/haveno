@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 class TradesChartsViewModel extends ActivatableViewModel {
     static final int MAX_TICKS = 90;
     private static final int TAB_INDEX = 2;
+    private static final List<String> SHOW_ALL_FLAGS = List.of(GUIUtil.SHOW_ALL_FLAG, GUIUtil.SHOW_FIAT_FLAG, GUIUtil.SHOW_CRYPTO_FLAG);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enum
@@ -84,10 +85,6 @@ class TradesChartsViewModel extends ActivatableViewModel {
     final ObjectProperty<TradeCurrency> selectedTradeCurrencyProperty = new SimpleObjectProperty<>();
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(false);
     private final CurrencyList currencyListItems;
-    private final List<CurrencyListItem> showAllCurrencyListItems = List.of(
-            new CurrencyListItem(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""), -1),
-            new CurrencyListItem(new CryptoCurrency(GUIUtil.SHOW_FIAT_FLAG, ""), -1),
-            new CurrencyListItem(new CryptoCurrency(GUIUtil.SHOW_CRYPTO_FLAG, ""), -1));
     // the show all entry in use while showAllTradeCurrenciesProperty is set: every currency or one asset class
     private String showAllCode = GUIUtil.SHOW_ALL_FLAG;
     final ObservableList<TradeStatistics3> tradeStatisticsByCurrency = FXCollections.observableArrayList();
@@ -99,7 +96,6 @@ class TradesChartsViewModel extends ActivatableViewModel {
     TickUnit tickUnit;
     private int selectedTabIndex;
     final Map<TickUnit, Map<Long, Long>> usdAveragePriceMapsPerTickUnit = new HashMap<>();
-    private boolean fillTradeCurrenciesOnActivateCalled;
     private volatile boolean deactivateCalled;
     // Async refilter, chart and USD-map results apply only if the generation taken at start is still
     // current, so a superseded result is dropped. Counters are only touched on the user thread.
@@ -146,10 +142,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
         synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
             tradeStatisticsManager.getObservableTradeStatisticsList().addListener(listChangeListener);
         }
-        if (!fillTradeCurrenciesOnActivateCalled) {
-            fillTradeCurrencies();
-            fillTradeCurrenciesOnActivateCalled = true;
-        }
+        fillTradeCurrencies();
         syncPriceFeedCurrency();
         setMarketPriceFeedCurrency();
 
@@ -393,12 +386,22 @@ class TradesChartsViewModel extends ActivatableViewModel {
     private void fillTradeCurrencies() {
         // Don't use a set as we need all entries
         List<TradeCurrency> tradeCurrencyList;
+        List<CurrencyListItem> showAllItems;
         synchronized (tradeStatisticsManager.getObservableTradeStatisticsList()) {
-            tradeCurrencyList = tradeStatisticsManager.getObservableTradeStatisticsList().stream()
+            List<TradeStatistics3> tradeStatistics = tradeStatisticsManager.getObservableTradeStatisticsList();
+            tradeCurrencyList = tradeStatistics.stream()
                     .flatMap(e -> CurrencyUtil.getTradeCurrency(e.getCurrency()).stream())
                     .collect(Collectors.toList());
+            showAllItems = SHOW_ALL_FLAGS.stream().map(flag -> getShowAllItem(flag, tradeStatistics)).collect(Collectors.toList());
         }
-        currencyListItems.updateWithCurrencies(tradeCurrencyList, showAllCurrencyListItems);
+        currencyListItems.updateWithCurrencies(tradeCurrencyList, showAllItems);
+    }
+
+    // a show all entry carrying the count of the trades it covers
+    private static CurrencyListItem getShowAllItem(String flag, List<TradeStatistics3> tradeStatistics) {
+        Predicate<String> filter = getShowAllFilter(flag);
+        int numTrades = (int) tradeStatistics.stream().filter(e -> filter.test(e.getCurrency())).count();
+        return new CurrencyListItem(new CryptoCurrency(flag, ""), numTrades);
     }
 
     private void setMarketPriceFeedCurrency() {
@@ -417,9 +420,13 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     // trades to show: those of the selected currency, or of every currency the show all entry covers
     private Predicate<String> getCurrencyFilter() {
-        if (!showAllTradeCurrenciesProperty.get()) return Predicate.isEqual(getCurrencyCode());
-        if (showAllCode.equals(GUIUtil.SHOW_FIAT_FLAG)) return CurrencyUtil::isFiatCurrency;
-        if (showAllCode.equals(GUIUtil.SHOW_CRYPTO_FLAG)) return CurrencyUtil::isCryptoCurrency;
+        return showAllTradeCurrenciesProperty.get() ? getShowAllFilter(showAllCode) : Predicate.isEqual(getCurrencyCode());
+    }
+
+    // currencies a show all entry covers
+    private static Predicate<String> getShowAllFilter(String flag) {
+        if (flag.equals(GUIUtil.SHOW_FIAT_FLAG)) return CurrencyUtil::isFiatCurrency;
+        if (flag.equals(GUIUtil.SHOW_CRYPTO_FLAG)) return CurrencyUtil::isCryptoCurrency;
         return code -> true;
     }
 
