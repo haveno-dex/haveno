@@ -35,6 +35,7 @@ let
     p.git
     p.wget
     p.zlib
+    p.procps	# bundled tor needs this
     jdk
   ];
 
