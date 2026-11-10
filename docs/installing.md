@@ -44,6 +44,8 @@ nix-shell
 
 *Using Nix, there is no need to install Java dependencies, because they are managed by the shell.nix file. Build and run haveno in nix-shell terminal.*
 
+On NixOS, enter `nix-shell` interactively and run commands inside it; `--run` and `--command` are ignored by the FHS environment. If Gradle was already running outside the shell, run `./gradlew --stop` inside the shell before building.
+
 ## Build Haveno
 
 If it's the first time you are building Haveno, run the following commands to download the repository, the needed dependencies, and build the latest release. If using a third party network, replace the repository URL with theirs:
