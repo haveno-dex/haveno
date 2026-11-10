@@ -78,6 +78,7 @@ import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +86,7 @@ import java.util.stream.Collectors;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -110,6 +112,10 @@ import org.apache.commons.lang3.StringUtils;
 
 @FxmlView
 public class PreferencesView extends ActivatableViewAndModel<GridPane, PreferencesViewModel> {
+    // fiat, then crypto, then precious metals, each group by name
+    private static final Comparator<TradeCurrency> PREFERRED_CURRENCY_ORDER = Comparator.comparingInt((TradeCurrency currency) ->
+            CurrencyUtil.isFiatCurrency(currency.getCode()) ? 0 : CurrencyUtil.isCryptoCurrency(currency.getCode()) ? 1 : 2)
+            .thenComparing(Comparator.naturalOrder());
     private final User user;
     private TextField xmrExplorerTextField;
     private ComboBox<String> userLanguageComboBox;
@@ -829,7 +835,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     }
 
     private void activateDisplayCurrencies() {
-        preferredTradeCurrencyComboBox.setAutocompleteItems(tradeCurrencies);
+        preferredTradeCurrencyComboBox.setAutocompleteItems(new SortedList<>(tradeCurrencies, PREFERRED_CURRENCY_ORDER));
         preferredTradeCurrencyComboBox.getSelectionModel().select(preferences.getPreferredTradeCurrency());
         preferredTradeCurrencyComboBox.getEditor().setText(
                 preferredTradeCurrencyComboBox.getConverter().toString(preferences.getPreferredTradeCurrency()));
