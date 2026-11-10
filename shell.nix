@@ -5,6 +5,7 @@ pkgs.mkShell {
     gnumake
     wget
     git
+    procps # bundle tor needs this
     javaPackages.openjfx21
     (pkgs.jdk21.override {enableJavaFX = true;})
   ];
