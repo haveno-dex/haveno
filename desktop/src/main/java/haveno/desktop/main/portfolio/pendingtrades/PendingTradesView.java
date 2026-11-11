@@ -506,7 +506,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         });
     }
 
-    // jumps to the trade's confirmation button, or to the top of its details when the step has none
+    // jumps to the trade's confirmation or support button, or to the top of its details when the step has neither
     private void focusTradeAction(PendingTradesListItem item) {
         if (selectedSubView == null || !Objects.equals(item, model.dataModel.selectedItemProperty.get())) return;
         if (!selectedSubView.focusConfirmationButton(scrollView)) scrollView.setVvalue(scrollView.getVmin());
@@ -1116,6 +1116,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
                 if (status != null && !empty) {
                     Label label = new AutoTooltipLabel(Res.get(status.getResourceKey()));
                     boolean problem = status == PendingTradesListItem.TradeStatus.IN_DISPUTE ||
+                            status == PendingTradesListItem.TradeStatus.IN_DISPUTE_WAITING ||
                             status == PendingTradesListItem.TradeStatus.RETRY_CONFIRMATION;
                     boolean overdue = status == PendingTradesListItem.TradeStatus.SEND_PAYMENT_OVERDUE ||
                             status == PendingTradesListItem.TradeStatus.CONFIRM_RECEIPT_OVERDUE;

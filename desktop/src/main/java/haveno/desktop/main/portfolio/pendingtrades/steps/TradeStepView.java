@@ -772,11 +772,13 @@ public abstract class TradeStepView extends VBox {
         return action;
     }
 
-    // brings the step's confirmation button into view and focuses it; false when the step has none
+    // brings an active confirmation or support button into view and focuses it
     public boolean focusConfirmationButton(ScrollPane scrollPane) {
-        if (confirmationButton == null) return false;
-        GUIUtil.scrollIntoView(scrollPane, actionPane);
-        confirmationButton.requestFocus();
+        boolean confirmable = confirmationButton != null && confirmationButton.getScene() != null && !confirmationButton.isDisabled();
+        Button target = confirmable ? confirmationButton : tradeStepInfo != null ? tradeStepInfo.getActiveButton() : null;
+        if (target == null) return false;
+        GUIUtil.scrollIntoView(scrollPane, confirmable ? actionPane : deadlinePane);
+        target.requestFocus();
         return true;
     }
 

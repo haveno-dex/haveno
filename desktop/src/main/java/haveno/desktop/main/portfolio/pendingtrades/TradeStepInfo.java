@@ -82,6 +82,12 @@ public class TradeStepInfo extends VBox {
         button.setOnAction(e);
     }
 
+    // the support button while it is shown and enabled, otherwise null
+    @Nullable
+    public AutoTooltipButton getActiveButton() {
+        return isVisible() && !button.isDisabled() ? button : null;
+    }
+
     public void setFirstHalfOverWarnTextSupplier(Supplier<String> firstHalfOverWarnTextSupplier) {
         this.firstHalfOverWarnTextSupplier = firstHalfOverWarnTextSupplier;
     }

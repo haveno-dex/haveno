@@ -52,6 +52,7 @@ public class PendingTradesListItem implements FilterableListItem {
         CONFIRMING_PAYMENT("portfolio.pending.tradeView.confirmingPayment", false),
         RETRY_CONFIRMATION("portfolio.pending.status.retryConfirmation", true),
         IN_DISPUTE("portfolio.pending.tradeView.inDispute", true),
+        IN_DISPUTE_WAITING("portfolio.pending.tradeView.inDispute", false),
         ARBITRATED("portfolio.closed.ticketClosed", false),
         COMPLETED("portfolio.pending.step5.completed", false);
 
@@ -120,9 +121,16 @@ public class PendingTradesListItem implements FilterableListItem {
 
     private TradeStatus calculateBaseTradeStatus(boolean showPaymentDetailsEarly) {
         if (trade.isPayoutPublished() || trade.isCompleted()) return TradeStatus.COMPLETED;
-        if (trade.getDisputeState().isDisputed()) {
-            return trade.getDisputeState().isCloseRequested() ? TradeStatus.ARBITRATED : TradeStatus.IN_DISPUTE;
-        }
+        TradeStatus status = calculateStepStatus(showPaymentDetailsEarly);
+        Trade.DisputeState disputeState = trade.getDisputeState();
+        if (!disputeState.isDisputed()) return status;
+        if (disputeState.isCloseRequested()) return TradeStatus.ARBITRATED;
+        // the dispute status links to the step's confirmation button or, once opened, its view dispute button
+        boolean actionable = status.isAttention() || disputeState.isOpen() && !trade.isArbitrator();
+        return actionable ? TradeStatus.IN_DISPUTE : TradeStatus.IN_DISPUTE_WAITING;
+    }
+
+    private TradeStatus calculateStepStatus(boolean showPaymentDetailsEarly) {
         if (trade.isArbitrator()) {
             if (trade.isDepositsUnlocked()) return TradeStatus.DEPOSITS_CONFIRMED;
             return trade.isDepositsPublished() ? TradeStatus.CONFIRMING_DEPOSITS : TradeStatus.UPDATING;
