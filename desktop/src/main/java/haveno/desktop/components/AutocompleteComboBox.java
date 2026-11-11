@@ -22,6 +22,7 @@ import com.jfoenix.skins.JFXComboBoxListViewSkin;
 import haveno.common.UserThread;
 import haveno.common.util.Utilities;
 import haveno.desktop.util.Accessibility;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -36,6 +37,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.TextField;
+import javafx.scene.control.skin.TextInputControlSkin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -125,6 +127,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         trackCommittedValue();
         selectArrowedItemText();
         showEditorGraphic();
+        stopCaretOnShownValue();
     }
 
     // Report non-editable to accessibility on mac: the editable combo maps to an AXComboBox, which
@@ -341,6 +344,18 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         getEditor().setStyle(editorGraphic == null ? editorStyle
                 : editorStyle + "-fx-padding: 0 0 0 " + (editorGraphic.prefWidth(-1) + EDITOR_GRAPHIC_GAP) + " !important;");
         requestLayout(); // an unmanaged child does not request it, and a same width swap leaves the style unchanged
+    }
+
+    // The caret invites typing a query, so stop it when the editor shows a chosen value, as after a row press;
+    // editing or a fresh focus restarts it.
+    private void stopCaretOnShownValue() {
+        InvalidationListener stopCaret = obs -> {
+            T value = getValue();
+            if (value != null && asString(value).equals(getEditor().getText()) && getEditor().getSkin() instanceof TextInputControlSkin<?> editorSkin)
+                editorSkin.setCaretAnimating(false);
+        };
+        valueProperty().addListener(stopCaret); // the skin leaves matching text untouched, so the text alone can miss a selection
+        getEditor().textProperty().addListener(stopCaret);
     }
 
     // --- popup plumbing ---
