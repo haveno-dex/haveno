@@ -260,9 +260,9 @@ public class OfferBookChartViewModelTest {
     public void testTailWithDepthShown() {
         for (double marketPrice : new double[]{0, 100}) {
             assertEquals(shown(OfferDirection.SELL, 108, 112, 120),
-                    filterTail(OfferDirection.SELL, marketPrice, 5, new double[]{108, 112, 120}, new double[]{4, 4, 8}));
+                    filterTail(OfferDirection.SELL, marketPrice, 5, new double[]{108, 112, 120}, new double[]{6, 6, 12}));
             assertEquals(shown(OfferDirection.BUY, 92, 88, 80),
-                    filterTail(OfferDirection.BUY, marketPrice, 5, new double[]{92, 88, 80}, new double[]{4, 4, 8}));
+                    filterTail(OfferDirection.BUY, marketPrice, 5, new double[]{92, 88, 80}, new double[]{6, 6, 12}));
         }
     }
 
@@ -273,12 +273,12 @@ public class OfferBookChartViewModelTest {
             // offers earning the range out to 20% of the market price add 7% of their price, which shows light offers
             double[] earning = sell ? new double[]{108, 112, 120} : new double[]{92, 88, 80};
             double[] light = sell ? new double[]{108, 112, 120, 126, 129} : new double[]{92, 88, 80, 76, 74};
-            double[] lightAmounts = {4, 4, 8, 0.001, 0.001};
+            double[] lightAmounts = {6, 6, 12, 0.001, 0.001};
             double[] shownLight = sell ? new double[]{108, 112, 120, 126} : new double[]{92, 88, 80, 76};
             double rangeEnd = sell ? 128.4 : 74.4;
-            assertEquals(shown(direction, earning), filterTail(direction, 100, 5, earning, new double[]{4, 4, 8}));
+            assertEquals(shown(direction, earning), filterTail(direction, 100, 5, earning, new double[]{6, 6, 12}));
             assertEquals(shown(direction, shownLight), filterTail(direction, 100, 5, light, lightAmounts));
-            assertEquals(rangeEnd, rangeEnd(direction, 100, withCore(direction, 100, earning), withCore(direction, 5, 4, 4, 8)), 1e-9);
+            assertEquals(rangeEnd, rangeEnd(direction, 100, withCore(direction, 100, earning), withCore(direction, 5, 6, 6, 12)), 1e-9);
             assertEquals(rangeEnd, rangeEnd(direction, 100, withCore(direction, 100, light), withCore(direction, 5, lightAmounts)), 1e-9);
             // offers earning the range out to 2% add twice as much
             double[] tight = sell ? new double[]{102, 107} : new double[]{98, 93};
@@ -310,28 +310,51 @@ public class OfferBookChartViewModelTest {
 
     @Test
     public void testNearerSideMirrorsTheFartherSideAroundTheMarketPrice() {
-        List<XYChart.Data<Number, Number>> buy = series(OfferDirection.BUY, 65, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100);
+        List<XYChart.Data<Number, Number>> buy = series(OfferDirection.BUY, 75, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100);
         List<XYChart.Data<Number, Number>> sell = series(OfferDirection.SELL, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129);
-        double ownBids = OfferBookChartView.getRangeEnd(buy, OfferDirection.BUY, 100);
-        double ownAsks = OfferBookChartView.getRangeEnd(sell, OfferDirection.SELL, 100);
-        assertEquals(84.63, ownBids, 1e-9);
-        assertEquals(138.03, ownAsks, 1e-9);
+        OfferBookChartView.Range ownBids = OfferBookChartView.getRange(buy, OfferDirection.BUY, 100);
+        OfferBookChartView.Range ownAsks = OfferBookChartView.getRange(sell, OfferDirection.SELL, 100);
+        assertEquals(91, ownBids.earned());
+        assertEquals(84.63, ownBids.end(), 1e-9);
+        assertEquals(129, ownAsks.earned());
+        assertEquals(138.03, ownAsks.end(), 1e-9);
 
+        // the bids reach the farthest earning ask mirrored, not its surroundings
         OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(buy, sell, 100);
-        assertEquals(ownAsks, ends.asks());
-        assertEquals(200 - ownAsks, ends.bids(), 1e-9);
+        assertEquals(ownAsks.end(), ends.asks());
+        assertEquals(71, ends.bids(), 1e-9);
         // the mirrored range shows the far bid that the side on its own would hide
-        assertFalse(prices(OfferBookChartView.filterOutliers(buy, OfferDirection.BUY, ownBids)).contains(65d));
-        assertTrue(prices(OfferBookChartView.filterOutliers(buy, OfferDirection.BUY, ends.bids())).contains(65d));
+        assertFalse(prices(OfferBookChartView.filterOutliers(buy, OfferDirection.BUY, ownBids.end())).contains(75d));
+        assertTrue(prices(OfferBookChartView.filterOutliers(buy, OfferDirection.BUY, ends.bids())).contains(75d));
 
         // the asks mirror the bids when those reach farther
         buy = series(OfferDirection.BUY, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79);
         sell = series(OfferDirection.SELL, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110);
-        assertEquals(65.1, OfferBookChartView.getRangeEnd(buy, OfferDirection.BUY, 100), 1e-9);
-        assertEquals(117.7, OfferBookChartView.getRangeEnd(sell, OfferDirection.SELL, 100), 1e-9);
+        assertEquals(65.1, OfferBookChartView.getRange(buy, OfferDirection.BUY, 100).end(), 1e-9);
+        assertEquals(117.7, OfferBookChartView.getRange(sell, OfferDirection.SELL, 100).end(), 1e-9);
         ends = OfferBookChartView.getRangeEnds(buy, sell, 100);
         assertEquals(65.1, ends.bids(), 1e-9);
-        assertEquals(134.9, ends.asks(), 1e-9);
+        assertEquals(130, ends.asks(), 1e-9);
+    }
+
+    @Test
+    public void testMirroredRangeIncludesOffersAtTheBoundary() {
+        for (double[] prices : new double[][]{{100.1, 90.09, 110.11}, {0.00793225, 0.0056319, 0.0102326}, {4000000.5, 3200000.4, 4800000.6}}) {
+            double marketPrice = prices[0];
+            for (OfferDirection direction : OfferDirection.values()) {
+                boolean sell = direction == OfferDirection.SELL;
+                double boundary = prices[sell ? 2 : 1];
+                double outside = boundary + (sell ? 1e-8 : -1e-8);
+                List<XYChart.Data<Number, Number>> data = series(direction,
+                        withCore(direction, marketPrice, boundary, outside), withCore(direction, 1, 0.001, 0.001));
+                List<XYChart.Data<Number, Number>> buy = sell ? series(OfferDirection.BUY, prices[1]) : data;
+                List<XYChart.Data<Number, Number>> asks = sell ? data : series(OfferDirection.SELL, prices[2]);
+                OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(buy, asks, marketPrice);
+                List<Double> shown = prices(OfferBookChartView.filterOutliers(data, direction, sell ? ends.asks() : ends.bids()));
+                assertTrue(shown.contains(boundary));
+                assertFalse(shown.contains(outside));
+            }
+        }
     }
 
     @Test
@@ -339,7 +362,7 @@ public class OfferBookChartViewModelTest {
         List<XYChart.Data<Number, Number>> sell = series(OfferDirection.SELL, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129);
         OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(new ArrayList<>(), sell, 100);
         assertEquals(138.03, ends.asks(), 1e-9);
-        assertEquals(61.97, ends.bids(), 1e-9);
+        assertEquals(71, ends.bids(), 1e-9);
 
         ends = OfferBookChartView.getRangeEnds(new ArrayList<>(), new ArrayList<>(), 100);
         assertEquals(Double.NaN, ends.bids());
@@ -352,12 +375,12 @@ public class OfferBookChartViewModelTest {
         List<XYChart.Data<Number, Number>> sell = series(OfferDirection.SELL, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129);
         for (double marketPrice : new double[]{0, -1, Double.NaN, Double.POSITIVE_INFINITY}) {
             OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(buy, sell, marketPrice);
-            assertEquals(OfferBookChartView.getRangeEnd(buy, OfferDirection.BUY, marketPrice), ends.bids());
-            assertEquals(OfferBookChartView.getRangeEnd(sell, OfferDirection.SELL, marketPrice), ends.asks());
+            assertEquals(OfferBookChartView.getRange(buy, OfferDirection.BUY, marketPrice).end(), ends.bids());
+            assertEquals(OfferBookChartView.getRange(sell, OfferDirection.SELL, marketPrice).end(), ends.asks());
         }
         OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(new ArrayList<>(), sell, 0);
         assertEquals(Double.NaN, ends.bids());
-        assertEquals(OfferBookChartView.getRangeEnd(sell, OfferDirection.SELL, 0), ends.asks());
+        assertEquals(OfferBookChartView.getRange(sell, OfferDirection.SELL, 0).end(), ends.asks());
     }
 
     @Test
@@ -366,8 +389,8 @@ public class OfferBookChartViewModelTest {
         List<XYChart.Data<Number, Number>> sell = series(OfferDirection.SELL, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129);
         for (double marketPrice : new double[]{80, 200}) {
             OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(buy, sell, marketPrice);
-            assertEquals(OfferBookChartView.getRangeEnd(buy, OfferDirection.BUY, marketPrice), ends.bids());
-            assertEquals(OfferBookChartView.getRangeEnd(sell, OfferDirection.SELL, marketPrice), ends.asks());
+            assertEquals(OfferBookChartView.getRange(buy, OfferDirection.BUY, marketPrice).end(), ends.bids());
+            assertEquals(OfferBookChartView.getRange(sell, OfferDirection.SELL, marketPrice).end(), ends.asks());
         }
     }
 
@@ -390,20 +413,21 @@ public class OfferBookChartViewModelTest {
             double[] sell = random.doubles(random.nextInt(20), 0, 1.5).map(distance -> 100 * (1 + distance)).sorted().toArray();
             List<XYChart.Data<Number, Number>> buyData = series(OfferDirection.BUY, buy);
             List<XYChart.Data<Number, Number>> sellData = series(OfferDirection.SELL, sell);
-            double ownBids = OfferBookChartView.getRangeEnd(buyData, OfferDirection.BUY, 100);
-            double ownAsks = OfferBookChartView.getRangeEnd(sellData, OfferDirection.SELL, 100);
+            OfferBookChartView.Range ownBids = OfferBookChartView.getRange(buyData, OfferDirection.BUY, 100);
+            OfferBookChartView.Range ownAsks = OfferBookChartView.getRange(sellData, OfferDirection.SELL, 100);
             OfferBookChartView.RangeEnds ends = OfferBookChartView.getRangeEnds(buyData, sellData, 100);
             if (buy.length == 0 && sell.length == 0) {
                 assertEquals(Double.NaN, ends.bids());
                 assertEquals(Double.NaN, ends.asks());
                 continue;
             }
-            if (buy.length > 0) assertTrue(ends.bids() <= ownBids);
-            if (sell.length > 0) assertTrue(ends.asks() >= ownAsks);
-            if (ends.bids() != ownBids || ends.asks() != ownAsks) mirrored++;
-            // both sides reach as far, or the bid side stops at the price limit
-            double bidReach = 100 - ends.bids(), askReach = ends.asks() - 100;
-            if (Math.abs(bidReach - askReach) > 1e-9) assertTrue(bidReach < askReach && ends.bids() == Math.nextUp(100 / 3d));
+            if (buy.length > 0) assertTrue(ends.bids() <= ownBids.end());
+            if (sell.length > 0) assertTrue(ends.asks() >= ownAsks.end());
+            if (ends.bids() != ownBids.end() || ends.asks() != ownAsks.end()) mirrored++;
+            // each side reaches the other side's farthest earning offer, or the bid side stops at the price limit
+            double reach = Math.max(buy.length == 0 ? 0 : 100 - ownBids.earned(), sell.length == 0 ? 0 : ownAsks.earned() - 100);
+            assertTrue(ends.bids() <= 100 - reach + 1e-9 || ends.bids() == Math.nextUp(100 / 3d));
+            assertTrue(ends.asks() >= 100 + reach - 1e-9);
         }
         assertTrue(mirrored > 1000);
     }
@@ -413,8 +437,8 @@ public class OfferBookChartViewModelTest {
         for (OfferDirection direction : OfferDirection.values()) {
             double price = direction == OfferDirection.SELL ? 120 : 80;
             assertEquals(shown(direction), filterTail(direction, 100, 1, new double[]{price}, new double[]{100}));
-            assertEquals(shown(direction), filterTail(direction, 100, 1, new double[]{price, price}, new double[]{0.1, 0.1}));
-            assertEquals(shown(direction, price, price), filterTail(direction, 100, 1, new double[]{price, price}, new double[]{1, 1}));
+            assertEquals(shown(direction), filterTail(direction, 100, 1, new double[]{price, price}, new double[]{1, 1}));
+            assertEquals(shown(direction, price, price), filterTail(direction, 100, 1, new double[]{price, price}, new double[]{3, 3}));
         }
     }
 
@@ -443,24 +467,24 @@ public class OfferBookChartViewModelTest {
 
     @Test
     public void testEqualPricesStayTogether() {
-        assertEquals(shown(OfferDirection.SELL), filterTail(OfferDirection.SELL, 100, 1, new double[]{110}, new double[]{0.3}));
-        assertEquals(shown(OfferDirection.SELL, 110, 110), filterTail(OfferDirection.SELL, 100, 1, new double[]{110, 110}, new double[]{0.3, 0.3}));
-        assertEquals(shown(OfferDirection.BUY, 90, 90), filterTail(OfferDirection.BUY, 100, 1, new double[]{90, 90}, new double[]{0.3, 0.3}));
+        assertEquals(shown(OfferDirection.SELL), filterTail(OfferDirection.SELL, 100, 1, new double[]{110}, new double[]{1}));
+        assertEquals(shown(OfferDirection.SELL, 110, 110), filterTail(OfferDirection.SELL, 100, 1, new double[]{110, 110}, new double[]{1, 1}));
+        assertEquals(shown(OfferDirection.BUY, 90, 90), filterTail(OfferDirection.BUY, 100, 1, new double[]{90, 90}, new double[]{1, 1}));
     }
 
     @Test
     public void testGrowthThresholdIncludesRoundedPrices() {
         for (double market : new double[]{100, 100.1, 100.123456789, 0.00793225, 0.0030000125, 0.000100004, 4000000.5}) {
-            double[] sell = new double[12];
-            double[] buy = new double[12];
+            double[] sell = new double[13];
+            double[] buy = new double[13];
             Arrays.fill(sell, market);
             Arrays.fill(buy, market);
-            sell[10] = sell[11] = Math.round(market * 1.25 * 1e8) / 1e8;
-            buy[0] = buy[1] = Math.round(market * 0.75 * 1e8) / 1e8;
-            assertEquals(12, filterAtMarket(OfferDirection.SELL, market, sell).size());
-            assertEquals(12, filterAtMarket(OfferDirection.BUY, market, buy).size());
-            sell[10] = sell[11] = sell[11] * 1.001;
-            buy[0] = buy[1] = buy[1] * 0.999;
+            sell[10] = sell[11] = sell[12] = Math.round(market * 1.15 * 1e8) / 1e8;
+            buy[0] = buy[1] = buy[2] = Math.round(market * 0.85 * 1e8) / 1e8;
+            assertEquals(13, filterAtMarket(OfferDirection.SELL, market, sell).size());
+            assertEquals(13, filterAtMarket(OfferDirection.BUY, market, buy).size());
+            sell[10] = sell[11] = sell[12] = sell[12] * 1.001;
+            buy[0] = buy[1] = buy[2] = buy[2] * 0.999;
             assertEquals(10, filterAtMarket(OfferDirection.SELL, market, sell).size());
             assertEquals(10, filterAtMarket(OfferDirection.BUY, market, buy).size());
         }
@@ -515,8 +539,8 @@ public class OfferBookChartViewModelTest {
         assertEquals(List.of(100d, 299d), filter(OfferDirection.SELL, 100, 299, 300));
         assertEquals(List.of(101d, 300d), filter(OfferDirection.BUY, 100, 101, 300));
         assertEquals(List.of(100d, 150d, 200d, 250d, 299d), filter(OfferDirection.SELL, 100, 150, 200, 250, 299, 300));
-        assertEquals(Math.nextDown(300d), rangeEnd(OfferDirection.SELL, 0, new double[]{100, 150, 200, 250, 299}, new double[]{1, 1, 1, 1, 1}));
-        assertEquals(Math.nextUp(100d), rangeEnd(OfferDirection.BUY, 0, new double[]{101, 150, 200, 250, 300}, new double[]{1, 1, 1, 1, 1}));
+        assertEquals(Math.nextDown(300d), rangeEnd(OfferDirection.SELL, 0, new double[]{100, 150, 200, 250, 299}, new double[]{1, 2, 4, 8, 16}));
+        assertEquals(Math.nextUp(100d), rangeEnd(OfferDirection.BUY, 0, new double[]{101, 150, 200, 250, 300}, new double[]{16, 8, 4, 2, 1}));
     }
 
     @Test
@@ -595,7 +619,7 @@ public class OfferBookChartViewModelTest {
                 new XYChart.Data<>(101, 3), new XYChart.Data<>(100, 1),
                 new XYChart.Data<>(10000, 7), new XYChart.Data<>(102, 4)));
         List<XYChart.Data<Number, Number>> original = new ArrayList<>(data);
-        List<XYChart.Data<Number, Number>> shown = OfferBookChartView.filterOutliers(data, OfferDirection.SELL, OfferBookChartView.getRangeEnd(data, OfferDirection.SELL, 100));
+        List<XYChart.Data<Number, Number>> shown = OfferBookChartView.filterOutliers(data, OfferDirection.SELL, OfferBookChartView.getRange(data, OfferDirection.SELL, 100).end());
         assertEquals(original, data);
         assertEquals(List.of(original.get(0), original.get(1), original.get(3)), shown);
         assertEquals(List.of(3, 1, 4), shown.stream().map(XYChart.Data::getYValue).collect(Collectors.toList()));
@@ -786,7 +810,7 @@ public class OfferBookChartViewModelTest {
 
     private static List<Double> filterAtMarket(OfferDirection direction, double marketPrice, double[] prices, double[] amounts) {
         List<XYChart.Data<Number, Number>> data = series(direction, prices, amounts);
-        return prices(OfferBookChartView.filterOutliers(data, direction, OfferBookChartView.getRangeEnd(data, direction, marketPrice)));
+        return prices(OfferBookChartView.filterOutliers(data, direction, OfferBookChartView.getRange(data, direction, marketPrice).end()));
     }
 
     private static List<Double> prices(List<XYChart.Data<Number, Number>> data) {
@@ -794,7 +818,7 @@ public class OfferBookChartViewModelTest {
     }
 
     private static double rangeEnd(OfferDirection direction, double marketPrice, double[] prices, double[] amounts) {
-        return OfferBookChartView.getRangeEnd(series(direction, prices, amounts), direction, marketPrice);
+        return OfferBookChartView.getRange(series(direction, prices, amounts), direction, marketPrice).end();
     }
 
     private static List<XYChart.Data<Number, Number>> series(OfferDirection direction, double... prices) {

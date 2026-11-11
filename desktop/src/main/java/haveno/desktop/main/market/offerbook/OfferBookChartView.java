@@ -1299,8 +1299,9 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     }
 
     // Each side shows from its best price out to its range end. Offers earn the range its width: from any nearer
-    // offer, the offer count and the depth must both grow by at least 5% of the relative widening of the range.
-    private static final double RANGE_GROWTH_RATIO = 0.05;
+    // offer, the depth must grow by at least 15% of the relative widening of the range, the offer count by 5%.
+    private static final double RANGE_DEPTH_GROWTH_RATIO = 0.15;
+    private static final double RANGE_COUNT_GROWTH_RATIO = 0.05;
     // Distances count from the market price, or the best price without one, and as at least 5% of that price.
     private static final double RANGE_NEAR_PRICE_RATIO = 0.05;
     // The range runs on past the farthest earning offer to show its surroundings: by twice that offer's distance
@@ -1324,28 +1325,32 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     // The prices out to which the bids and the asks show, or NaN for an empty side with no mirrored range.
     record RangeEnds(double bids, double asks) {}
 
-    // Both sides reach as far from the market price as the farther one does, so the market price centers the chart.
-    // Without a market price, or with a side that ends short of it, each side keeps its own range end.
+    // A side's farthest earning offer and the price out to which the side shows on its own, or NaN without offers.
+    record Range(double earned, double end) {}
+
+    // Both sides reach the farther side's farthest earning offer from the market price, which keeps the market price
+    // near the center. Without a market price, or with a side that ends short of it, each side keeps its own end.
     static RangeEnds getRangeEnds(List<XYChart.Data<Number, Number>> buyData, List<XYChart.Data<Number, Number>> sellData, double marketPrice) {
-        double bids = getRangeEnd(buyData, OfferDirection.BUY, marketPrice);
-        double asks = getRangeEnd(sellData, OfferDirection.SELL, marketPrice);
-        if (!(Double.isFinite(marketPrice) && marketPrice > 0)) return new RangeEnds(bids, asks);
-        double bidReach = Double.isNaN(bids) ? 0 : marketPrice - bids;
-        double askReach = Double.isNaN(asks) ? 0 : asks - marketPrice;
+        Range bids = getRange(buyData, OfferDirection.BUY, marketPrice);
+        Range asks = getRange(sellData, OfferDirection.SELL, marketPrice);
+        if (!(Double.isFinite(marketPrice) && marketPrice > 0)) return new RangeEnds(bids.end(), asks.end());
+        double bidReach = Double.isNaN(bids.earned()) ? 0 : marketPrice - bids.earned();
+        double askReach = Double.isNaN(asks.earned()) ? 0 : asks.earned() - marketPrice;
         double reach = Math.max(bidReach, askReach);
-        if (bidReach < 0 || askReach < 0 || reach == 0) return new RangeEnds(bids, asks);
+        if (bids.end() > marketPrice || asks.end() < marketPrice || reach <= 0) return new RangeEnds(bids.end(), asks.end());
+        // allow for floating-point error when an offer falls exactly on the mirrored boundary
+        double tolerance = 4 * Math.ulp(marketPrice);
         // an ask reach can pass the market price, where the mirrored bid end stops at the price limit
-        double mirroredBids = Math.max(marketPrice - reach, Math.nextUp(marketPrice / RANGE_MAX_PRICE_RATIO));
-        double mirroredAsks = marketPrice + reach;
-        return new RangeEnds(Double.isNaN(bids) ? mirroredBids : Math.min(bids, mirroredBids),
-                Double.isNaN(asks) ? mirroredAsks : Math.max(asks, mirroredAsks));
+        double mirroredBids = Math.max(marketPrice - reach - tolerance, Math.nextUp(marketPrice / RANGE_MAX_PRICE_RATIO));
+        double mirroredAsks = marketPrice + reach + tolerance;
+        return new RangeEnds(Double.isNaN(bids.end()) ? mirroredBids : Math.min(bids.end(), mirroredBids),
+                Double.isNaN(asks.end()) ? mirroredAsks : Math.max(asks.end(), mirroredAsks));
     }
 
-    // The price out to which a side shows on its own, or NaN without offers.
-    static double getRangeEnd(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double marketPrice) {
+    static Range getRange(List<XYChart.Data<Number, Number>> data, OfferDirection direction, double marketPrice) {
         boolean farSideHigh = direction == OfferDirection.SELL;
         synchronized (data) {
-            if (data.isEmpty()) return Double.NaN;
+            if (data.isEmpty()) return new Range(Double.NaN, Double.NaN);
             // The y values accumulate amounts from the best price, so price then depth orders the offers outward.
             Comparator<XYChart.Data<Number, Number>> byPrice = Comparator.comparingDouble(o -> o.getXValue().doubleValue());
             List<XYChart.Data<Number, Number>> outward = new ArrayList<>(data);
@@ -1370,17 +1375,17 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             double nearPrice = farSideHigh ? Math.min(bestPrice, anchorPrice) : Math.max(bestPrice, anchorPrice);
             double context = Math.min(RANGE_CONTEXT_RATIO * Math.abs(earnedPrice - nearPrice), earnedPrice * RANGE_CONTEXT_PRICE_RATIO);
             double rangeEnd = farSideHigh ? earnedPrice + context : earnedPrice - context;
-            return farSideHigh
+            return new Range(earnedPrice, farSideHigh
                     ? Math.min(Math.max(rangeEnd, minOffersPrice), Math.nextDown(outerLimit))
-                    : Math.max(Math.min(rangeEnd, minOffersPrice), Math.nextUp(outerLimit));
+                    : Math.max(Math.min(rangeEnd, minOffersPrice), Math.nextUp(outerLimit)));
         }
     }
 
     // Whether the range out to offer k earns its width from every nearer offer, by offer count and by depth.
     private static boolean earnsWidth(double[] reach, double[] depth, int k, double tolerance) {
         for (int j = 0; j < k; j++) {
-            double growth = 1 + RANGE_GROWTH_RATIO * ((reach[k] - tolerance) / (reach[j] + tolerance) - 1);
-            if (k + 1 < (j + 1) * growth || depth[k] < depth[j] * growth) return false;
+            double widening = (reach[k] - tolerance) / (reach[j] + tolerance) - 1;
+            if (k + 1 < (j + 1) * (1 + RANGE_COUNT_GROWTH_RATIO * widening) || depth[k] < depth[j] * (1 + RANGE_DEPTH_GROWTH_RATIO * widening)) return false;
         }
         return true;
     }
