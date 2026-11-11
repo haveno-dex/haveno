@@ -1103,16 +1103,16 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             String priceText = offer != null ? DisplayUtils.formatPrice(offer.offer.getPrice(), false, 0) : FormattingUtils.formatMarketPrice(price, model.getCurrencyCode());
             if (isMarketPrice) priceText = Res.get("market.offerBook.chart.market", priceText);
             if (!isPlotted) priceText = isAsk ? priceText + " \u25B8" : "\u25C2 " + priceText;
-            priceChip = addChip(priceText, x, plot.getMaxY() + xAxis.getTickLength(), plot).getBoundsInParent();
+            priceChip = chipBox(addChip(priceText, x, plot.getMaxY() + xAxis.getTickLength(), plot));
             String percentText = offer != null ? model.getPriceAsPercentage(offer.offer)
                     : isMarketPrice || chartMarketPrice <= 0 ? "" : FormattingUtils.formatPercentagePrice(Math.abs(price / chartMarketPrice - 1));
-            if (!percentText.isEmpty()) percentChip = addChip(percentText, x, plot.getMinY() - DEVIATION_TICK_HEIGHT - CHIP_HEIGHT, plot).getBoundsInParent();
+            if (!percentText.isEmpty()) percentChip = chipBox(addChip(percentText, x, plot.getMinY() - DEVIATION_TICK_HEIGHT - CHIP_HEIGHT, plot));
             if (offer != null && isPlotted) {
                 // the depth up to the offer reads on the volume axis, level with the marker
                 Label chip = addChip(FormattingUtils.formatRoundedDoubleWithPrecision(offer.accumulated, 2), x, y, plot);
                 chip.relocate(Math.min(plot.getMaxX() + yAxis.getTickLength(), focusPane.getWidth() - chip.getWidth()),
                         Math.max(plot.getMinY(), Math.min(y - CHIP_HEIGHT / 2, plot.getMaxY() - CHIP_HEIGHT)));
-                depthChip = chip.getBoundsInParent();
+                depthChip = chipBox(chip);
             }
 
             if (offer != null) {
@@ -1152,6 +1152,11 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         double width = chip.prefWidth(-1);
         chip.resizeRelocate(Math.max(plot.getMinX(), Math.min(x - width / 2, plot.getMaxX() - width)), y, width, CHIP_HEIGHT);
         return chip;
+    }
+
+    // The box of a chip: its bounds in parent run past it until a layout pass places its text.
+    private static Bounds chipBox(Label chip) {
+        return chip.localToParent(chip.getLayoutBounds());
     }
 
     private static boolean isCovered(Bounds label, Bounds chip) {
