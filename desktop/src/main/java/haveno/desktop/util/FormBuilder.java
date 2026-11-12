@@ -1296,7 +1296,8 @@ public class FormBuilder {
         ToggleButton toggleButton = new AutoTooltipSlideToggleButton();
         toggleButton.setText(title);
         InfoAutoTooltipLabel infoIcon = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT, info, 420);
-        HBox hBox = new HBox(6, toggleButton, infoIcon);
+        // the toggle's 6px padding plus 2 matches its 8px gap between the switch and the text
+        HBox hBox = new HBox(2, toggleButton, infoIcon);
         hBox.setAlignment(Pos.CENTER_LEFT);
         // the box follows the toggle so callers can show and hide the returned button directly
         hBox.visibleProperty().bind(toggleButton.visibleProperty());

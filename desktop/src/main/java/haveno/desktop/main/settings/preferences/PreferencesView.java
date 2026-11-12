@@ -19,7 +19,6 @@ package haveno.desktop.main.settings.preferences;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
 import haveno.common.config.Config;
@@ -54,9 +53,7 @@ import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.components.AutoTooltipSlideToggleButton;
 import haveno.desktop.components.AutocompleteComboBox;
-import haveno.desktop.components.InfoAutoTooltipLabel;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PasswordTextField;
 import haveno.desktop.components.TitledGroupBg;
@@ -67,6 +64,7 @@ import static haveno.desktop.util.FormBuilder.addButton;
 import static haveno.desktop.util.FormBuilder.addComboBox;
 import static haveno.desktop.util.FormBuilder.addInputTextField;
 import static haveno.desktop.util.FormBuilder.addSlideToggleButton;
+import static haveno.desktop.util.FormBuilder.addSlideToggleButtonWithInfo;
 import static haveno.desktop.util.FormBuilder.addTextFieldWithEditButton;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelListView;
@@ -94,7 +92,6 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -322,14 +319,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
                     Res.get("setting.preferences.avoidStandbyMode"), 8);
         }
 
-        useNativeXmrWallet = new AutoTooltipSlideToggleButton();
-        useNativeXmrWallet.setText(Res.get("setting.preferences.useNativeXmrWallet"));
-        InfoAutoTooltipLabel useNativeXmrWalletInfo = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT,
-                Res.get("setting.preferences.useNativeXmrWallet.info"), 420);
-        HBox useNativeXmrWalletBox = new HBox(6, useNativeXmrWallet, useNativeXmrWalletInfo);
-        useNativeXmrWalletBox.setAlignment(Pos.CENTER_LEFT);
-        GridPane.setRowIndex(useNativeXmrWalletBox, ++gridRow);
-        optionsGridPane.getChildren().add(useNativeXmrWalletBox);
+        useNativeXmrWallet = addSlideToggleButtonWithInfo(optionsGridPane, ++gridRow,
+                Res.get("setting.preferences.useNativeXmrWallet"), Res.get("setting.preferences.useNativeXmrWallet.info"));
 
         useSoundForNotifications = addSlideToggleButton(optionsGridPane, ++gridRow,
                 Res.get("setting.preferences.useSoundForNotifications"));
@@ -634,14 +625,8 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         useDarkMode = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.useDarkMode"));
         sortMarketCurrenciesNumerically = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.sortWithNumOffers"));
         hideNonAccountPaymentMethodsToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.onlyShowPaymentMethodsFromAccount"));
-        useSoftwareRendering = new AutoTooltipSlideToggleButton();
-        useSoftwareRendering.setText(Res.get("setting.preferences.useSoftwareRendering"));
-        InfoAutoTooltipLabel useSoftwareRenderingInfo = new InfoAutoTooltipLabel("", FontAwesomeIcon.INFO_CIRCLE, ContentDisplay.RIGHT,
-                Res.get("setting.preferences.useSoftwareRendering.info"), 420);
-        HBox useSoftwareRenderingBox = new HBox(6, useSoftwareRendering, useSoftwareRenderingInfo);
-        useSoftwareRenderingBox.setAlignment(Pos.CENTER_LEFT);
-        GridPane.setRowIndex(useSoftwareRenderingBox, ++gridRow);
-        optionsGridPane.getChildren().add(useSoftwareRenderingBox);
+        useSoftwareRendering = addSlideToggleButtonWithInfo(optionsGridPane, ++gridRow,
+                Res.get("setting.preferences.useSoftwareRendering"), Res.get("setting.preferences.useSoftwareRendering.info"));
         //denyApiTakerToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.denyApiTaker")); // TODO: re-enable?
         //notifyOnPreReleaseToggle = addSlideToggleButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.notifyOnPreRelease"));
         resetDontShowAgainButton = addButton(optionsGridPane, ++gridRow, Res.get("setting.preferences.resetAllFlags"), 12);
