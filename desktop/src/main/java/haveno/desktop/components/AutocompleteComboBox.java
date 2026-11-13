@@ -26,6 +26,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -61,7 +62,8 @@ import java.util.stream.Collectors;
  * A searchable, editable combo box: typing filters the dropdown like an autocomplete.
  *
  * Clients populate it with {@link #setAutocompleteItems} instead of {@code setItems}, and observe
- * confirmed changes (a click or [ENTER], not every keystroke) via {@link #setOnChangeConfirmed}.
+ * confirmed changes (a click, [ENTER], or leaving the field with text that names an item)
+ * via {@link #setOnChangeConfirmed}, rather than on every keystroke.
  *
  * @param <T> type of the item; may be a plain String
  */
@@ -87,6 +89,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private T committedValue;                        // last confirmed value, restored on an empty dismissal
     private T valueBeforeSearch;                     // value to return to when a search is canceled with [ESC]
     private boolean canceling;                       // set while [ESC] closes the popup, so the close is not a confirmation
+    private EventHandler<Event> changeConfirmedHandler; // run when a value change is confirmed
     private boolean selectingAll;                    // guards the trailing key event after ctrl/cmd+A
 
     // Measuring the popup width runs the cell factory over every row and lags each open, so it is
@@ -182,10 +185,12 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     }
 
     /**
-     * Run the handler when a value change is <i>confirmed</i> - a dropdown click or [ENTER] - unlike
-     * onAction, which fires on every unconfirmed change and so does not suit a searchable combo.
+     * Run the handler when a value change is <i>confirmed</i> - a dropdown click, [ENTER], or leaving the field
+     * with text that names an item - unlike onAction, which fires on every unconfirmed change and so does not
+     * suit a searchable combo.
      */
     public final void setOnChangeConfirmed(EventHandler<Event> handler) {
+        changeConfirmedHandler = handler;
         setOnHidden(e -> {
             if (canceling) return;
             String text = getEditor().getText();
@@ -204,7 +209,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
                 confirmChange(handler, e);
                 if (!getEditor().isHover()) {
                     getParent().requestFocus();
-                    restoreCommittedValue();
+                    UserThread.execute(this::restoreCommittedValue);
                 }
             }
         });
@@ -318,9 +323,21 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
             if (value != null) committedValue = value;
         });
         getEditor().focusedProperty().addListener((obs, wasFocused, focused) -> {
-            if (!focused && !getItems().contains(getConverter().fromString(getEditor().getText())))
+            if (focused) return;
+            if (!getItems().contains(getConverter().fromString(getEditor().getText())))
                 restoreCommittedValue();
+            confirmTypedValue(); // before the next field starts its search
         });
+    }
+
+    // Leaving the editor commits text that names an item, as [ENTER] does. Confirm that item unless the handler
+    // already ran for it, so the view is told about every listed value the control ends up showing.
+    private void confirmTypedValue() {
+        T value = getValue();
+        if (changeConfirmedHandler == null || value == null || getEditor().isFocused()) return;
+        if (asString(value).equals(asString(valueBeforeSearch))) return; // the same choice, even if its item was rebuilt meanwhile
+        if (items.contains(value) || searchPool != null && searchPool.contains(value))
+            confirmChange(changeConfirmedHandler, new ActionEvent());
     }
 
     // [ESC] cancels a search: close the list without confirming, show the value from before the search and leave the editor.
@@ -343,10 +360,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     }
 
     private void restoreCommittedValue() {
-        UserThread.execute(() -> {
-            getSelectionModel().select(committedValue);
-            getEditor().setText(asString(committedValue));
-        });
+        getSelectionModel().select(committedValue);
+        getEditor().setText(asString(committedValue));
     }
 
     // --- editor graphic ---
