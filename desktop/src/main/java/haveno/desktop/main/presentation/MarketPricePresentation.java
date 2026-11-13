@@ -234,7 +234,7 @@ public class MarketPricePresentation {
         boolean priceAvailable = marketPrice != null && marketPrice.isPriceAvailable() && Double.isFinite(marketPrice.getPrice());
         item.setPriceAvailable(priceAvailable);
         item.setExternallyProvidedPrice(priceAvailable && marketPrice.isExternallyProvidedPrice());
-        String priceString = priceAvailable ? FormattingUtils.formatMarketPrice(marketPrice.getPrice(), currencyCode) : Res.get("shared.na");
+        String priceString = priceAvailable ? DisplayUtils.formatCompactMarketPrice(marketPrice.getPrice(), currencyCode) : Res.get("shared.na");
         item.setDisplayString(CurrencyUtil.getCurrencyPair(currencyCode) + ": " + priceString);
     }
 
