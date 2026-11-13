@@ -580,8 +580,8 @@ public class GUIUtil {
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
                             label1.setText(Res.get("shared.all"));
-                            label2.setText(Res.get("list.currency.showAll"));
-                            announced = Res.get("list.currency.showAll");
+                            label2.setText(Res.get("offerbook.anyCurrency"));
+                            announced = Res.get("offerbook.anyCurrency");
                             break;
                         case GUIUtil.EDIT_FLAG:
                             label1.setText(Res.get("shared.edit"));
@@ -720,7 +720,7 @@ public class GUIUtil {
                     box.getChildren().addAll(paymentMethod, offerCount);
 
                     if (id.equals(GUIUtil.SHOW_ALL_FLAG)) {
-                        paymentMethod.setText(Res.get("list.currency.showAll"));
+                        paymentMethod.setText(Res.get("offerbook.anyPaymentMethod"));
                     } else {
                         Optional.ofNullable(offerCounts.get(id)).ifPresent(numOffers -> {
                             HBox.setMargin(offerCount, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
@@ -1844,6 +1844,7 @@ public class GUIUtil {
                 for (CryptoCurrency currency : CurrencyUtil.getAllSortedCryptoCurrencies()) {
                     getCurrencyImage(currency.getCode(), currencyIconBoxPx(CURRENCY_GRAPHIC_ROW_SIZE, scale), currencyIconMarginPx(scale));
                     getCurrencyImage(currency.getCode(), currencyIconBoxPx(CURRENCY_GRAPHIC_FIELD_SIZE, scale), currencyIconMarginPx(scale));
+                    getCurrencyImage(currency.getCode(), currencyIconBoxPx(CURRENCY_GRAPHIC_PILL_SIZE, scale), currencyIconMarginPx(scale));
                     getCurrencyImage(currency.getCode(), Math.ceil(CURRENCY_LOGO_DEFAULT_SIZE * scale));
                 }
             } catch (Exception e) {
@@ -1998,6 +1999,7 @@ public class GUIUtil {
 
     public static final double CURRENCY_GRAPHIC_ROW_SIZE = 25; // currency logo size (px) in list rows; adjust to resize
     private static final double CURRENCY_GRAPHIC_FIELD_SIZE = 20; // currency logo size (px) in a collapsed field, within its content height
+    private static final double CURRENCY_GRAPHIC_PILL_SIZE = 18; // the same in a filter pill, which is shorter than a field
     private static final double CURRENCY_LABEL_SMALL_WIDTH = 45; // .currency-label-small -fx-pref-width
     private static final double CURRENCY_ICON_MARGIN = 1; // transparent margin (logical px) bled just outside list logos
 
@@ -2014,13 +2016,21 @@ public class GUIUtil {
 
     // logo for the currency a collapsed field shows; none for the show all and edit list entries
     public static Node getCurrencyFieldGraphic(TradeCurrency currency) {
-        String code = currency.getCode();
-        if (isShowAllFlag(code) || code.equals(EDIT_FLAG)) return null;
-        return getCurrencyGraphic(code, CURRENCY_GRAPHIC_FIELD_SIZE);
+        return getCurrencyFieldGraphic(currency, CURRENCY_GRAPHIC_FIELD_SIZE);
+    }
+
+    public static Node getCurrencyPillGraphic(TradeCurrency currency) {
+        return getCurrencyFieldGraphic(currency, CURRENCY_GRAPHIC_PILL_SIZE);
     }
 
     public static Node getCurrencyFieldGraphic(CurrencyListItem item) {
         return getCurrencyFieldGraphic(item.tradeCurrency);
+    }
+
+    private static Node getCurrencyFieldGraphic(TradeCurrency currency, double size) {
+        String code = currency.getCode();
+        if (isShowAllFlag(code) || code.equals(EDIT_FLAG)) return null;
+        return getCurrencyGraphic(code, size);
     }
 
     private static Node getFiatCurrencyBadge(String currencyCode, double size) {

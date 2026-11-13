@@ -3181,7 +3181,8 @@ textfield */
     -fx-border-radius: 999;
     -fx-background-insets: 0;
     -fx-text-fill: -bs-rd-font-dark-gray;
-    -fx-pref-height: 36px;
+    -fx-padding: 5 14 5 14;
+    -fx-pref-height: 33px;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
     -fx-cursor: hand;
