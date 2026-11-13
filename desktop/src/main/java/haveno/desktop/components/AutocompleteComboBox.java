@@ -45,6 +45,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.scene.text.Text;
 import javafx.stage.PopupWindow;
 import javafx.stage.Screen;
 import javafx.util.Callback;
@@ -72,6 +73,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
 
     private static final int MAX_VISIBLE_ROWS = 10;
     private static final double EDITOR_GRAPHIC_GAP = 8; // space between the editor graphic and its text
+    private static final double FIT_SLACK = 2; // keeps the caret and the last glyph of a fitted value unclipped
+    private static final double FIT_SEARCH_MAX_WIDTH = 180; // most width a typed query widens a fitted control to
 
     private final JFXComboBoxListViewSkin<T> skin;
     private final ListView<T> popupList; // the dropdown's ListView, exposed by the skin
@@ -85,6 +88,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private Node editorGraphic;                      // shown graphic, an unmanaged child laid out in the editor's padding
     private T editorGraphicFor;                      // value the shown graphic was made for
     private final String editorStyle;                // the skin's inline editor style, kept under the graphic padding
+    private double fitMinWidth = -1;                 // least width when sized to the chosen value; negative sizes to the popup
+    private double fittedWidth;                      // width fitting the chosen value, or the widest text of a search underway
 
     private T committedValue;                        // last confirmed value, restored on an empty dismissal
     private T valueBeforeSearch;                     // value to return to when a search is canceled with [ESC]
@@ -134,6 +139,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         selectArrowedItemText();
         showEditorGraphic();
         stopCaretOnShownValue();
+        refitOnChange();
     }
 
     // Report non-editable to accessibility on mac: the editable combo maps to an AXComboBox, which
@@ -142,6 +148,29 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
         if (attribute == AccessibleAttribute.EDITABLE && Utilities.isOSX()) return false;
         return super.queryAccessibleAttribute(attribute, parameters);
+    }
+
+    // In fit mode the control is as wide as the chosen value needs. A search starts at that width and only widens,
+    // as far as its text needs, so nothing moves on opening the popup and a value pressed or arrowed to is never cut.
+    @Override
+    protected double computePrefWidth(double height) {
+        if (fitMinWidth < 0) return super.computePrefWidth(height);
+        T value = getValue();
+        TextField editor = getEditor();
+        boolean showsValue = value != null && asString(value).equals(editor.getText());
+        boolean searching = isShowing() || editor.isFocused() && !showsValue; // the popup closes while a query matches nothing
+        if (searching || showsValue) {
+            Text text = new Text(editor.getText());
+            text.setFont(editor.getFont());
+            Node arrow = lookup(".arrow-button");
+            double width = snapSizeX(snappedLeftInset() + editor.getPadding().getLeft() + text.getLayoutBounds().getWidth() + FIT_SLACK
+                    + (arrow == null ? 0 : arrow.prefWidth(-1)) + snappedRightInset());
+            if (!showsValue) width = Math.min(width, FIT_SEARCH_MAX_WIDTH); // a longer query scrolls
+            fittedWidth = searching ? Math.max(fittedWidth, width) : width;
+        } else if (value == null && committedValue == null) {
+            fittedWidth = 0; // nothing chosen and nothing to restore, so a finished search leaves only the floor
+        }
+        return Math.max(fitMinWidth, fittedWidth); // the floor alone until a value has been measured
     }
 
     // Place the editor graphic in the left padding the editor reserves for it.
@@ -175,6 +204,12 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     /** Override how a typed query matches items (e.g. to search countries or currencies); default matches the display string. */
     public void setQueryFilter(Function<String, Predicate<T>> queryFilter) {
         this.queryFilter = queryFilter;
+    }
+
+    /** Size the control to the chosen value's text, at least minWidth wide, rather than to the popup. */
+    public void setFitToValue(double minWidth) {
+        fitMinWidth = minWidth;
+        requestLayout();
     }
 
     /** Show a graphic before the editor text while it shows a value; the factory may return null for none. */
@@ -401,6 +436,19 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         };
         valueProperty().addListener(stopCaret); // the skin leaves matching text untouched, so the text alone can miss a selection
         getEditor().textProperty().addListener(stopCaret);
+    }
+
+    // A fitted control is measured from what the editor shows, so measure again when that may have changed.
+    private void refitOnChange() {
+        InvalidationListener refit = obs -> {
+            if (fitMinWidth >= 0) requestLayout();
+        };
+        valueProperty().addListener(refit);
+        getEditor().textProperty().addListener(refit);
+        getEditor().focusedProperty().addListener(refit);
+        showingProperty().addListener(refit);
+        // the skin repositions an open popup when this control resizes; a change listener runs after it and keeps the popup's side
+        widthProperty().addListener((obs, old, width) -> realignOpenPopup());
     }
 
     // --- popup plumbing ---
