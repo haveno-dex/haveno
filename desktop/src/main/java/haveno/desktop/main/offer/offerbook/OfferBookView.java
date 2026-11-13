@@ -476,7 +476,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         paymentMethodComboBox.setOnChangeConfirmed(e -> {
             if (paymentMethodComboBox.getEditor().getText().isEmpty())
-                paymentMethodComboBox.getSelectionModel().select(SHOW_ALL);
+                return;
             model.onSetPaymentMethod(paymentMethodComboBox.getSelectionModel().getSelectedItem());
             updateCurrencyComboBoxFromModel();
             updateSigningStateColumn();
@@ -654,7 +654,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             if (comboBox.getItems().isEmpty())
                 return null;
             if (query.isEmpty())
-                return specialShowAllItem();
+                return null;
             return comboBox.getItems().stream().
                     filter(item -> toString(item).equals(query)).
                     findAny().orElse(null);
@@ -662,10 +662,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
         private boolean isSpecialShowAllItem(PaymentMethod item) {
             return item.getId().equals(GUIUtil.SHOW_ALL_FLAG);
-        }
-
-        private PaymentMethod specialShowAllItem() {
-            return comboBox.getItems().get(SHOW_ALL);
         }
     }
 
