@@ -26,6 +26,7 @@ import org.bitcoinj.core.Coin;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.text.DateFormat;
 import java.text.NumberFormat;
@@ -240,6 +241,14 @@ public class DisplayUtils {
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Other
     ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // shortens a crypto market price to 8 significant digits, with 2 to 8 decimals, for the navigation header
+    public static String formatCompactMarketPrice(double price, String currencyCode) {
+        if (CurrencyUtil.isTraditionalCurrency(currencyCode)) return FormattingUtils.formatMarketPrice(price, currencyCode);
+        BigDecimal rounded = BigDecimal.valueOf(price).round(new MathContext(8));
+        int integerDigits = Math.max(0, rounded.precision() - rounded.scale());
+        return FormattingUtils.formatMarketPrice(price, Math.max(2, 8 - integerDigits));
+    }
 
     public static String formatTradePrice(Price price) {
         return price != null && CurrencyUtil.isFiatCurrency(price.getCurrencyCode())

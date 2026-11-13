@@ -141,6 +141,18 @@ public class DisplayUtilsTest {
     }
 
     @Test
+    public void testFormatCompactMarketPrice() {
+        assertEquals("532.43", DisplayUtils.formatCompactMarketPrice(532.43491234, "USD"));
+        assertEquals("532.43491", DisplayUtils.formatCompactMarketPrice(532.43491234, "USDT-ERC20"));
+        assertEquals("532.43490", DisplayUtils.formatCompactMarketPrice(532.4349, "USDT-ERC20"));
+        assertEquals("5.1234568", DisplayUtils.formatCompactMarketPrice(5.12345678, "LTC"));
+        assertEquals("0.12345678", DisplayUtils.formatCompactMarketPrice(0.123456784, "ETH"));
+        assertEquals("0.00523412", DisplayUtils.formatCompactMarketPrice(0.005234124, "BTC"));
+        assertEquals("1000.0000", DisplayUtils.formatCompactMarketPrice(999.999999, "USDT-ERC20"));
+        assertEquals("12345678.12", DisplayUtils.formatCompactMarketPrice(12345678.123, "USDT-ERC20"));
+    }
+
+    @Test
     public void testFormatSameAmount() {
         Offer offer = mock(Offer.class);
         when(offer.getMinAmount()).thenReturn(BigInteger.valueOf(100000000000L));
