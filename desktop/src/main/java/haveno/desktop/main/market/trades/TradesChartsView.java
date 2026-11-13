@@ -24,8 +24,6 @@ import java.util.function.Function;
 import com.jfoenix.controls.JFXTabPane;
 import haveno.common.UserThread;
 import haveno.common.util.MathUtils;
-import haveno.common.util.Tuple2;
-import haveno.common.util.Tuple3;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -47,10 +45,9 @@ import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
 import haveno.desktop.main.market.trades.charts.price.CandleStickChart;
 import haveno.desktop.main.market.trades.charts.volume.VolumeChart;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
-import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
-import static haveno.desktop.util.FormBuilder.getTopLabelWithVBox;
 import haveno.desktop.util.GUIUtil;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -728,13 +725,13 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
 
     private HBox getToolBox() {
 
-        final Tuple3<VBox, Label, AutocompleteComboBox<CurrencyListItem>> currencyComboBoxTuple = addTopLabelAutocompleteComboBox(
-                Res.get("shared.currency"));
-        currencyComboBox = currencyComboBoxTuple.third;
+        currencyComboBox = new AutocompleteComboBox<>();
         currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.trade"),
                 Res.get("shared.trades")));
-        currencyComboBox.getStyleClass().add("input-with-border");
-        currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyFieldGraphic);
+        currencyComboBox.setFitToValue(110);
+        currencyComboBox.getStyleClass().addAll("input-with-border", "filter-pill");
+        currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyPillGraphic);
+        Accessibility.setHelp(currencyComboBox, Res.get("shared.currency"));
 
         Pane spacer = new Pane();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -752,12 +749,10 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         toggleBox.setAlignment(Pos.CENTER_LEFT);
         toggleBox.getChildren().addAll(year, month, week, day, hour, minute10);
 
-        final Tuple2<Label, VBox> topLabelWithVBox = getTopLabelWithVBox(Res.get("shared.interval"), toggleBox);
-
         HBox hBox = new HBox();
         hBox.setSpacing(0);
         hBox.setAlignment(Pos.CENTER_LEFT);
-        hBox.getChildren().addAll(currencyComboBoxTuple.first, spacer, topLabelWithVBox.second);
+        hBox.getChildren().addAll(currencyComboBox, spacer, toggleBox);
         return hBox;
     }
 

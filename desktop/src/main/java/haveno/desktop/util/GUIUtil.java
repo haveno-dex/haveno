@@ -2023,8 +2023,8 @@ public class GUIUtil {
         return getCurrencyFieldGraphic(currency, CURRENCY_GRAPHIC_PILL_SIZE);
     }
 
-    public static Node getCurrencyFieldGraphic(CurrencyListItem item) {
-        return getCurrencyFieldGraphic(item.tradeCurrency);
+    public static Node getCurrencyPillGraphic(CurrencyListItem item) {
+        return getCurrencyPillGraphic(item.tradeCurrency);
     }
 
     private static Node getCurrencyFieldGraphic(TradeCurrency currency, double size) {

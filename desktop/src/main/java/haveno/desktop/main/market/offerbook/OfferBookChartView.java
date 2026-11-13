@@ -24,7 +24,6 @@ import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.config.Config;
-import haveno.common.util.Tuple3;
 import haveno.common.util.Tuple4;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
@@ -46,9 +45,9 @@ import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 import haveno.desktop.components.PeerInfoIconSmall;
 import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
+import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.CurrencyListItem;
 import haveno.desktop.util.DisplayUtils;
-import static haveno.desktop.util.FormBuilder.addTopLabelAutocompleteComboBox;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import haveno.network.p2p.NodeAddress;
@@ -224,12 +223,13 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     public void initialize() {
         createListener();
 
-        final Tuple3<VBox, Label, AutocompleteComboBox<CurrencyListItem>> currencyComboBoxTuple = addTopLabelAutocompleteComboBox(Res.get("shared.currency"), 0);
-        this.currencyComboBox = currencyComboBoxTuple.third;
+        this.currencyComboBox = new AutocompleteComboBox<>();
         this.currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers")));
-        this.currencyComboBox.getStyleClass().add("input-with-border");
-        this.currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyFieldGraphic);
+        this.currencyComboBox.setFitToValue(110);
+        this.currencyComboBox.getStyleClass().addAll("input-with-border", "filter-pill");
+        this.currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyPillGraphic);
+        Accessibility.setHelp(this.currencyComboBox, Res.get("shared.currency"));
         // the currency list opens over the chart without the pointer leaving it
         this.currencyComboBox.showingProperty().addListener((observable, wasShowing, isShowing) -> setChartPointer(null));
 
@@ -259,7 +259,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         tupleSell.second.setUserData(OfferDirection.SELL.name());
         bottomHBox.getChildren().addAll(tupleSell.second, tupleBuy.second);
 
-        root.getChildren().addAll(currencyComboBoxTuple.first, chartPane, bottomHBox, createTermsCard());
+        root.getChildren().addAll(currencyComboBox, chartPane, bottomHBox, createTermsCard());
     }
 
     @Override
