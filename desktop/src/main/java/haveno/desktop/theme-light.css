@@ -229,8 +229,7 @@
     -hero-accent-faint: -bs-color-primary-faint;
 }
 
-.offer-label,
-.fiat-currency-badge {
+.offer-label {
     -fx-background-color: -bs-color-primary-dark;
 }
 
@@ -250,11 +249,6 @@
 
 .combo-box-popup .offer-label {
     -fx-background-color: rgb(50, 95, 182);
-}
-
-.combo-box-popup .fiat-currency-badge,
-.combo-box .fiat-currency-badge {
-    -fx-background-color: rgb(28, 96, 220);
 }
 
 .trade-detail-view .trade-steps {
