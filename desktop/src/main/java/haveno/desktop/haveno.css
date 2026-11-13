@@ -3269,7 +3269,7 @@ textfield */
 }
 
 .fiat-currency-badge {
-    -fx-background-color: -bs-color-primary;
+    -fx-background-color: -bs-color-green-5;
     -fx-background-radius: 50%;
 }
 
