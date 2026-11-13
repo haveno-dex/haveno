@@ -85,6 +85,8 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private final String editorStyle;                // the skin's inline editor style, kept under the graphic padding
 
     private T committedValue;                        // last confirmed value, restored on an empty dismissal
+    private T valueBeforeSearch;                     // value to return to when a search is canceled with [ESC]
+    private boolean canceling;                       // set while [ESC] closes the popup, so the close is not a confirmation
     private boolean selectingAll;                    // guards the trailing key event after ctrl/cmd+A
 
     // Measuring the popup width runs the cell factory over every row and lags each open, so it is
@@ -125,6 +127,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         openPopupOnEditorClick();
         filterAsUserTypes();
         trackCommittedValue();
+        cancelSearchOnEscape();
         selectArrowedItemText();
         showEditorGraphic();
         stopCaretOnShownValue();
@@ -184,12 +187,13 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
      */
     public final void setOnChangeConfirmed(EventHandler<Event> handler) {
         setOnHidden(e -> {
+            if (canceling) return;
             String text = getEditor().getText();
 
             // Confirmed when the editor text resolves to the selected item.
             T selected = getSelectionModel().getSelectedItem();
             if (selected != null && selected.equals(getConverter().fromString(text))) {
-                handler.handle(e);
+                confirmChange(handler, e);
                 getParent().requestFocus();
                 return;
             }
@@ -197,13 +201,19 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
             // An empty editor also confirms (a cleared filter). A click on the editor keeps it blank for
             // typing; any other dismissal restores the committed value.
             if (text.isEmpty()) {
-                handler.handle(e);
+                confirmChange(handler, e);
                 if (!getEditor().isHover()) {
                     getParent().requestFocus();
                     restoreCommittedValue();
                 }
             }
         });
+    }
+
+    // Run the handler; the value it leaves is the one a canceled search returns to.
+    private void confirmChange(EventHandler<Event> handler, Event event) {
+        handler.handle(event);
+        if (getValue() != null) valueBeforeSearch = getValue();
     }
 
     // --- focus and click behavior ---
@@ -214,6 +224,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
     private void clearEditorOnFocusGained() {
         getEditor().focusedProperty().addListener((obs, hadFocus, hasFocus) -> {
             if (hadFocus || !hasFocus) return;
+            valueBeforeSearch = committedValue;
             if (isUnfiltered()) {
                 resetSelection();
                 getEditor().setText("");
@@ -310,6 +321,25 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
             if (!focused && !getItems().contains(getConverter().fromString(getEditor().getText())))
                 restoreCommittedValue();
         });
+    }
+
+    // [ESC] cancels a search: close the list without confirming, show the value from before the search and leave the editor.
+    // An open popup gets the key before this control and would close as a confirmation, so its list is filtered too.
+    private void cancelSearchOnEscape() {
+        EventHandler<KeyEvent> cancel = e -> {
+            if (e.getCode() != KeyCode.ESCAPE) return;
+            e.consume();
+            canceling = true;
+            hide();
+            canceling = false;
+            removeFilter(); // the full list, so the restored text resolves to its item when focus leaves
+            committedValue = valueBeforeSearch;
+            getSelectionModel().select(valueBeforeSearch);
+            getEditor().setText(asString(valueBeforeSearch));
+            getParent().requestFocus();
+        };
+        addEventFilter(KeyEvent.KEY_PRESSED, cancel);
+        popupList.addEventFilter(KeyEvent.KEY_PRESSED, cancel);
     }
 
     private void restoreCommittedValue() {
