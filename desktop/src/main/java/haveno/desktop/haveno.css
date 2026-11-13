@@ -328,6 +328,26 @@
     -fx-shape: "M 0 0 l 3.5 4 l 3.5 -4";
 }
 
+/* filter inputs are pills like the filter toggles */
+.filter-pill {
+    -fx-padding: 5 14 5 14;
+    -fx-background-radius: 999;
+    -fx-border-radius: 999;
+}
+
+.filter-pill > .arrow-button {
+    -fx-background-radius: 0 999 999 0;
+    -fx-border-radius: 0 999 999 0;
+}
+
+.filter-pill.jfx-text-field {
+    -fx-padding: 5 14 5 36; /* room for the search icon */
+}
+
+.filter-pill > .filter-icon {
+    -fx-fill: -bs-rd-font-lighter;
+}
+
 /* Context menus: rounded card with a soft hover tint on items */
 .context-menu {
     -fx-min-width: 190;
@@ -1183,7 +1203,7 @@ tree-table-view:focused {
 .portfolio-header-controls .jfx-text-field,
 .funds-header-controls .jfx-text-field,
 .support-header-controls .jfx-text-field {
-    -fx-padding: 5 12;
+    -fx-padding: 5 12 5 34; /* room for the search icon */
 }
 
 .portfolio-header-separator,

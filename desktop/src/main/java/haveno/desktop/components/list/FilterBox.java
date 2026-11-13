@@ -18,7 +18,7 @@
 package haveno.desktop.components.list;
 
 import haveno.common.UserThread;
-import haveno.desktop.components.InputTextField;
+import haveno.desktop.components.FilterTextField;
 import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.filtering.FilterableListItem;
 import javafx.beans.InvalidationListener;
@@ -29,7 +29,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 
 public class FilterBox extends HBox {
-    private final InputTextField textField;
+    private final FilterTextField textField;
     private FilteredList<? extends FilterableListItem> filteredList;
     private TableView<? extends FilterableListItem> tableView;
 
@@ -40,7 +40,7 @@ public class FilterBox extends HBox {
         super();
         setSpacing(5.0);
 
-        textField = new InputTextField();
+        textField = new FilterTextField();
         textField.setMinWidth(500);
         listListener = observable -> GUIUtil.updateFilterPlaceholder(tableView, filteredList, textField.getText());
 

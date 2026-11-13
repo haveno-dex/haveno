@@ -20,7 +20,7 @@
 <?import haveno.desktop.components.AutoTooltipButton?>
 <?import haveno.desktop.components.AutoTooltipLabel?>
 <?import haveno.desktop.components.AutoTooltipSlideToggleButton?>
-<?import haveno.desktop.components.InputTextField?>
+<?import haveno.desktop.components.FilterTextField?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
@@ -37,7 +37,7 @@
     <fx:define>
         <HBox fx:id="headerControls" alignment="CENTER_LEFT" spacing="16">
             <AutoTooltipSlideToggleButton fx:id="selectToggleButton" minWidth="-Infinity"/>
-            <InputTextField fx:id="filterTextField" minWidth="80" prefWidth="220" maxWidth="220"/>
+            <FilterTextField fx:id="filterTextField" minWidth="80" prefWidth="180" maxWidth="180"/>
         </HBox>
     </fx:define>
     <!-- scroll pane provides a horizontal bar when the window is narrower than the table's min width -->

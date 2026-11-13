@@ -68,6 +68,7 @@ import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.AutoTooltipTableColumn;
 import haveno.desktop.components.ButtonBadge;
+import haveno.desktop.components.FilterTextField;
 import haveno.desktop.components.HyperlinkWithIcon;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.components.PeerInfoIconDispute;
@@ -276,15 +277,15 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
 
     @Override
     public void initialize() {
-        filterTextField = new InputTextField();
+        filterTextField = new FilterTextField();
         filterTextField.setPromptText(Res.get("shared.filter"));
         Tooltip tooltip = new Tooltip();
         tooltip.setShowDelay(Duration.millis(100));
         tooltip.setShowDuration(Duration.seconds(10));
         filterTextField.setTooltip(tooltip);
         filterTextField.setMinWidth(80);
-        filterTextField.setPrefWidth(220);
-        filterTextField.setMaxWidth(220);
+        filterTextField.setPrefWidth(180);
+        filterTextField.setMaxWidth(180);
 
         ticketFilterComboBox = new JFXComboBox<>();
         ticketFilterComboBox.getItems().setAll(TicketFilter.values());
@@ -293,6 +294,7 @@ public abstract class DisputeView extends ActivatableView<VBox, Void> implements
         ticketFilterComboBox.setAccessibleText(Res.get("support.filter"));
         ticketFilterComboBox.setTooltip(new Tooltip(Res.get("support.filter.tooltip")));
         GUIUtil.applyFilledStyle(ticketFilterComboBox);
+        ticketFilterComboBox.getStyleClass().add("filter-pill");
 
         alertIconLabel = new Label();
         Text icon = getIconForLabel(MaterialDesignIcon.ALERT_CIRCLE_OUTLINE, "2em", alertIconLabel);

@@ -36,7 +36,7 @@
     </padding>
 
     <fx:define>
-        <FilterBox fx:id="filterBox" minWidth="160" prefWidth="220" maxWidth="220"/>
+        <FilterBox fx:id="filterBox" minWidth="160" prefWidth="180" maxWidth="180"/>
     </fx:define>
     <TableView fx:id="tableView" styleClass="large-rows" VBox.vgrow="ALWAYS">
         <columns>
