@@ -200,6 +200,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     // Fixed axis scale used while the chart has no data, so the scales don't jump (see updateChartAxisRanging).
     private static final double EMPTY_AXIS_UPPER_BOUND = 4;
     private static final int EMPTY_AXIS_TICK_INTERVALS = 4;
+    private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
 
     // Heights (px) of the deviation scale's tick marks above the plot
     private static final int DEVIATION_TICK_HEIGHT = 5;        // labeled ticks
@@ -547,14 +548,12 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         Volume volumeBuy = model.getTotalVolume(OfferDirection.BUY);
         String formattedVolumeSell = volumeSell == null ? null : VolumeUtil.formatVolume(volumeSell);
         String formattedVolumeBuy = volumeBuy == null ? null : VolumeUtil.formatVolume(volumeBuy);
-        if (model.getSellData().isEmpty()) formattedVolumeSell = "0.0";
-        if (model.getBuyData().isEmpty()) formattedVolumeBuy = "0.0";
         volumeSellColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), formattedVolumeSell == null ? "" : "(" + formattedVolumeSell + ")"));
         volumeBuyColumnLabel.set(Res.get("offerbook.volumeTotal", model.getCurrencyCode(), formattedVolumeBuy == null ? "" : "(" + formattedVolumeBuy + ")"));
 
         // update amount headers
-        amountSellColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(OfferDirection.SELL)));
-        amountBuyColumnLabel.set(Res.get("offerbook.XMRTotal", "" + model.getTotalAmount(OfferDirection.BUY)));
+        amountSellColumnLabel.set(getAmountColumnLabel(OfferDirection.SELL));
+        amountBuyColumnLabel.set(getAmountColumnLabel(OfferDirection.BUY));
 
         seriesSell.getData().clear();
         seriesBuy.getData().clear();
@@ -577,15 +576,21 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         scheduleChartOverlaysRedraw();
     }
 
+    // a side without offers has no total to show
+    private String getAmountColumnLabel(OfferDirection direction) {
+        double totalAmount = model.getTotalAmount(direction);
+        return totalAmount > 0 ? Res.get("offerbook.XMRTotal", "" + totalAmount) : Res.getBaseCurrencyCode();
+    }
+
     private void updateChartAxisRanging() {
         boolean hasData = !seriesBuy.getData().isEmpty() || !seriesSell.getData().isEmpty();
+        // the pinned scale of an empty book means nothing, so its numbers, ticks and lines hide in place
+        chartPane.pseudoClassStateChanged(EMPTY, !hasData);
         pinAxisWhenEmpty(xAxis, hasData);
         pinAxisWhenEmpty(yAxis, hasData);
     }
 
     private void pinAxisWhenEmpty(NumberAxis axis, boolean hasData) {
-        // the pinned scale of an empty book means nothing, so hide its numbers in place
-        axis.setStyle(hasData ? null : "-fx-tick-label-fill: transparent;");
         if (hasData) {
             axis.setAutoRanging(true);
         } else if (axis.isAutoRanging()) {
