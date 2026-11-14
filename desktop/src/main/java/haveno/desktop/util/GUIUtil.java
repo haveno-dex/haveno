@@ -425,30 +425,23 @@ public class GUIUtil {
 
                     String code = item.tradeCurrency.getCode();
 
-                    boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
-                    // crypto rows carry the name in label2 and the show all entries have none, so label3 is free for the pill
-                    boolean hasName = !isCrypto && !isShowAllFlag(code);
-
                     HBox box = new HBox();
                     box.setSpacing(20);
                     box.setAlignment(Pos.CENTER_LEFT);
                     Label label1 = new AutoTooltipLabel(getCurrencyType(code));
                     label1.getStyleClass().add("currency-label-small");
-                    Label label2 = new AutoTooltipLabel(isCrypto ? item.tradeCurrency.getNameAndCode() : code);
+                    Label label2 = new AutoTooltipLabel(item.tradeCurrency.getNameAndCode());
                     label2.getStyleClass().add("currency-label");
-                    Label label3 = new AutoTooltipLabel(hasName ? item.tradeCurrency.getName() : "");
-                    if (hasName) label3.getStyleClass().add("currency-label");
-                    Label label4 = new AutoTooltipLabel();
+                    Label label3 = new AutoTooltipLabel();
 
-                    Label offersTarget = hasName ? label4 : label3;
                     boolean showOfferCount = item.numTrades > 0;
                     if (showOfferCount) {
-                        HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
-                        offersTarget.getStyleClass().add("offer-label");
-                        offersTarget.setText(item.numTrades + " " + (item.numTrades == 1 ? postFixSingle : postFixMulti));
+                        HBox.setMargin(label3, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
+                        label3.getStyleClass().add("offer-label");
+                        label3.setText(item.numTrades + " " + (item.numTrades == 1 ? postFixSingle : postFixMulti));
                     }
-                    String announcedCount = showOfferCount ? ", " + offersTarget.getText() : "";
-                    String announced; // name-first for screen readers; the visible row leads with the code
+                    String announcedCount = showOfferCount ? ", " + label3.getText() : "";
+                    String announced; // the code is spelled out for screen readers
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
@@ -485,8 +478,7 @@ public class GUIUtil {
 
                     // append the offer pill only when present so the row ends at real content
                     box.getChildren().addAll(label1, label2);
-                    if (hasName) box.getChildren().add(label3);
-                    if (showOfferCount) box.getChildren().add(offersTarget);
+                    if (showOfferCount) box.getChildren().add(label3);
 
                     setGraphic(box);
                     setAccessibleRowText(this, box, announced);
@@ -560,7 +552,6 @@ public class GUIUtil {
                 if (item != null && !empty) {
 
                     String code = item.getCode();
-                    boolean isCrypto = CurrencyUtil.isCryptoCurrency(code);
 
                     HBox box = new HBox();
                     box.setSpacing(20);
@@ -568,14 +559,12 @@ public class GUIUtil {
 
                     Label label1 = new AutoTooltipLabel(getCurrencyType(code));
                     label1.getStyleClass().add("currency-label-small");
-                    Label label2 = new AutoTooltipLabel(isCrypto ? item.getNameAndCode() : code);
+                    Label label2 = new AutoTooltipLabel(item.getNameAndCode());
                     label2.getStyleClass().add("currency-label");
-                    Label label3 = new AutoTooltipLabel(isCrypto ? "" : item.getName());
-                    if (!isCrypto) label3.getStyleClass().add("currency-label");
-                    Label label4 = new AutoTooltipLabel();
+                    Label label3 = new AutoTooltipLabel();
 
                     Optional<Integer> offerCountOptional = Optional.ofNullable(offerCounts.get(code));
-                    String announced; // name-first for screen readers; the visible row leads with the code
+                    String announced; // the code is spelled out for screen readers
 
                     switch (code) {
                         case GUIUtil.SHOW_ALL_FLAG:
@@ -597,20 +586,18 @@ public class GUIUtil {
                                 label1.setGraphic(currencyIcon);
                             }
 
-                            Label offersTarget = isCrypto ? label3 : label4;
                             offerCountOptional.ifPresent(numOffers -> {
-                                HBox.setMargin(offersTarget, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
-                                offersTarget.getStyleClass().add("offer-label");
-                                offersTarget.setText(numOffers + " " + (numOffers == 1 ? postFixSingle : postFixMulti));
+                                HBox.setMargin(label3, new Insets(0, 0, 0, NUM_OFFERS_TRANSLATE_X));
+                                label3.getStyleClass().add("offer-label");
+                                label3.setText(numOffers + " " + (numOffers == 1 ? postFixSingle : postFixMulti));
                             });
                             announced = item.getName() + ", " + Accessibility.spellOut(code)
-                                    + (offerCountOptional.isPresent() ? ", " + offersTarget.getText() : "");
+                                    + (offerCountOptional.isPresent() ? ", " + label3.getText() : "");
                     }
 
                     // append the offer pill only when present so the row ends at real content
                     box.getChildren().addAll(label1, label2);
-                    if (!isCrypto) box.getChildren().add(label3);
-                    if (offerCountOptional.isPresent()) box.getChildren().add(isCrypto ? label3 : label4);
+                    if (offerCountOptional.isPresent()) box.getChildren().add(label3);
 
                     setGraphic(box);
                     setAccessibleRowText(this, box, announced);
