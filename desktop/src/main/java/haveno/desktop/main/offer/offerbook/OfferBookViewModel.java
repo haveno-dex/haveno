@@ -748,11 +748,21 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     public void onCreateOffer() {
-        offerActionHandler.onCreateOffer(getSelectedTradeCurrency(), selectedPaymentMethod);
+        onCreateOffer(getSelectedTradeCurrency(), selectedPaymentMethod);
+    }
+
+    void onCreateOffer(TradeCurrency tradeCurrency, PaymentMethod paymentMethod) {
+        offerActionHandler.onCreateOffer(tradeCurrency, paymentMethod);
     }
 
     public void onTakeOffer(Offer offer) {
         offerActionHandler.onTakeOffer(offer);
+    }
+
+    // the quick trade wizard starts from the currency and payment method this book is filtered by
+    void onQuickTrade() {
+        offerActionHandler.onQuickTrade(showAllTradeCurrenciesProperty.get() ? null : selectedTradeCurrency,
+                isShowAllEntry(selectedPaymentMethod.getId()) ? null : selectedPaymentMethod);
     }
 
     private void updateSelectedTradeCurrency() {

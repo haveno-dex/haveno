@@ -42,7 +42,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class TraditionalAccountsDataModel extends ActivatableDataModel {
+public class TraditionalAccountsDataModel extends ActivatableDataModel {
 
     private final User user;
     private final Preferences preferences;
