@@ -153,7 +153,7 @@ public final class Accessibility {
             for (Node header : tabHeaders(tabPane)) {
                 if (index >= tabPane.getTabs().size()) break;
                 Tab tab = tabPane.getTabs().get(index++);
-                if (tab.isDisable()) continue; // decorative header tabs stay unnamed and unfocusable
+                if (tab.isDisable()) continue; // disabled tabs stay unnamed and unfocusable
                 header.setAccessibleRole(AccessibleRole.TAB_ITEM);
                 setName(header, tab.getText());
                 header.setFocusTraversable(true);
@@ -186,7 +186,7 @@ public final class Accessibility {
     private static void selectAdjacentTab(TabPane tabPane, Tab from, int step) {
         List<Node> headers = tabHeaders(tabPane);
         for (int index = tabPane.getTabs().indexOf(from) + step; index >= 0 && index < tabPane.getTabs().size(); index += step) {
-            if (tabPane.getTabs().get(index).isDisable()) continue; // skip decorative label tabs
+            if (tabPane.getTabs().get(index).isDisable()) continue; // skip disabled tabs
             tabPane.getSelectionModel().select(index);
             if (index < headers.size()) headers.get(index).requestFocus();
             return;

@@ -44,19 +44,27 @@ import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import javafx.beans.value.ChangeListener;
+import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
 
-public abstract class OfferView extends ActivatableView<TabPane, Void> {
+public abstract class OfferView extends ActivatableView<StackPane, Void> {
+
+    @FXML
+    private TabPane tabPane;
+    @FXML
+    private Label offerLabel;
 
     private OfferBookView<?, ?> fiatOfferBookView, cryptoOfferBookView, otherOfferBookView;
 
-    private Tab labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab;
+    private Tab fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab;
     private View fiatOfferView, cryptoOfferView, otherOfferView;
 
     private final ViewLoader viewLoader;
@@ -88,7 +96,16 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
 
     @Override
     protected void initialize() {
-        Accessibility.fixTabs(root);
+
+        // start the tabs after the heading label, which rests on the header's bottom edge;
+        // registered before fixTabs installs the skin
+        tabPane.skinProperty().addListener((observable, oldSkin, newSkin) -> {
+            if (newSkin == null) return;
+            Region headers = (Region) tabPane.lookup(".headers-region");
+            headers.translateXProperty().bind(offerLabel.widthProperty());
+            offerLabel.translateYProperty().bind(headers.heightProperty().subtract(offerLabel.heightProperty()));
+        });
+        Accessibility.fixTabs(tabPane);
         navigationListener = (viewPath, data) -> {
             UserThread.execute(() -> {
                 if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1) {
@@ -106,8 +123,8 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
         tabChangeListener = (observableValue, oldValue, newValue) -> {
             UserThread.execute(() -> {
 
-                // ignore stale/transient selections (e.g. the disabled label tab briefly selecting fiat during tab creation)
-                if (newValue != root.getSelectionModel().getSelectedItem()) {
+                // ignore stale selections (e.g. the first tab is selected when the tabs are created)
+                if (newValue != tabPane.getSelectionModel().getSelectedItem()) {
                     return;
                 }
                 if (newValue != null) {
@@ -171,7 +188,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 CurrencyUtil.getTradeCurrency(preferences.getBuyScreenFiatCurrencyCode());
         tradeCurrency = tradeCurrencyOptional.orElseGet(GlobalSettings::getDefaultTradeCurrency);
 
-        root.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
+        tabPane.getSelectionModel().selectedItemProperty().addListener(tabChangeListener);
         navigation.addListener(navigationListener);
         if (fiatOfferBookView == null && cryptoOfferBookView == null && otherOfferBookView == null) {
             navigation.navigateTo(MainView.class, this.getClass(), getPersistedOfferBookSubTabViewClass());
@@ -211,7 +228,7 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     @Override
     protected void deactivate() {
         navigation.removeListener(navigationListener);
-        root.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
+        tabPane.getSelectionModel().selectedItemProperty().removeListener(tabChangeListener);
     }
 
     protected abstract String getOfferLabel();
@@ -219,7 +236,6 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
     private void loadView(Class<? extends View> viewClass,
                           Class<? extends View> childViewClass,
                           @Nullable Object data) {
-        TabPane tabPane = root;
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
 
         if (OfferBookView.class.isAssignableFrom(viewClass)) {
@@ -270,24 +286,14 @@ public abstract class OfferView extends ActivatableView<TabPane, Void> {
                 tabPane.getSelectionModel().select(otherOfferBookTab);
             } else {
                 if (fiatOfferBookTab == null) {
-
-                    // add preceding label tab
-                    labelTab = new Tab();
-                    labelTab.setDisable(true);
-                    labelTab.setContent(new Label());
-                    labelTab.setClosable(false);
-                    Label offerLabel = new Label(getOfferLabel()); // use overlay for label for custom formatting
-                    offerLabel.getStyleClass().add("titled-group-bg-label");
-                    offerLabel.setStyle("-fx-font-size: 1.3em;");
-                    labelTab.setGraphic(offerLabel);
-
+                    offerLabel.setText(getOfferLabel());
                     fiatOfferBookTab = new Tab(Res.get("shared.fiat"));
                     fiatOfferBookTab.setClosable(false);
                     cryptoOfferBookTab = new Tab(Res.get("shared.crypto"));
                     cryptoOfferBookTab.setClosable(false);
                     otherOfferBookTab = new Tab(Res.get("shared.other"));
                     otherOfferBookTab.setClosable(false);
-                    tabPane.getTabs().addAll(labelTab, fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab);
+                    tabPane.getTabs().addAll(fiatOfferBookTab, cryptoOfferBookTab, otherOfferBookTab);
                 }
                 if (viewClass == FiatOfferBookView.class) {
                     fiatOfferBookView = (FiatOfferBookView) viewLoader.load(FiatOfferBookView.class);

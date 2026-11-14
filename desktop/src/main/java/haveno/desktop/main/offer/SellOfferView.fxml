@@ -18,8 +18,13 @@
   -->
 
 <?import com.jfoenix.controls.JFXTabPane?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.AnchorPane?>
-<JFXTabPane fx:id="root" fx:controller="haveno.desktop.main.offer.SellOfferView"
-            AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-            AnchorPane.topAnchor="0.0"
-            xmlns:fx="http://javafx.com/fxml"/>
+<?import javafx.scene.layout.StackPane?>
+<StackPane fx:id="root" fx:controller="haveno.desktop.main.offer.SellOfferView" alignment="TOP_LEFT"
+           AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+           AnchorPane.topAnchor="0.0"
+           xmlns:fx="http://javafx.com/fxml">
+    <JFXTabPane fx:id="tabPane"/>
+    <Label fx:id="offerLabel" styleClass="titled-group-bg-label, offer-view-label"/>
+</StackPane>

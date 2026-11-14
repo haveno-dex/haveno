@@ -2973,14 +2973,6 @@ textfield */
     -jfx-rippler-fill: none;
 }
 
-.tab:disabled .jfx-rippler {
-    -jfx-rippler-fill: none !important;
-}
-
-.tab:disabled .tab-label {
-    -fx-cursor: default !important;
-}
-
 .jfx-tab-pane .headers-region .tab .tab-container .tab-close-button > .jfx-svg-glyph {
     -fx-shape: "M810 274l-238 238 238 238-60 60-238-238-238 238-60-60 238-238-238-238 60-60 238 238 238-238z";
     -jfx-size: 9;
@@ -3022,12 +3014,6 @@ textfield */
 .jfx-tab-pane .headers-region .unread-trade-chat-tab .tab-container .tab-label {
     -fx-content-display: right;
     -fx-graphic-text-gap: 0;
-}
-
-/* heading label-tab sits flush with the content's left inset (no leading tab pad);
-   no top pad so the regular tabs set the header height (divider matches label-less headers) */
-.jfx-tab-pane .headers-region .tab:disabled .tab-container .tab-label {
-    -fx-padding: 0 14 8 0;
 }
 
 .jfx-tab-pane .depth-container {
@@ -3436,6 +3422,12 @@ textfield */
 .offer-form-headline .titled-group-bg-label-active {
     -fx-font-size: 1.538em;
     -fx-translate-y: -2;
+}
+
+/* offer view heading on the tab header: starts at the content's left inset and shares the tabs' bottom and side pad */
+.offer-view-label {
+    -fx-font-size: 1.235em;
+    -fx-padding: 0 14 8 15;
 }
 
 /* FundWalletInfoWindow */
