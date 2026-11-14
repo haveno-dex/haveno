@@ -3703,6 +3703,23 @@ textfield */
     -fx-text-fill: -bs-text-color;
 }
 
+/* the pinned scale of an empty book and its volume title hide in place, which keeps the plot where it is */
+.chart-pane:empty #charts .axis {
+    -fx-tick-label-fill: transparent;
+}
+
+.chart-pane:empty #charts .axisy {
+    -fx-border-color: transparent; /* the volume axis line, which the light theme draws */
+}
+
+.chart-pane:empty #charts .axisy .axis-label {
+    -fx-text-fill: transparent;
+}
+
+.chart-pane:empty .axis-tick-mark, .chart-pane:empty .chart-vertical-zero-line, .chart-pane:empty .chart-horizontal-grid-line {
+    -fx-stroke: transparent;
+}
+
 /* Focus on the depth chart: a marker on the offer's step, a guide, chips on both scales and a label.
    The side sets the color, which stays neutral for a bare price. */
 .chart-focus {
