@@ -21,6 +21,8 @@ import com.google.common.annotations.VisibleForTesting;
 import haveno.common.util.Tuple2;
 import haveno.core.support.dispute.agent.DisputeAgent;
 import haveno.core.support.dispute.agent.DisputeAgentManager;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatisticsManager;
 import haveno.network.p2p.NodeAddress;
@@ -140,6 +142,14 @@ public class DisputeAgentSelection {
                         .findAny();
         checkArgument(optionalDisputeAgent.isPresent(), "optionalDisputeAgent has to be present");
         return optionalDisputeAgent.get();
+    }
+
+    // Seconds an arbitrator has to receive a request before failing over to another one. A sole arbitrator
+    // gets the protocol step less one such timeout, so a slow tor connection attempt can run its course.
+    public static <T extends DisputeAgent> int getAckTimeoutSeconds(DisputeAgentManager<T> disputeAgentManager) {
+        int ackTimeout = HavenoUtils.ARBITRATOR_ACK_TIMEOUT_SECONDS;
+        boolean isSoleArbitrator = disputeAgentManager.getVerifiedDisputeAgents().size() == 1;
+        return isSoleArbitrator ? Math.max(ackTimeout, TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS - ackTimeout) : ackTimeout;
     }
 
     private static String getRandomDisputeAgent(Set<String> disputeAgents) {

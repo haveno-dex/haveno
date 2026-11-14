@@ -19,6 +19,8 @@ package haveno.core.offer.availability;
 
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
+import haveno.core.trade.HavenoUtils;
+import haveno.core.trade.protocol.TradeProtocol;
 import haveno.network.p2p.NodeAddress;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableMap;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -114,5 +117,20 @@ public class ArbitratorSelectionTest {
             assertSame(second, DisputeAgentSelection.getRandomArbitrator(manager, Set.of(firstAddress)));
         }
         assertNull(DisputeAgentSelection.getRandomArbitrator(manager, Set.of(firstAddress, secondAddress)));
+    }
+
+    @Test
+    public void onlySoleArbitratorGetsLongerAckTimeout() {
+        ArbitratorManager manager = mock(ArbitratorManager.class);
+        Arbitrator arbitrator = mock(Arbitrator.class);
+        NodeAddress firstAddress = new NodeAddress("first:9999");
+        NodeAddress secondAddress = new NodeAddress("second:9999");
+        int ackTimeout = HavenoUtils.ARBITRATOR_ACK_TIMEOUT_SECONDS;
+        when(manager.getVerifiedDisputeAgents()).thenReturn(Map.of());
+        assertEquals(ackTimeout, DisputeAgentSelection.getAckTimeoutSeconds(manager));
+        when(manager.getVerifiedDisputeAgents()).thenReturn(Map.of(firstAddress, arbitrator));
+        assertEquals(Math.max(ackTimeout, TradeProtocol.TRADE_STEP_TIMEOUT_SECONDS - ackTimeout), DisputeAgentSelection.getAckTimeoutSeconds(manager));
+        when(manager.getVerifiedDisputeAgents()).thenReturn(Map.of(firstAddress, arbitrator, secondAddress, arbitrator));
+        assertEquals(ackTimeout, DisputeAgentSelection.getAckTimeoutSeconds(manager));
     }
 }

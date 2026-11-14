@@ -23,7 +23,6 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.taskrunner.TaskRunner;
 import haveno.core.offer.availability.DisputeAgentSelection;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
-import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.xmr.model.XmrAddressEntry;
@@ -162,7 +161,7 @@ public class MakerSendInitTradeRequestToArbitrator extends TradeTask {
                 arbitrator.getPubKeyRing(),
                 arbitratorRequest,
                 listener,
-                HavenoUtils.ARBITRATOR_ACK_TIMEOUT_SECONDS
+                DisputeAgentSelection.getAckTimeoutSeconds(processModel.getArbitratorManager())
         );
     }
 }
