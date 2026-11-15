@@ -29,7 +29,6 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.FormBuilder;
-import haveno.desktop.util.Layout;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
@@ -94,8 +93,7 @@ public class PayPalForm extends PaymentMethodForm {
 
     private void addCurrenciesGrid(boolean isEditable) {
         FlowPane flowPane = addTopLabelFlowPane(gridPane, ++gridRow,
-                Res.get("payment.supportedCurrencies"), Layout.FLOATING_LABEL_DISTANCE * 3,
-                Layout.FLOATING_LABEL_DISTANCE * 3).second;
+                Res.get("payment.supportedCurrencies"), 0).second;
 
         if (isEditable)
             flowPane.setId("flow-pane-checkboxes-bg");

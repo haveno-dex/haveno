@@ -71,7 +71,7 @@ public class CelPayForm extends PaymentMethodForm {
 
     private void addCurrenciesGrid(boolean isEditable) {
         FlowPane flowPane = FormBuilder.addTopLabelFlowPane(gridPane, ++gridRow,
-                Res.get("payment.celpay.supportedCurrenciesForReceiver"), 20, 20).second;
+                Res.get("payment.celpay.supportedCurrenciesForReceiver"), 0).second;
 
         if (isEditable) {
             flowPane.setId("flow-pane-checkboxes-bg");

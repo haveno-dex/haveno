@@ -32,7 +32,6 @@ import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.validation.InputValidator;
 import haveno.desktop.components.InputTextField;
 import haveno.desktop.util.GUIUtil;
-import haveno.desktop.util.Layout;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
@@ -141,8 +140,7 @@ public class MoneyGramForm extends PaymentMethodForm {
     }
 
     private void addCurrenciesGrid(boolean isEditable) {
-        final Tuple2<Label, FlowPane> labelFlowPaneTuple2 = addTopLabelFlowPane(gridPane, ++gridRow, Res.get("payment.supportedCurrencies"),
-                Layout.FLOATING_LABEL_DISTANCE * 3, Layout.FLOATING_LABEL_DISTANCE * 3);
+        final Tuple2<Label, FlowPane> labelFlowPaneTuple2 = addTopLabelFlowPane(gridPane, ++gridRow, Res.get("payment.supportedCurrencies"), 0);
 
         FlowPane flowPane = labelFlowPaneTuple2.second;
 
