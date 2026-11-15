@@ -32,7 +32,7 @@ public enum AvailabilityResult {
     MAKER_DENIED_API_USER("cannot take offer because maker is api user"),
     PRICE_CHECK_FAILED("cannot take offer because trade price check failed"),
     MAKER_DENIED_TAKER("cannot take offer because maker denied taker"),
-    UNSIGNED_TAKER_ACCOUNT("cannot take offer because the offer requires a signed payment account");
+    UNSIGNED_TAKER_ACCOUNT("cannot take offer because the offer requires a signed payment account (signed by an arbitrator, or by a peer at least 30 days ago)");
 
     private final String description;
 

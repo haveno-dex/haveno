@@ -26,6 +26,7 @@ import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
+import haveno.core.offer.OfferFilterService;
 import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.AliPayAccount;
@@ -81,6 +82,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -503,6 +505,29 @@ public class OfferBookViewModelTest {
         assertTrue(model.getOfferCounts().isEmpty());
         assertTrue(model.getPaymentMethodOfferCounts().isEmpty());
         assertTrue(model.getOfferList().isEmpty());
+    }
+
+    @Test
+    public void testMatchingMyAccountsFilterKeepsMyOffers() {
+        OfferBookListItem myItem = getOfferCountItem("USD", OfferDirection.SELL, false, false);
+        OfferBookListItem peerItem = getOfferCountItem("USD", OfferDirection.SELL, false, false);
+        OfferBook offerBook = mock(OfferBook.class);
+        when(offerBook.getOfferBookListItems()).thenReturn(FXCollections.observableArrayList(myItem, peerItem));
+        OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
+        when(openOfferManager.isMyOffer(myItem.getOffer())).thenReturn(true);
+        Preferences preferences = mock(Preferences.class);
+        when(preferences.getTraditionalCurrenciesAsObservable()).thenReturn(FXCollections.observableArrayList(usd));
+        when(preferences.isShowOwnOffersInOfferBook()).thenReturn(true);
+        OfferFilterService offerFilterService = mock(OfferFilterService.class);
+        when(offerFilterService.canTakeOffer(any(), anyBoolean())).thenReturn(OfferFilterService.Result.HAS_NO_SIGNED_PAYMENT_ACCOUNT);
+        OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, preferences,
+                null, null, null, null, null, null, getPriceUtil(), offerFilterService, coinFormatter, null);
+        model.initWithDirection(OfferDirection.BUY);
+        model.onSetTradeCurrency(usd);
+        assertEquals(2, model.getOfferList().size());
+
+        model.onShowOffersMatchingMyAccounts(true);
+        assertEquals(Arrays.asList(myItem), model.getOfferList());
     }
 
     private OfferBookViewModel getOfferCountModel(OfferDirection direction) {

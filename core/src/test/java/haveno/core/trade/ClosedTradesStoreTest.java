@@ -1587,6 +1587,18 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
+    public void testTakerSignAgeVerifiedRoundTripsAndLegacyRecordsRemainUnverified() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            Trade trade = handoffTrade();
+            protobuf.BuyerAsMakerTrade legacy = ((protobuf.Tradable) trade.toProtoMessage()).getBuyerAsMakerTrade();
+            assertFalse(((Trade) BuyerAsMakerTrade.fromProto(legacy, mock(XmrWalletService.class), resolver)).isTakerSignAgeVerified());
+            trade.setTakerSignAgeVerified(true);
+            protobuf.BuyerAsMakerTrade proto = ((protobuf.Tradable) trade.toProtoMessage()).getBuyerAsMakerTrade();
+            assertTrue(((Trade) BuyerAsMakerTrade.fromProto(proto, mock(XmrWalletService.class), resolver)).isTakerSignAgeVerified());
+        }
+    }
+
+    @Test
     public void testPayoutHeightLoadsOnlyWithConfirmedPayout() throws Exception {
         try (var userThread = mockStatic(UserThread.class)) {
             protobuf.BuyerAsMakerTrade proto = ((protobuf.Tradable) handoffTrade().toProtoMessage()).getBuyerAsMakerTrade();

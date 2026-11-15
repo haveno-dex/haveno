@@ -1726,6 +1726,7 @@ message Trade {
     bool trade_statistics_published = 33;
     int64 payment_sent_date = 34;
     int64 payment_received_date = 35;
+    bool taker_sign_age_verified = 36;
 }
 
 message BuyerAsMakerTrade {

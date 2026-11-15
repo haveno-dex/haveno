@@ -651,14 +651,16 @@ public class SignedWitnessService {
 
     // Like isSignedAccountAgeWitness, but only counts signatures naming ownerPubKey as the witness owner
     public boolean isSignedAccountAgeWitness(AccountAgeWitness accountAgeWitness, byte[] ownerPubKey) {
-        long time = new Date().getTime() + SIGNER_AGE;
-        return getSignedWitnessSet(accountAgeWitness).stream()
-                .filter(signedWitness -> Arrays.equals(signedWitness.getWitnessOwnerPubKey(), ownerPubKey))
-                .anyMatch(isValidSignerWitness(time, null));
+        return isSignerAccountAgeWitness(accountAgeWitness, ownerPubKey, new Date().getTime() + SIGNER_AGE);
     }
 
     public boolean isSignerAccountAgeWitness(AccountAgeWitness accountAgeWitness) {
         return isSignerAccountAgeWitness(accountAgeWitness, new Date().getTime());
+    }
+
+    // Like isSignerAccountAgeWitness, but only counts signatures naming ownerPubKey as the witness owner
+    public boolean isSignerAccountAgeWitness(AccountAgeWitness accountAgeWitness, byte[] ownerPubKey) {
+        return isSignerAccountAgeWitness(accountAgeWitness, ownerPubKey, new Date().getTime());
     }
 
     public boolean isSufficientTradeAmountForSigning(BigInteger tradeAmount) {
@@ -682,6 +684,12 @@ public class SignedWitnessService {
      */
     private boolean isSignerAccountAgeWitness(AccountAgeWitness accountAgeWitness, long time) {
         return getSignedWitnessSet(accountAgeWitness).stream().anyMatch(isValidSignerWitness(time, null));
+    }
+
+    private boolean isSignerAccountAgeWitness(AccountAgeWitness accountAgeWitness, byte[] ownerPubKey, long time) {
+        return getSignedWitnessSet(accountAgeWitness).stream()
+                .filter(signedWitness -> Arrays.equals(signedWitness.getWitnessOwnerPubKey(), ownerPubKey))
+                .anyMatch(isValidSignerWitness(time, null));
     }
 
     /**

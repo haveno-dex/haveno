@@ -303,13 +303,19 @@ public class AccountAgeWitnessService {
                 Optional.empty();
     }
 
-    // Whether the witness is signed with the peer's signature key as its owner
+    // Whether the witness is signed by an arbitrator or for at least the signer age, with the peer's signature key as its owner
     public boolean isPeersSignedWitness(AccountAgeWitness witness, PublicKey peersSignaturePubKey) {
-        return signedWitnessService.isSignedAccountAgeWitness(witness, Sig.getPublicKeyBytes(peersSignaturePubKey));
+        return signedWitnessService.isSignerAccountAgeWitness(witness, Sig.getPublicKeyBytes(peersSignaturePubKey));
     }
 
     public boolean isPeersSignedWitness(byte[] witnessHash, PublicKey peersSignaturePubKey) {
         return getWitnessByHash(witnessHash).map(witness -> isPeersSignedWitness(witness, peersSignaturePubKey)).orElse(false);
+    }
+
+    // Like isPeersSignedWitness, but any sign age counts unless requireSignAge
+    public boolean isPeersSignedWitness(AccountAgeWitness witness, PublicKey peersSignaturePubKey, boolean requireSignAge) {
+        return requireSignAge ? isPeersSignedWitness(witness, peersSignaturePubKey) :
+                signedWitnessService.isSignedAccountAgeWitness(witness, Sig.getPublicKeyBytes(peersSignaturePubKey));
     }
 
     private Optional<AccountAgeWitness> findTradePeerWitness(Trade trade) {
