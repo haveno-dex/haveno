@@ -69,7 +69,7 @@ public class VerseForm extends PaymentMethodForm {
 
     private void addCurrenciesGrid(boolean isEditable) {
         FlowPane flowPane = FormBuilder.addTopLabelFlowPane(gridPane, ++gridRow,
-                Res.get("payment.supportedCurrencies"), 20, 20).second;
+                Res.get("payment.supportedCurrencies"), 0).second;
 
         if (isEditable) {
             flowPane.setId("flow-pane-checkboxes-bg");
