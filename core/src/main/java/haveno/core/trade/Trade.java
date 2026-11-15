@@ -550,6 +550,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     @Getter
     @Setter
     private volatile boolean tradeStatisticsPublished; // set once enough peers confirmed the broadcast
+    @Getter
+    @Setter
+    private volatile boolean takerSignAgeVerified; // set by the maker once the taker's claimed account met the sign age of a signed taker offer
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructors
@@ -4642,7 +4645,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 .setIsCompleted(isCompleted)
                 .setCompletedRevision(completedRevision)
                 .setTradeStatisticsPublishTime(tradeStatisticsPublishTime)
-                .setTradeStatisticsPublished(tradeStatisticsPublished);
+                .setTradeStatisticsPublished(tradeStatisticsPublished)
+                .setTakerSignAgeVerified(takerSignAgeVerified);
 
         synchronized (getChatMessages()) {
             builder.addAllChatMessage(getChatMessages().stream()
@@ -4691,6 +4695,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         trade.completedRevision = proto.getCompletedRevision();
         trade.tradeStatisticsPublishTime = proto.getTradeStatisticsPublishTime();
         trade.tradeStatisticsPublished = proto.getTradeStatisticsPublished();
+        trade.takerSignAgeVerified = proto.getTakerSignAgeVerified();
         trade.payoutHeight = proto.getPayoutHeight() == 0 || !trade.isPayoutConfirmed() ? null : proto.getPayoutHeight(); // drop a height stored without a confirmed payout, e.g. after a reorg, so pool checks resume
 
         trade.chatMessages.addAll(proto.getChatMessageList().stream()

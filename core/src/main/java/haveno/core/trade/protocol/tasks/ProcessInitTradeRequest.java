@@ -86,8 +86,9 @@ public class ProcessInitTradeRequest extends TradeTask {
                 if (offer.requiresSignedTaker()) {
                     byte[] witnessHash = request.getAccountAgeWitnessHash();
                     if (witnessHash == null || !processModel.getAccountAgeWitnessService().isPeersSignedWitness(witnessHash, request.getTakerPubKeyRing().getSignaturePubKey())) {
-                        throw new RuntimeException("Offer can only be taken with a signed payment account");
+                        throw new RuntimeException("Offer can only be taken with a payment account signed by an arbitrator or by a peer at least 30 days ago");
                     }
+                    trade.setTakerSignAgeVerified(true);
                 }
             }
 

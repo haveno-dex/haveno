@@ -340,6 +340,32 @@ public class SignedWitnessServiceTest {
     }
 
     @Test
+    public void testIsSignerAccountAgeWitnessByOwner() {
+        SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
+        signedWitnessService.addToMap(sw1);
+
+        assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew1, witnessOwner1PubKey));
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew1, witnessOwner2PubKey));
+
+        // a peer signature only counts once it is a signing period old
+        SignedWitness newSw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey,
+                witnessOwner2PubKey, getTodayMinusNDays(SignedWitnessService.SIGNER_AGE_DAYS - 1), tradeAmount2);
+        signedWitnessService.addToMap(newSw2);
+        assertTrue(signedWitnessService.isSignedAccountAgeWitness(aew2, witnessOwner2PubKey));
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew2, witnessOwner2PubKey));
+        signedWitnessService.removeSignedWitness(newSw2);
+
+        SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey,
+                witnessOwner2PubKey, getTodayMinusNDays(SignedWitnessService.SIGNER_AGE_DAYS + 1), tradeAmount2);
+        signedWitnessService.addToMap(sw2);
+        assertTrue(signedWitnessService.isSignerAccountAgeWitness(aew2, witnessOwner2PubKey));
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew2, witnessOwner1PubKey));
+
+        signedWitnessService.removeSignedWitness(sw1);
+        assertFalse(signedWitnessService.isSignerAccountAgeWitness(aew2, witnessOwner2PubKey));
+    }
+
+    @Test
     public void testIsValidAccountAgeWitnessOk() {
         SignedWitness sw1 = new SignedWitness(ARBITRATOR, account1DataHash, signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1);
         SignedWitness sw2 = new SignedWitness(TRADE, account2DataHash, signature2, signer2PubKey, witnessOwner2PubKey, date2, tradeAmount2);

@@ -101,8 +101,8 @@ public class VerifyPeersAccountAgeWitness extends TradeTask {
 
                 // the buyer's actual account is only revealed after funding; verify it rather than the claimed witness
                 if (offer.requiresSignedTaker() && trade instanceof MakerTrade &&
-                        (peersWitness == null || !accountAgeWitnessService.isPeersSignedWitness(peersWitness, peersPubKeyRing.getSignaturePubKey()))) {
-                    failed("The buyer's payment account is not signed, but the offer requires a signed payment account. Payment received cannot be confirmed while this check fails, so the trade may need to be resolved through arbitration.");
+                        (peersWitness == null || !accountAgeWitnessService.isPeersSignedWitness(peersWitness, peersPubKeyRing.getSignaturePubKey(), trade.isTakerSignAgeVerified()))) {
+                    failed("The buyer's payment account is not signed as required by the offer. Payment received cannot be confirmed while this check fails, so the trade may need to be resolved through arbitration.");
                     return;
                 }
                 tradePeer.setAccountAgeWitness(peersWitness);

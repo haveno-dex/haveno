@@ -84,6 +84,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -122,7 +123,7 @@ public class AccountAgeWitnessServiceTest {
         AccountAgeWitness claimed = new AccountAgeWitness(new byte[20], 1);
         AccountAgeWitness actual = new AccountAgeWitness(new byte[]{3}, 1);
         peer.setAccountAgeWitness(claimed);
-        when(witnesses.isPeersSignedWitness(claimed, publicKey)).thenReturn(true);
+        when(witnesses.isPeersSignedWitness(eq(claimed), eq(publicKey), anyBoolean())).thenReturn(true);
         when(witnesses.findWitness(payload, keys)).thenReturn(Optional.of(actual));
         when(witnesses.verifyAccountAgeWitness(any(), any(), any(), any(), any(), any())).thenReturn(true);
         when(trade.getTradePeer()).thenReturn(peer);
@@ -133,19 +134,23 @@ public class AccountAgeWitnessServiceTest {
         when(offer.getCounterCurrencyCode()).thenReturn("USD");
         when(offer.requiresSignedTaker()).thenReturn(true);
         when(trade.getOffer()).thenReturn(offer);
-        for (boolean signed : List.of(false, true)) {
-            when(witnesses.isPeersSignedWitness(actual, publicKey)).thenReturn(signed);
-            ResultHandler result = mock(ResultHandler.class);
-            ErrorMessageHandler error = mock(ErrorMessageHandler.class);
-            TaskRunner<Trade> runner = new TaskRunner<>(trade, Trade.class, result, error);
-            runner.addTasks(VerifyPeersAccountAgeWitness.class);
-            runner.run();
-            if (signed) {
-                verify(result).handleResult();
-                verify(error, never()).handleErrorMessage(anyString());
-            } else {
-                verify(error).handleErrorMessage(contains("payment account is not signed"));
-                verify(result, never()).handleResult();
+        for (boolean aged : List.of(false, true)) {
+            when(trade.isTakerSignAgeVerified()).thenReturn(aged);
+            for (boolean signed : List.of(false, true)) {
+                when(witnesses.isPeersSignedWitness(actual, publicKey, aged)).thenReturn(signed);
+                when(witnesses.isPeersSignedWitness(actual, publicKey, !aged)).thenReturn(!signed);
+                ResultHandler result = mock(ResultHandler.class);
+                ErrorMessageHandler error = mock(ErrorMessageHandler.class);
+                TaskRunner<Trade> runner = new TaskRunner<>(trade, Trade.class, result, error);
+                runner.addTasks(VerifyPeersAccountAgeWitness.class);
+                runner.run();
+                if (signed) {
+                    verify(result).handleResult();
+                    verify(error, never()).handleErrorMessage(anyString());
+                } else {
+                    verify(error).handleErrorMessage(contains("payment account is not signed"));
+                    verify(result, never()).handleResult();
+                }
             }
         }
     }
@@ -432,6 +437,13 @@ public class AccountAgeWitnessServiceTest {
         assertTrue(service.accountIsSigner(aew2));
         assertFalse(service.accountIsSigner(aew3));
         assertTrue(signedWitnessService.isSignedAccountAgeWitness(aew3));
+
+        // a signature younger than the signer age only counts where the sign age is not required
+        PublicKey key3 = pubKeyRing3.getSignaturePubKey();
+        assertTrue(service.isPeersSignedWitness(aew2, pubKeyRing2.getSignaturePubKey()));
+        assertFalse(service.isPeersSignedWitness(aew3, key3));
+        assertTrue(service.isPeersSignedWitness(aew3, key3, false));
+        assertFalse(service.isPeersSignedWitness(aew3, key3, true));
 
         // Remove SignedWitness signed by arbitrator
         @SuppressWarnings("OptionalGetWithoutIsPresent")

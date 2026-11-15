@@ -683,7 +683,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         // This code duplicates code in the view at the button column. We need there the different results for
         // display in popups so we cannot replace that with the predicate. Any change need to be applied in both
         // places.
-        return offerBookListItem -> offerFilterService.canTakeOffer(offerBookListItem.getOffer(), false).isValid();
+        return offerBookListItem -> isMyOffer(offerBookListItem.getOffer()) ||
+                offerFilterService.canTakeOffer(offerBookListItem.getOffer(), false).isValid();
     }
 
     boolean isOfferBanned(Offer offer) {
