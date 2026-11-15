@@ -709,14 +709,14 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         placeOfferBox.managedProperty().bind(model.getDataModel().getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
         placeOfferButton.disableProperty().bind(model.isPlaceOfferButtonDisabled);
         cancelButton2.disableProperty().bind(model.cancelButtonDisabled);
-        // shown once the wallet can cover the offer, naming the available balance that switching off may lock, rounded up to 0.01 XMR
+        // names the balance that switching off may reserve, rounded up to 0.01 XMR
         reserveExactAmountSlider.textProperty().bind(createStringBinding(() -> {
-            BigInteger balance = model.getDataModel().getWalletAvailableBalance().get();
+            BigInteger balance = model.getDataModel().getReservableBalance().get();
             BigInteger step = BigInteger.TEN.pow(10);
             if (balance != null) balance = balance.add(step).subtract(BigInteger.ONE).divide(step).multiply(step);
             return Res.get("shared.reserveExactAmount", HavenoUtils.formatXmr(balance, true));
-        }, model.getDataModel().getWalletAvailableBalance()));
-        reserveExactAmountSlider.visibleProperty().bind(model.getDataModel().getIsWalletAvailableBalanceSufficient().and(model.showPayFundsScreenDisplayed));
+        }, model.getDataModel().getReservableBalance()));
+        reserveExactAmountSlider.visibleProperty().bind(model.showPayFundsScreenDisplayed);
         reserveExactAmountSlider.managedProperty().bind(reserveExactAmountSlider.visibleProperty());
 
         // trading account
