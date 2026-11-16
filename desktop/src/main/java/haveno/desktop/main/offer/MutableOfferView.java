@@ -709,13 +709,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         placeOfferBox.managedProperty().bind(model.getDataModel().getIsXmrWalletFunded().and(model.showPayFundsScreenDisplayed));
         placeOfferButton.disableProperty().bind(model.isPlaceOfferButtonDisabled);
         cancelButton2.disableProperty().bind(model.cancelButtonDisabled);
-        // names the balance that switching off may reserve, rounded up to 0.01 XMR
-        reserveExactAmountSlider.textProperty().bind(createStringBinding(() -> {
-            BigInteger balance = model.getDataModel().getReservableBalance().get();
-            BigInteger step = BigInteger.TEN.pow(10);
-            if (balance != null) balance = balance.add(step).subtract(BigInteger.ONE).divide(step).multiply(step);
-            return Res.get("shared.reserveExactAmount", HavenoUtils.formatXmr(balance, true));
-        }, model.getDataModel().getReservableBalance()));
         reserveExactAmountSlider.visibleProperty().bind(model.showPayFundsScreenDisplayed);
         reserveExactAmountSlider.managedProperty().bind(reserveExactAmountSlider.visibleProperty());
 
@@ -774,7 +767,6 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         placeOfferBox.managedProperty().unbind();
         placeOfferButton.disableProperty().unbind();
         cancelButton2.disableProperty().unbind();
-        reserveExactAmountSlider.textProperty().unbind();
         reserveExactAmountSlider.visibleProperty().unbind();
         reserveExactAmountSlider.managedProperty().unbind();
 
@@ -1458,7 +1450,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             GridPane.setMargin(field, new Insets(margin.getTop(), 170, margin.getBottom(), margin.getLeft()));
         }
 
-        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, "");
+        reserveExactAmountSlider = FormBuilder.addSlideToggleButton(gridPane, ++gridRow, Res.get("shared.reserveExactAmount"));
         GridPane.setHalignment(reserveExactAmountSlider, HPos.LEFT);
         reserveExactAmountSlider.setVisible(false);
         reserveExactAmountSlider.setManaged(false);

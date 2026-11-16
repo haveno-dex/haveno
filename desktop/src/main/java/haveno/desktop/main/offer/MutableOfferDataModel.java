@@ -114,7 +114,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
     protected final BooleanProperty isPrivateOffer = new SimpleBooleanProperty();
     protected final BooleanProperty buyerAsTakerWithoutDeposit = new SimpleBooleanProperty();
     protected final BooleanProperty requireSignedTaker = new SimpleBooleanProperty();
-    protected final ObjectProperty<BigInteger> reservableBalance = new SimpleObjectProperty<>();
 
     protected final ObservableList<PaymentAccount> paymentAccounts = FXCollections.observableArrayList();
 
@@ -287,12 +286,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
         UserThread.await(() -> {
             missingCoin.set(offerUtil.getBalanceShortage(totalToPay.get(), unallocatedBalance.get()));
             updateFundedState(unallocatedBalance.get());
-
-            // the offer may reserve the available balance if sufficient, else the balance including pending funds, at least the funds needed
-            BigInteger walletAvailableBalance = xmrWalletService.getAvailableBalance();
-            boolean canReserveNow = walletAvailableBalance != null && offerUtil.isBalanceSufficient(totalToPay.get(), walletAvailableBalance);
-            BigInteger balance = canReserveNow ? walletAvailableBalance : xmrWalletService.getBalance();
-            reservableBalance.set(balance == null || totalToPay.get() == null ? balance : balance.max(totalToPay.get()));
         });
     }
 
@@ -638,10 +631,6 @@ public abstract class MutableOfferDataModel extends OfferDataModel {
 
     public ReadOnlyBooleanProperty getRequireSignedTaker() {
         return requireSignedTaker;
-    }
-
-    public ReadOnlyObjectProperty<BigInteger> getReservableBalance() {
-        return reservableBalance;
     }
 
     public ReadOnlyStringProperty getTradeCurrencyCode() {
