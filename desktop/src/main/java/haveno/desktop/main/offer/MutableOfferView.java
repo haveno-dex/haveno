@@ -1467,8 +1467,8 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             boolean selected = reserveExactAmountSlider.isSelected();
             if (selected != preferences.getSplitOfferOutput()) {
                 preferences.setSplitOfferOutput(selected);
-                model.dataModel.setReserveExactAmount(selected);
             }
+            model.dataModel.setReserveExactAmount(selected);
         });
 
         fundingHBox = new HBox();
