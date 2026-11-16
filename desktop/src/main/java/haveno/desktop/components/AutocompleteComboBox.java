@@ -129,6 +129,7 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         converterProperty().addListener((obs, old, converter) -> unpinWidth()); // a converter set after the items also changes row width
         matchControlWidthToPopup();
         keepPopupOpenOnEditorClick();
+        rebuildRowsBeforeStyling();
         redecidePopupSideOnHide();
         suppressSpaceKeyReset();
         clearEditorOnFocusGained();
@@ -472,6 +473,16 @@ public class AutocompleteComboBox<T> extends JFXComboBox<T> {
         popupList.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null && scene.getWindow() instanceof PopupWindow popup && popup.getOwnerNode() == null)
                 setPopupOwnerNode(popup);
+        });
+    }
+
+    // JavaFX rebuilds a row during layout when its selection changes, after the pulse has applied CSS, so a row
+    // built from new nodes would render empty for a frame; lay the popup's list out before the CSS pass instead.
+    private void rebuildRowsBeforeStyling() {
+        Runnable layoutRows = popupList::layout;
+        popupList.sceneProperty().addListener((obs, old, scene) -> {
+            if (old != null && old.getWindow() instanceof PopupWindow) old.removePreLayoutPulseListener(layoutRows);
+            if (scene != null && scene.getWindow() instanceof PopupWindow) scene.addPreLayoutPulseListener(layoutRows);
         });
     }
 
