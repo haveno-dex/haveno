@@ -3772,6 +3772,11 @@ textfield */
     -fx-alignment: center;
 }
 
+/* a darker green keeps the white text legible on buy chips */
+.chart-focus.bid .chart-focus-chip {
+    -fx-background-color: derive(-bs-chart-focus, -25%);
+}
+
 .chart-focus-label {
     -fx-background-color: -bs-color-background-pane;
     -fx-background-radius: 4;
