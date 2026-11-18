@@ -227,7 +227,7 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
         this.currencyComboBox = new AutocompleteComboBox<>();
         this.currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.oneOffer"),
                 Res.get("shared.multipleOffers")));
-        this.currencyComboBox.setFitToValue(110);
+        this.currencyComboBox.setFitToValue(80);
         this.currencyComboBox.getStyleClass().addAll("input-with-border", "filter-pill");
         this.currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyPillGraphic);
         Accessibility.setHelp(this.currencyComboBox, Res.get("shared.currency"));

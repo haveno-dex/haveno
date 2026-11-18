@@ -182,7 +182,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         offerToolsBox.setPadding(new Insets(0, 0, 0, 0));
 
         currencyComboBox = new AutocompleteComboBox<>();
-        currencyComboBox.setFitToValue(110); // three letter codes share this width
+        currencyComboBox.setFitToValue(80);
         currencyComboBox.setMinWidth(Region.USE_PREF_SIZE); // never clip the code
         currencyComboBox.getStyleClass().addAll("input-with-border", "filter-pill");
         currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyPillGraphic);
