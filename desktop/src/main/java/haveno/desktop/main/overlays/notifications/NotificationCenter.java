@@ -164,10 +164,10 @@ public class NotificationCenter {
         mainWindow = scene.getWindow();
         // acknowledge content interaction after selection and focus settle, not title-bar drags
         scene.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(() -> setViewedTradeId(viewedTradeId));
+            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(this::onContentInteraction);
         });
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(() -> setViewedTradeId(viewedTradeId));
+            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(this::onContentInteraction);
         });
         tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change ->
                 UserThread.execute(this::refreshChatState));
@@ -254,6 +254,11 @@ public class NotificationCenter {
                     .filter(trade -> trade.getId().equals(viewedTradeId))
                     .findFirst().ifPresent(trade -> refreshTradeNotification(trade, null));
         }
+    }
+
+    // input acknowledges the viewed trade, unless its notification is open to be closed or used
+    private void onContentInteraction() {
+        if (!tradeNotifications.containsKey(viewedTradeId)) setViewedTradeId(viewedTradeId);
     }
 
     public void onChatFocusChanged(ObservableList<ChatMessage> messages, boolean focused, Runnable persist) {
