@@ -728,7 +728,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         currencyComboBox = new AutocompleteComboBox<>();
         currencyComboBox.setCellFactory(GUIUtil.getCurrencyListItemCellFactory(Res.get("shared.trade"),
                 Res.get("shared.trades")));
-        currencyComboBox.setFitToValue(110);
+        currencyComboBox.setFitToValue(80);
         currencyComboBox.getStyleClass().addAll("input-with-border", "filter-pill");
         currencyComboBox.setEditorGraphic(GUIUtil::getCurrencyPillGraphic);
         Accessibility.setHelp(currencyComboBox, Res.get("shared.currency"));
