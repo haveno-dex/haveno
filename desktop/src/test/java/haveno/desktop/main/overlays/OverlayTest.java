@@ -4696,7 +4696,12 @@ public class OverlayTest {
                 verify(notification, never()).hide();
                 assertTrue(guard.getValue().getAsBoolean());
                 assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                // content input keeps the open notification, selecting its trade acknowledges it
                 mousePressedHandler.handle(mock(MouseEvent.class));
+                keyPressedHandler.handle(mock(KeyEvent.class));
+                verify(notification, never()).hide();
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                viewTrade(trade);
                 assertFalse(notificationCenter.unreadPortfolioProperty().get());
                 assertTrue(seenUpdates.get("NotificationCenter_PAYMENT_SENT" + trade.getId()));
                 verify(notification).hide();
@@ -4715,7 +4720,7 @@ public class OverlayTest {
             mainWindowFocused.set(false);
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 setPhase(trade, Trade.Phase.PAYMENT_SENT);
-                Notification notification = notifications.constructed().get(0);
+                notifications.constructed().get(0).getIsHiddenProperty().set(true); // closing leaves the trade unseen
                 mainWindowFocused.set(true);
                 StackPane card = mock(StackPane.class);
                 ObservableMap<Object, Object> properties = FXCollections.observableHashMap();
@@ -4730,11 +4735,9 @@ public class OverlayTest {
                 when(key.getTarget()).thenReturn(button);
                 mousePressedHandler.handle(click);
                 keyPressedHandler.handle(key);
-                verify(notification, never()).hide();
                 assertTrue(notificationCenter.unreadPortfolioProperty().get());
                 assertFalse(seenUpdates.containsKey("NotificationCenter_PAYMENT_SENT" + trade.getId()));
                 mousePressedHandler.handle(mock(MouseEvent.class));
-                verify(notification).hide();
                 assertFalse(notificationCenter.unreadPortfolioProperty().get());
             }
         }
