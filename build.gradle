@@ -44,6 +44,7 @@ configure(rootProject) {
             '-XX:+ExitOnOutOfMemoryError',
             '-XX:+EnableDynamicAgentLoading',
             '-XX:-OmitStackTraceInFastThrow', // keep frames on hot repeated exceptions so logs stay diagnosable
+            '-XX:-UseBASE64Intrinsics', // CVE-2026-114938: the AVX-512 decoder overflows the heap on unpatched JDKs
             '-Dfile.encoding=UTF-8',
             '-Dstdout.encoding=UTF-8',
             '-Dstderr.encoding=UTF-8',
