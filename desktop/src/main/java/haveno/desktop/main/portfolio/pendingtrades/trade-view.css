@@ -458,17 +458,25 @@
 .trade-detail-view .hyperlink:hover {
     -fx-underline: true;
 }
-.trade-detail-view .trade-help .hyperlink .text {
+/* a cancel request is a card to stand out from the sidebar */
+.trade-detail-view .trade-cancel {
+    -fx-padding: 14 16;
+    -fx-background-color: -bs-color-background-pane;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+.trade-detail-view .trade-help .hyperlink .text,
+.trade-detail-view .trade-cancel .hyperlink .text {
     -fx-fill: -bs-hero-primary;
 }
-.trade-detail-view .trade-help .hyperlink {
+.trade-detail-view .trade-help .hyperlink,
+.trade-detail-view .trade-cancel .hyperlink {
     -fx-padding: 0;
     -fx-border-width: 0;
 }
-.trade-detail-view .trade-help .trade-community-link {
-    -fx-font-size: 12px;
-}
-.trade-detail-view .trade-help .hyperlink:focus-visible {
+.trade-detail-view .trade-help .hyperlink:focus-visible,
+.trade-detail-view .trade-cancel .hyperlink:focus-visible {
     -fx-underline: true;
 }
 .trade-detail-view .trade-account-summary {

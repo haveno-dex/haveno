@@ -69,6 +69,7 @@ import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.SellerProtocol;
 import haveno.core.trade.protocol.TradeListener;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.TradePeer.CancelState;
 import haveno.core.trade.protocol.TradeProtocol;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
@@ -1097,6 +1098,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         if (isPayoutPublished()) return false;
         if (isArbitrator() && isDepositsConfirmed()) return true;
         if (!isDepositsUnlocked()) return false;
+        if ((isSeller() && isCancelAgreed()) || (isBuyer() && isCancelSigned())) return false; // the cancel payout may be published at any time
         if (isPaymentReceived() || isDisputeClosed()) return false;
         if (isBuyer() && !isDepositsFinalized()) return false;
         if (isSeller()) {
@@ -1385,6 +1387,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
      * @return the payout tx when the trade is successfully completed
      */
     public MoneroTxWallet createPayoutTx() {
+        return createPayoutTx(false);
+    }
+
+    /**
+     * Create the payout tx which cancels the trade by returning each trader's deposit.
+     */
+    public MoneroTxWallet createCancelPayoutTx() {
+        return createPayoutTx(true);
+    }
+
+    private MoneroTxWallet createPayoutTx(boolean isCancel) {
 
         // check connection to monero daemon
         verifyDaemonConnection();
@@ -1400,7 +1413,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
-                        MoneroTxWallet unsignedPayoutTx = doCreatePayoutTx();
+                        MoneroTxWallet unsignedPayoutTx = doCreatePayoutTx(isCancel);
                         log.info("Done creating unsigned payout tx for {} {}", getClass().getSimpleName(), getShortId());
                         return unsignedPayoutTx;
                     } catch (IllegalArgumentException | IllegalStateException e) {
@@ -1418,7 +1431,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
     }
 
-    private MoneroTxWallet doCreatePayoutTx() {
+    private MoneroTxWallet doCreatePayoutTx(boolean isCancel) {
 
         // check if multisig import needed
         if (wallet.isMultisigImportNeeded()) throw new IllegalStateException("Cannot create payout tx because multisig import is needed for " + getClass().getSimpleName() + " " + getShortId());
@@ -1433,7 +1446,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         Preconditions.checkNotNull(buyerPayoutAddress, "Buyer payout address must not be null");
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
         BigInteger buyerDepositAmount = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : getBuyer().getDepositTx().getIncomingAmount();
-        BigInteger tradeAmount = getAmount();
+        BigInteger tradeAmount = isCancel ? BigInteger.ZERO : getAmount(); // the trade amount stays with the seller on cancel
         BigInteger buyerPayoutAmount = buyerDepositAmount.add(tradeAmount);
         BigInteger sellerPayoutAmount = sellerDepositAmount.subtract(tradeAmount);
 
@@ -1452,7 +1465,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             else throw e;
         }
 
-        // update state
+        // update state unless canceling, which the peer has yet to agree to
+        if (isCancel) return payoutTx;
         BigInteger payoutTxFeeSplit = payoutTx.getFee().divide(BigInteger.valueOf(2));
         getBuyer().setPayoutTxFee(payoutTxFeeSplit);
         getBuyer().setPayoutAmount(HavenoUtils.getDestination(buyerPayoutAddress, payoutTx).getAmount());
@@ -1592,12 +1606,23 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
      * @param publish publishes the signed payout tx if true
      */
     public void processPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
+        processPayoutTx(payoutTxHex, sign, publish, false);
+    }
+
+    /**
+     * Verify, sign and publish the seller's payout tx which cancels the trade by returning each trader's deposit.
+     */
+    public void processCancelPayoutTx(String payoutTxHex) {
+        processPayoutTx(payoutTxHex, true, true, true);
+    }
+
+    private void processPayoutTx(String payoutTxHex, boolean sign, boolean publish, boolean isCancel) {
         synchronized (walletLock) {
             synchronized (HavenoUtils.getWalletFunctionLock()) {
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrConnectionService.getConnection();
                     try {
-                        doProcessPayoutTx(payoutTxHex, sign, publish);
+                        doProcessPayoutTx(payoutTxHex, sign, publish, isCancel);
                         break;
                     } catch (IllegalArgumentException | IllegalStateException e) {
                         throw e;
@@ -1616,7 +1641,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         }
     }
 
-    private void doProcessPayoutTx(String payoutTxHex, boolean sign, boolean publish) {
+    private void doProcessPayoutTx(String payoutTxHex, boolean sign, boolean publish, boolean isCancel) {
         log.info("Processing payout tx for {} {}", getClass().getSimpleName(), getId());
 
         // recover if missing wallet data
@@ -1627,7 +1652,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         Contract contract = getContract();
         BigInteger sellerDepositAmount = getSeller().getDepositTx().getIncomingAmount();
         BigInteger buyerDepositAmount = hasBuyerAsTakerWithoutDeposit() ? BigInteger.ZERO : getBuyer().getDepositTx().getIncomingAmount();
-        BigInteger tradeAmount = getAmount();
+        BigInteger tradeAmount = isCancel ? BigInteger.ZERO : getAmount(); // the trade amount stays with the seller on cancel
 
         // describe payout tx
         MoneroTxSet describedTxSet = wallet.describeTxSet(new MoneroTxSet().setMultisigTxHex(payoutTxHex));
@@ -1657,7 +1682,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         setPayoutTx(payoutTx);
 
         // check connection
-        boolean hadSignedPayoutTxHex = getPayoutTxHex() != null;
+        boolean hadSignedPayoutTxHex = getSignedPayoutTxHex(isCancel) != null;
         boolean doSign = sign && !hadSignedPayoutTxHex;
         if (doSign || publish) verifyDaemonConnection();
 
@@ -1674,8 +1699,8 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 throw new IllegalStateException(e);
             }
 
-            // verify miner fee is within tolerance unless outdated offer version
-            if (getOffer().getOfferPayload().getProtocolVersion() >= 2) {
+            // verify miner fee is within tolerance unless outdated offer version, which does not apply to a cancel
+            if (isCancel || getOffer().getOfferPayload().getProtocolVersion() >= 2) {
 
                 // verify fee is within tolerance of estimate from tx weight, else recreate payout tx to estimate fee
                 if (payoutTx.getWeight() != null) {
@@ -1683,44 +1708,61 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 } else {
                     log.info("Creating fee estimate tx for {} {}", getClass().getSimpleName(), getShortId());
                     saveWallet(); // save wallet before creating fee estimate tx
-                    MoneroTxWallet feeEstimateTx = createPayoutTx();
+                    MoneroTxWallet feeEstimateTx = createPayoutTx(isCancel);
                     HavenoUtils.verifyMinerFee(feeEstimateTx.getFee(), payoutTx.getFee());
                 }
                 log.info("Payout tx fee is within tolerance for {} {}", getClass().getSimpleName(), getShortId());
             }
 
             // set signed payout tx hex
-            setPayoutTxHex(signedPayoutTxHex);
+            setSignedPayoutTxHex(signedPayoutTxHex, isCancel);
 
             // describe result
-            describedTxSet = wallet.describeMultisigTxSet(getPayoutTxHex());
+            describedTxSet = wallet.describeMultisigTxSet(getSignedPayoutTxHex(isCancel));
             payoutTx = describedTxSet.getTxs().get(0);
             setPayoutTx(payoutTx);
         } else if (!sign) {
-            setPayoutTxHex(payoutTxHex); // record verified signed payout tx hex before publishing
+            setSignedPayoutTxHex(payoutTxHex, isCancel); // record verified signed payout tx hex before publishing
         }
 
-        // save trade state
+        // save trade state, durably before publishing a cancel payout since the buyer cannot mark the payment sent after
         saveWallet();
-        requestPersistence();
+        if (isCancel) {
+            try {
+                processModel.getTradeManager().persistNowAndWait();
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to persist signed cancel payout", e);
+            }
+        } else requestPersistence();
 
         // submit payout tx
         boolean doPublish = publish && !isPayoutPublished();
         if (doPublish) {
             try {
-                List<String> payoutTxIds = wallet.submitMultisigTxHex(getPayoutTxHex());
+                List<String> payoutTxIds = wallet.submitMultisigTxHex(getSignedPayoutTxHex(isCancel));
                 payoutTxId = payoutTxIds.get(0);
                 setPayoutStatePublished();
             } catch (Exception e) {
                 if (!isPayoutPublished()) {
                     if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isMultisigError(e)) {
-                        if (!hadSignedPayoutTxHex) setPayoutTxHex(null); // clear hex recorded this call so a fresh payout tx can be processed
+                        // clear hex recorded this call unless a cancel reached the daemon, which could still publish it
+                        if (!hadSignedPayoutTxHex && (!isCancel || !HavenoUtils.isTransactionRejected(e))) setSignedPayoutTxHex(null, isCancel);
                         throw new IllegalArgumentException(e);
                     }
                     throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId() + ", error=" + e.getMessage(), e);
                 }
             }
         }
+    }
+
+    // the buyer's signed cancel payout tx is kept apart, so no other payout can publish it
+    private String getSignedPayoutTxHex(boolean isCancel) {
+        return isCancel ? getBuyer().getCancelPayoutTxHex() : getPayoutTxHex();
+    }
+
+    private void setSignedPayoutTxHex(String signedPayoutTxHex, boolean isCancel) {
+        if (isCancel) getBuyer().setCancelPayoutTxHex(signedPayoutTxHex);
+        else setPayoutTxHex(signedPayoutTxHex);
     }
 
     public void processDisputePayoutTx() {
@@ -2109,6 +2151,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             peer.setPaymentSentMessage(null);
             peer.setDepositTxHex(null);
             peer.setDepositTxKey(null);
+            changed |= peer.getCancelPayoutTxHex() != null || peer.getCancelTradeMessage() != null;
+            peer.setCancelPayoutTxHex(null);
+            peer.setCancelTradeMessage(null);
             if (peer.isPaymentReceivedMessageAckedOrNacked() || isPayoutFinalized()) {
                 changed |= peer.getUnsignedPayoutTxHex() != null;
                 peer.setUnsignedPayoutTxHex(null);
@@ -2615,12 +2660,17 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
     @Nullable
     public BigInteger getArbitratedBuyerGain() {
         if (!isPayoutPublished() || isPaymentReceived()) return null; // confirmed payments take precedence, as in setPayoutTx
-        DisputeResult ruling = getDisputes().stream() // an arbitrator's mirrored ticket can lack the ruling
+        DisputeResult ruling = getArbitrationRuling();
+        return ruling == null ? null : ruling.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getSecurityDeposit());
+    }
+
+    @Nullable
+    private DisputeResult getArbitrationRuling() {
+        return getDisputes().stream() // an arbitrator's mirrored ticket can lack the ruling
                 .map(dispute -> dispute.getDisputeResultProperty().get())
                 .filter(result -> result != null && result.getWinner() != null) // tickets can close without a ruling
                 .max(Comparator.comparing(DisputeResult::getCloseDate))
                 .orElse(null);
-        return ruling == null ? null : ruling.getBuyerPayoutAmountBeforeCost().subtract(getBuyer().getSecurityDeposit());
     }
 
     @Nullable
@@ -3058,6 +3108,37 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
 
     public boolean isPayoutPublished() {
         return getPayoutState().ordinal() >= PayoutState.PAYOUT_PUBLISHED.ordinal();
+    }
+
+    // traders can agree to cancel until the buyer first marks the payment sent, a dispute opens or the payout is published
+    public boolean isCancelPermitted() {
+        return !isArbitrator() && !hasBuyerAsTakerWithoutDeposit() && !isPaymentMarkedSent() && getPaymentSentDate() == 0 && !isPayoutPublished() && !getDisputeState().isDisputed();
+    }
+
+    // both traders asked to cancel, so the buyer can publish the seller's cancel payout
+    public boolean isCancelAgreed() {
+        return isCancelPermitted() && getBuyer().getCancelState() == CancelState.REQUESTED && getSeller().getCancelState() == CancelState.REQUESTED;
+    }
+
+    // the peer asked or agreed to cancel, which this trader can answer or, as the buyer, complete
+    public boolean isCancelActionable() {
+        if (!isCancelPermitted() || !isDepositsUnlocked() || getTradePeer().getCancelState() != CancelState.REQUESTED) return false;
+        return isBuyer() || getSelf().getCancelState() != CancelState.REQUESTED;
+    }
+
+    // the buyer signed the cancel payout, which could be published at any time, so the payment must not be sent
+    public boolean isCancelSigned() {
+        return getBuyer().getCancelPayoutTxHex() != null;
+    }
+
+    // opening a dispute cannot revoke a cancel payout; a recorded ruling takes precedence
+    private boolean isCancelPayout() {
+        boolean hasCancelRequest = getBuyer().getCancelState() != CancelState.UNDEFINED || getSeller().getCancelState() != CancelState.UNDEFINED;
+        return hasCancelRequest && !isPaymentMarkedSent() && getPaymentSentDate() == 0 && getArbitrationRuling() == null;
+    }
+
+    public boolean isCanceled() {
+        return isPayoutPublished() && isCancelPayout();
     }
 
     public boolean isPayoutConfirmed() {
@@ -3588,7 +3669,7 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             if (isDepositsUnlocked() || hasUnlockedDeposit) { // arbitrator idles so these may not be the same
 
                 // determine if payout tx expected
-                boolean isPayoutExpected = isPaymentReceivedMessageProcessed() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal();
+                boolean isPayoutExpected = isPaymentReceivedMessageProcessed() || hasPaymentReceivedMessage() || hasDisputeClosedMessage() || disputeState.ordinal() >= DisputeState.ARBITRATOR_SENT_DISPUTE_CLOSED_MSG.ordinal() || (isSeller() && isCancelAgreed()) || (isBuyer() && isCancelSigned()) || isCanceled();
 
                 // rescan spent outputs to detect unconfirmed payout tx
                 // TODO: can this be removed after https://github.com/monero-project/monero/pull/10255 in monero-project v0.18.4.5?
@@ -4182,6 +4263,12 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             getSeller().setPayoutTxFee(splitTxFee);
             getBuyer().setPayoutAmount(getBuyer().getSecurityDeposit().subtract(getBuyer().getPayoutTxFee()).add(getAmount()));
             getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()));
+        } else if (isCancelPayout()) {
+            BigInteger splitTxFee = payoutTx.getFee().divide(BigInteger.valueOf(2));
+            getBuyer().setPayoutTxFee(splitTxFee);
+            getSeller().setPayoutTxFee(splitTxFee);
+            getBuyer().setPayoutAmount(getBuyer().getSecurityDeposit().subtract(getBuyer().getPayoutTxFee()));
+            getSeller().setPayoutAmount(getSeller().getSecurityDeposit().subtract(getSeller().getPayoutTxFee()).add(getAmount()));
         } else {
             DisputeResult disputeResult = getDisputeResult();
             if (disputeResult != null) {

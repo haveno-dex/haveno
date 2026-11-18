@@ -179,6 +179,7 @@ public abstract class Overlay<T extends Overlay<T>> {
     protected boolean hideCloseButton;
     protected boolean isDisplayed;
     protected boolean disableActionButton;
+    protected boolean destructive;
 
     @Getter
     protected BooleanProperty isHiddenProperty = new SimpleBooleanProperty();
@@ -560,6 +561,11 @@ public abstract class Overlay<T extends Overlay<T>> {
 
     public T disableActionButton() {
         this.disableActionButton = true;
+        return cast();
+    }
+
+    public T destructive() {
+        this.destructive = true;
         return cast();
     }
 
@@ -1378,6 +1384,7 @@ public abstract class Overlay<T extends Overlay<T>> {
             HBox.setHgrow(actionButton, Priority.SOMETIMES);
 
             actionButton.getStyleClass().add("action-button");
+            if (destructive) actionButton.getStyleClass().add("destructive-button");
             //TODO app wide focus
             //actionButton.requestFocus();
 

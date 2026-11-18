@@ -113,12 +113,21 @@ public class BuyerProtocol extends DisputeProtocol {
             return;
         }
 
-        // advance trade state
-        if (trade.isDepositsUnlocked() || trade.isDepositsFinalized() || trade.isPaymentSent()) {
-            trade.setStateIfValidTransitionTo(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
-        } else {
-            errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState());
+        // advance trade state unless the buyer signed the cancel payout, which may be published
+        if (!cancelLock.tryLock()) {
+            errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " while it is being canceled");
             return;
+        }
+        try {
+            boolean isCanceling = trade.isCanceled() || trade.isCancelSigned();
+            if (!isCanceling && (trade.isDepositsUnlocked() || trade.isDepositsFinalized() || trade.isPaymentSent())) {
+                trade.setStateIfValidTransitionTo(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
+            } else {
+                errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState() + (isCanceling ? " because it is being canceled" : ""));
+                return;
+            }
+        } finally {
+            cancelLock.unlock();
         }
 
         // process on trade thread

@@ -192,6 +192,27 @@ class CoreTradesService {
         }
     }
 
+    void requestCancelTrade(String tradeId,
+                            ResultHandler resultHandler,
+                            ErrorMessageHandler errorMessageHandler) {
+        verifyTradeIsNotClosed(tradeId);
+        tradeManager.getTradeProtocol(getTrade(tradeId)).onCancelRequested(resultHandler, errorMessageHandler);
+    }
+
+    void confirmCancelTrade(String tradeId,
+                            ResultHandler resultHandler,
+                            ErrorMessageHandler errorMessageHandler) {
+        verifyTradeIsNotClosed(tradeId);
+        tradeManager.getTradeProtocol(getTrade(tradeId)).onCancelConfirmed(resultHandler, errorMessageHandler);
+    }
+
+    void declineCancelTrade(String tradeId,
+                            ResultHandler resultHandler,
+                            ErrorMessageHandler errorMessageHandler) {
+        verifyTradeIsNotClosed(tradeId);
+        tradeManager.getTradeProtocol(getTrade(tradeId)).onCancelDeclined(resultHandler, errorMessageHandler);
+    }
+
     void closeTrade(String tradeId) {
         coreWalletsService.verifyWalletsAreAvailable();
         coreWalletsService.verifyEncryptedWalletIsUnlocked();

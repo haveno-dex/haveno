@@ -36,8 +36,10 @@ public class ClosedTradableUtilTest {
     private static final long VOLUME = 500;
 
     @Test
-    public void testTotalsExcludeTradesCanceledByArbitration() {
-        List<Tradable> trades = List.of(mockTrade(null), mockTrade(BigInteger.ONE), mockTrade(BigInteger.ZERO));
+    public void testTotalsExcludeCanceledTrades() {
+        Trade canceledByTraders = mockTrade(null);
+        when(canceledByTraders.isCanceled()).thenReturn(true);
+        List<Tradable> trades = List.of(mockTrade(null), mockTrade(BigInteger.ONE), mockTrade(BigInteger.ZERO), canceledByTraders);
         assertEquals(BigInteger.valueOf(2 * AMOUNT), ClosedTradableUtil.getTotalAmount(trades));
         assertEquals(Map.of("USD", 2 * VOLUME), ClosedTradableUtil.getTotalVolumeByCurrency(trades));
     }

@@ -36,7 +36,6 @@ import javafx.scene.layout.Priority;
 
 /** A confirmation with a fixed hero and actions around a scrollable review. */
 public abstract class ConfirmationWindow<T extends ConfirmationWindow<T>> extends TxHeroWindow<T> {
-    protected boolean destructive;
     protected String acknowledgement;
     private VBox buttons;
 

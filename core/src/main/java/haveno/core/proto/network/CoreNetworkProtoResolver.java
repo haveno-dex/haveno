@@ -41,6 +41,7 @@ import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.support.dispute.refund.refundagent.RefundAgent;
 import haveno.core.support.messages.ChatMessage;
+import haveno.core.trade.messages.CancelTradeMessage;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -147,6 +148,8 @@ public class CoreNetworkProtoResolver extends CoreProtoResolver implements Netwo
                     return PaymentSentMessage.fromProto(proto.getPaymentSentMessage(), messageVersion);
                 case PAYMENT_RECEIVED_MESSAGE:
                     return PaymentReceivedMessage.fromProto(proto.getPaymentReceivedMessage(), messageVersion);
+                case CANCEL_TRADE_MESSAGE:
+                    return CancelTradeMessage.fromProto(proto.getCancelTradeMessage());
 
                 case MEDIATED_PAYOUT_TX_SIGNATURE_MESSAGE:
                     return MediatedPayoutTxSignatureMessage.fromProto(proto.getMediatedPayoutTxSignatureMessage(), messageVersion);

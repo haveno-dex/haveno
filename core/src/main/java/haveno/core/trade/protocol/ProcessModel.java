@@ -77,6 +77,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 // Fields marked as transient are only used during protocol execution which are based on directMessages so we do not
 // persist them.
@@ -89,6 +90,8 @@ import java.util.Optional;
 @Getter
 @Slf4j
 public class ProcessModel implements Model, PersistablePayload {
+    private static final int MAX_PROCESSED_CANCEL_MESSAGES = 20; // an honest peer sends far fewer
+
     // Transient/Immutable (net set in constructor so they are not final, but at init)
     transient private ProcessModelServiceProvider provider;
     transient private TradeManager tradeManager;
@@ -170,6 +173,7 @@ public class ProcessModel implements Model, PersistablePayload {
     @Getter
     @Setter
     private boolean paymentSentPayoutTxStale;
+    private final CopyOnWriteArrayList<String> processedCancelMessageUids = new CopyOnWriteArrayList<>(); // uids of the trade peer's cancel messages already applied
     private ObjectProperty<Boolean> paymentAccountDecryptedProperty = new SimpleObjectProperty<>(false);
     @Deprecated
     private ObjectProperty<MessageState> paymentSentMessageStatePropertySeller = new SimpleObjectProperty<>(MessageState.UNDEFINED);
@@ -242,7 +246,8 @@ public class ProcessModel implements Model, PersistablePayload {
                 .setSellerPayoutAmountFromMediation(sellerPayoutAmountFromMediation)
                 .setTradeProtocolErrorHeight(tradeProtocolErrorHeight)
                 .setImportMultisigHexScheduled(importMultisigHexScheduled)
-                .setPaymentSentPayoutTxStale(paymentSentPayoutTxStale);
+                .setPaymentSentPayoutTxStale(paymentSentPayoutTxStale)
+                .addAllProcessedCancelMessageUids(List.copyOf(processedCancelMessageUids)); // a snapshot read before the traders, so a kept uid always comes with what its message changed
         Optional.ofNullable(maker).ifPresent(e -> builder.setMaker((protobuf.TradePeer) maker.toProtoMessage()));
         Optional.ofNullable(taker).ifPresent(e -> builder.setTaker((protobuf.TradePeer) taker.toProtoMessage()));
         Optional.ofNullable(arbitrator).ifPresent(e -> builder.setArbitrator((protobuf.TradePeer) arbitrator.toProtoMessage()));
@@ -268,6 +273,7 @@ public class ProcessModel implements Model, PersistablePayload {
         processModel.setTradeProtocolErrorHeight(proto.getTradeProtocolErrorHeight());
         processModel.setImportMultisigHexScheduled(proto.getImportMultisigHexScheduled());
         processModel.setPaymentSentPayoutTxStale(proto.getPaymentSentPayoutTxStale());
+        processModel.processedCancelMessageUids.addAll(proto.getProcessedCancelMessageUidsList());
 
         // nullable
         processModel.setPayoutTxSignature(ProtoUtil.byteArrayOrNullFromProto(proto.getPayoutTxSignature()));
@@ -294,6 +300,17 @@ public class ProcessModel implements Model, PersistablePayload {
 
     @Override
     public void onComplete() {
+    }
+
+    public boolean isCancelMessageProcessed(String uid) {
+        return processedCancelMessageUids.contains(uid);
+    }
+
+    // a cancel message is applied once, so a copy arriving after a newer message or a restart is only acked
+    public void setCancelMessageProcessed(String uid) {
+        if (processedCancelMessageUids.contains(uid)) return;
+        while (processedCancelMessageUids.size() >= MAX_PROCESSED_CANCEL_MESSAGES) processedCancelMessageUids.remove(0);
+        processedCancelMessageUids.add(uid);
     }
 
     @Nullable

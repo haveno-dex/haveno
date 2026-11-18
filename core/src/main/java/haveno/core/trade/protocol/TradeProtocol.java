@@ -40,6 +40,7 @@ import haveno.common.UserThread;
 import haveno.common.config.Config;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.handlers.ErrorMessageHandler;
+import haveno.common.handlers.ResultHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.common.taskrunner.Task;
 import haveno.core.offer.Offer;
@@ -52,6 +53,7 @@ import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.TradeManager.MailboxMessageComparator;
 import haveno.core.trade.handlers.TradeResultHandler;
+import haveno.core.trade.messages.CancelTradeMessage;
 import haveno.core.trade.messages.DepositRequest;
 import haveno.core.trade.messages.DepositResponse;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
@@ -64,6 +66,7 @@ import haveno.core.trade.messages.SignContractResponse;
 import haveno.core.trade.messages.TradeMessage;
 import haveno.core.trade.protocol.FluentProtocol.Condition;
 import haveno.core.trade.protocol.FluentProtocol.Event;
+import haveno.core.trade.protocol.TradePeer.CancelState;
 import haveno.core.trade.protocol.tasks.ApplyFilter;
 import haveno.core.trade.protocol.tasks.MakerRecreateReserveTx;
 import haveno.core.trade.protocol.tasks.MakerSendInitTradeRequestToArbitrator;
@@ -75,6 +78,7 @@ import haveno.core.trade.protocol.tasks.ProcessPaymentReceivedMessage;
 import haveno.core.trade.protocol.tasks.ProcessPaymentSentMessage;
 import haveno.core.trade.protocol.tasks.ProcessSignContractRequest;
 import haveno.core.trade.protocol.tasks.SendDepositRequest;
+import haveno.core.trade.protocol.tasks.SendMailboxMessageTask;
 import haveno.core.trade.protocol.tasks.MaybeResendDisputeClosedMessageWithPayout;
 import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.core.trade.protocol.tasks.VerifyPeersAccountAgeWitness;
@@ -84,16 +88,22 @@ import haveno.network.p2p.AckMessageSourceType;
 import haveno.network.p2p.DecryptedDirectMessageListener;
 import haveno.network.p2p.DecryptedMessageWithPubKey;
 import haveno.network.p2p.NodeAddress;
+import haveno.network.p2p.SendMailboxMessageListener;
 import haveno.network.p2p.mailbox.MailboxMessage;
 import haveno.network.p2p.mailbox.MailboxMessageService;
 import haveno.network.p2p.messaging.DecryptedMailboxListener;
+import haveno.network.p2p.network.CloseConnectionReason;
+import haveno.network.p2p.network.NetworkNode;
 import lombok.extern.slf4j.Slf4j;
 import org.fxmisc.easybind.EasyBind;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public abstract class TradeProtocol implements DecryptedDirectMessageListener, DecryptedMailboxListener {
@@ -101,6 +111,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     public static final int TRADE_STEP_TIMEOUT_SECONDS = Config.baseCurrencyNetwork().isLocal() ? 90 : 180;
     private static final String TIMEOUT_REACHED = "Timeout reached.";
     public static final int MAX_ATTEMPTS = 5; // max attempts to create txs and other protocol functions
+    public static final int MAX_CANCEL_RESEND_ATTEMPTS = 20; // max attempts to send a cancel message again without an ack, as for other trade messages
     public static final int REQUEST_CONNECTION_SWITCH_EVERY_NUM_ATTEMPTS = 2; // request connection switch on even attempts
     public static final long REPROCESS_DELAY_MS = 5000;
     public static final String LOG_HIGHLIGHT = ""; // TODO: how to highlight some logs with cyan? ("\u001B[36m")? coloring works in the terminal but prints character literals to .log files
@@ -120,6 +131,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
     private boolean makerInitTradeRequestHasBeenNacked = false;
     private PaymentReceivedMessage lastAckedPaymentReceivedMessage = null;
     private int numPaymentReceivedNacks = 0;
+    protected final ReentrantLock cancelLock = new ReentrantLock(); // the buyer cannot mark the payment sent while completing a cancel
+    private int numCancelPayoutTxsResent = 0;
+    private Timer cancelResendTimer;
+    private int numCancelMessageResends = 0;
+    private boolean lastCancelSendArrived;
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -160,6 +176,8 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             handle((PaymentSentMessage) message, peerNodeAddress);
         } else if (message instanceof PaymentReceivedMessage) {
             handle((PaymentReceivedMessage) message, peerNodeAddress);
+        } else if (message instanceof CancelTradeMessage) {
+            handle((CancelTradeMessage) message, peerNodeAddress);
         }
     }
 
@@ -331,6 +349,7 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
             maybeReprocessPaymentSentMessage(false);
             maybeReprocessPaymentReceivedMessage(false);
             maybeReprocessDisputeClosedMessage(false);
+            resendCancelTradeMessage(trade.getSelf().getCancelTradeMessage(), SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS);
 
             // initialize trade after startup mailbox messages processed
             trade.initializeAfterMailboxMessages();
@@ -859,8 +878,312 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
         }, getInitId());
     }
 
+    // applies the peer's request or answer, where a peer who asked can only update it and a declined peer is ignored
+    private void handle(CancelTradeMessage message, NodeAddress sender) {
+        log.info(LOG_HIGHLIGHT + "handle(CancelTradeMessage) for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " from " + sender);
+        if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+                if (!trade.isInitialized() || trade.isShutDownStarted()) return;
+                try {
+                    TradePeer self = trade.getSelf();
+                    TradePeer peer = trade.getTradePeer();
+                    if (sender == null || trade.getTradePeer(sender) != peer) {
+                        log.warn("Ignoring CancelTradeMessage for {} {} because it is not from the trade peer", trade.getClass().getSimpleName(), trade.getId());
+                        removeMailboxMessageAfterProcessing(message);
+                        return;
+                    }
+                    if (processModel.isCancelMessageProcessed(message.getUid())) {
+                        log.info("Acking CancelTradeMessage for {} {} again because it was already processed", trade.getClass().getSimpleName(), trade.getId());
+                    } else if (!trade.isCancelPermitted()) {
+                        log.info("Ignoring CancelTradeMessage for {} {} because the trade can no longer be canceled", trade.getClass().getSimpleName(), trade.getId());
+                        if (!message.isDeclined() && !trade.isPayoutPublished()) sendCancelTradeMessage(true, null, () -> {}, errorMessage -> log.warn("Error declining to cancel {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), errorMessage));
+                    } else if (message.isDeclined()) {
+                        if (self.getCancelState() == CancelState.REQUESTED && peer.getCancelState() != CancelState.REQUESTED) { // a stale decline cannot undo the peer's later request
+                            self.setCancelState(CancelState.DECLINED);
+                            notifyCancel("Cancel Declined", "declined");
+                        }
+                    } else if ((peer.getCancelState() == CancelState.REQUESTED || peer.canRequestCancel(self)) && (trade.isSeller() || message.getPayoutTxHex() != null)) {
+                        if (message.getUpdatedMultisigHex() != null) peer.setUpdatedMultisigHex(message.getUpdatedMultisigHex(), true);
+                        if (trade.isBuyer() && !trade.isCancelSigned()) peer.setCancelPayoutTxHex(message.getPayoutTxHex()); // the seller's latest payout tx, unless already signed
+                        boolean isNew = peer.getCancelState() != CancelState.REQUESTED && (trade.isBuyer() || self.getCancelState() != CancelState.REQUESTED); // a new request or agreement this trader can act on
+                        peer.setCancelState(CancelState.REQUESTED);
+                        if (isNew && self.getCancelState() == CancelState.REQUESTED) notifyCancel("Cancel Agreed", "agreed");
+                        else if (isNew) notifyCancel("Cancel Requested", "asked");
+
+                        // seller sends a payout tx for the buyer's latest multisig hex if both ask, in case the last was lost or could not be signed
+                        if (trade.isSeller() && self.getCancelState() == CancelState.REQUESTED) {
+                            if (numCancelPayoutTxsResent >= MAX_ATTEMPTS) {
+                                log.warn("Not sending another cancel payout tx for {} {} after {} attempts", trade.getClass().getSimpleName(), trade.getId(), MAX_ATTEMPTS);
+                                return;
+                            }
+                            sendCancelRequest(() -> {}, errorMessage -> {});
+                            numCancelPayoutTxsResent++;
+                        }
+                    } else {
+                        log.warn("Ignoring declined or invalid request to cancel {} {}", trade.getClass().getSimpleName(), trade.getId());
+                    }
+                    processModel.setCancelMessageProcessed(message.getUid()); // last, so a kept uid always comes with what the message changed
+                } catch (Exception e) {
+                    log.warn("Error processing CancelTradeMessage for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                } finally {
+                    try {
+                        processModel.getTradeManager().persistNowAndWait(); // keep the request or answer before acking it and removing it from the mailbox
+                    } catch (Exception e) {
+                        log.warn("Error persisting CancelTradeMessage for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                        throw e;
+                    }
+
+                    // a message which is not processed stays unacked and in the mailbox, to process it when sent again or after a restart
+                    if (processModel.isCancelMessageProcessed(message.getUid())) {
+                        sendAckMessage(sender, message, true, null);
+                        removeMailboxMessageAfterProcessing(message);
+                    }
+                }
+            }
+        }, trade.getId());
+    }
+
     public void onWithdrawCompleted() {
         log.info("Withdraw completed");
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    // Cancel
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    // asks the peer to cancel the trade, or as the seller agrees to the buyer's request by sending the payout tx
+    public void onCancelRequested(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        log.info(LOG_HIGHLIGHT + "onCancelRequested() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+                TradePeer self = trade.getSelf();
+                CancelState previousState = self.getCancelState();
+                CancelTradeMessage previousMessage = self.getCancelTradeMessage();
+                try {
+                    if (!trade.isCancelPermitted() || !trade.isDepositsUnlocked()) throw new IllegalStateException("Trade " + trade.getShortId() + " cannot be canceled in its current state");
+                    if (!self.canRequestCancel(trade.getTradePeer())) throw new IllegalStateException("Already asked to cancel trade " + trade.getShortId());
+
+                    // the request stands if its delivery is uncertain, since it is sent again until acked
+                    sendCancelRequest(resultHandler, errorMessage -> errorMessageHandler.handleErrorMessage("The cancel request is not delivered yet and will be sent again automatically.\n\n" + errorMessage));
+                } catch (Exception e) {
+                    log.warn("Error requesting to cancel {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                    self.setCancelTradeMessage(previousMessage);
+                    self.setCancelState(previousState);
+                    errorMessageHandler.handleErrorMessage(e.getMessage());
+                }
+            }
+        }, trade.getId());
+    }
+
+    // buyer cancels the trade with the payout tx of a seller who asked or agreed, only ever on the buyer's own action
+    public void onCancelConfirmed(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        log.info(LOG_HIGHLIGHT + "onCancelConfirmed() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+                try {
+                    TradePeer self = trade.getSelf();
+                    if (!trade.isBuyer() || trade.getSeller().getCancelState() != CancelState.REQUESTED) throw new IllegalStateException("Seller has not asked to cancel trade " + trade.getShortId());
+                    completeCancel();
+
+                    // tell a seller who does not know the buyer agreed, which otherwise sees the payout on a later poll
+                    if (self.getCancelState() != CancelState.REQUESTED) {
+                        try {
+                            sendCancelTradeMessage(false, null, () -> {}, errorMessage -> {});
+                        } catch (Exception e) {
+                            log.warn("Error notifying seller of canceled {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                        }
+                    }
+                    resultHandler.handleResult();
+                } catch (Exception e) {
+                    log.warn("Error canceling {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                    errorMessageHandler.handleErrorMessage(e.getMessage());
+                }
+            }
+        }, trade.getId());
+    }
+
+    // declines the peer's request to cancel, which they cannot repeat
+    public void onCancelDeclined(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        log.info(LOG_HIGHLIGHT + "onCancelDeclined() for {} {}", trade.getClass().getSimpleName(), trade.getShortId());
+        ThreadUtils.execute(() -> {
+            synchronized (trade.getLock()) {
+                TradePeer self = trade.getSelf();
+                TradePeer peer = trade.getTradePeer();
+                if (!trade.isCancelActionable() || self.getCancelState() == CancelState.REQUESTED || trade.isCancelSigned()) {
+                    errorMessageHandler.handleErrorMessage("There is no request to cancel trade " + trade.getShortId() + " which can be declined");
+                    return;
+                }
+                CancelTradeMessage previousMessage = self.getCancelTradeMessage();
+                String previousPayoutTxHex = peer.getCancelPayoutTxHex();
+                try {
+                    peer.setCancelState(CancelState.DECLINED);
+                    peer.setCancelPayoutTxHex(null);
+                    trade.requestPersistence();
+
+                    // the answer stands if its delivery is uncertain, since it is sent again until acked
+                    sendCancelTradeMessage(true, null, () -> {}, errorMessage -> log.warn("Error declining to cancel {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), errorMessage));
+                } catch (Exception e) {
+                    log.warn("Error declining to cancel {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+                    self.setCancelTradeMessage(previousMessage);
+                    peer.setCancelState(CancelState.REQUESTED);
+                    peer.setCancelPayoutTxHex(previousPayoutTxHex);
+                    errorMessageHandler.handleErrorMessage(e.getMessage());
+                    return;
+                }
+                resultHandler.handleResult();
+            }
+        }, trade.getId());
+    }
+
+    // chimes and notifies api clients of the peer's request or answer, which cannot fail its message
+    private void notifyCancel(String title, String action) {
+        HavenoUtils.playChimeSound();
+        try {
+            HavenoUtils.notificationService.sendTradeNotification(trade, title, "The " + (trade.isBuyer() ? "seller" : "buyer") + " has " + action + " to cancel the trade");
+        } catch (Exception e) {
+            log.warn("Error notifying of the peer's cancel message for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+        }
+    }
+
+    // sends the request to cancel, where the seller includes the payout tx returning the deposits for the buyer to sign
+    private void sendCancelRequest(ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        String payoutTxHex = null;
+        if (trade.isSeller()) {
+            trade.awaitInitialized();
+            trade.updateWallet();
+            if (!trade.isPayoutPublished()) {
+                try {
+                    payoutTxHex = trade.createCancelPayoutTx().getTxSet().getMultisigTxHex();
+                } catch (RuntimeException e) {
+                    if (!trade.isPayoutPublished()) throw e; // the buyer can publish the previous payout tx before the wallet sees it
+                }
+            }
+            if (trade.isPayoutPublished()) {
+                resultHandler.handleResult();
+                return;
+            }
+            if (trade.getBuyer().getCancelState() == CancelState.REQUESTED) trade.pollWalletNormallyForMs(Trade.POLL_WALLET_NORMALLY_DEFAULT_PERIOD_MS); // the buyer publishes the payout
+        }
+        sendCancelTradeMessage(false, payoutTxHex, resultHandler, errorMessageHandler);
+    }
+
+    // buyer signs and publishes the seller's payout tx returning the deposits, unless the payment is being marked sent
+    private void completeCancel() {
+        trade.awaitInitialized();
+        trade.updateWallet();
+        if (trade.isCanceled()) return; // the cancel payout is already published
+        if (!cancelLock.tryLock()) throw new IllegalStateException("Trade " + trade.getShortId() + " cannot be canceled while the payment is marked sent");
+        try {
+            if (!trade.isCancelPermitted() || !trade.isDepositsUnlocked()) throw new IllegalStateException("Trade " + trade.getShortId() + " cannot be canceled in its current state");
+            TradePeer seller = trade.getSeller();
+            try {
+                if (seller.getCancelPayoutTxHex() == null) throw new IllegalStateException("The seller's payout tx is not received");
+                log.info("Buyer signing and publishing cancel payout tx for {} {}", trade.getClass().getSimpleName(), trade.getId());
+                trade.processCancelPayoutTx(seller.getCancelPayoutTxHex());
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                if (trade.isCancelSigned()) throw e; // the signed payout tx can be published again
+
+                // otherwise ask the seller for a payout tx created from the buyer's latest multisig hex
+                if (seller.getCancelPayoutTxHex() != null) trade.exportMultisigHex(); // signing can use up the exported multisig hex
+                seller.setCancelPayoutTxHex(null);
+                sendCancelTradeMessage(false, null, () -> {}, errorMessage -> {});
+                throw new IllegalStateException("Asked the seller for a new payout tx to cancel trade " + trade.getShortId() + ", try again later. If the problem persists, both traders should restart Haveno. Error: " + e.getMessage(), e);
+            }
+        } finally {
+            cancelLock.unlock();
+        }
+    }
+
+    private void sendCancelTradeMessage(boolean declined, @Nullable String payoutTxHex, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        CancelTradeMessage message = new CancelTradeMessage(trade.getId(), processModel.getMyNodeAddress(), UUID.randomUUID().toString(), declined, payoutTxHex, declined ? null : trade.getSelf().getUpdatedMultisigHex());
+        trade.getSelf().setCancelTradeMessage(message);
+        if (!declined) trade.getSelf().setCancelState(CancelState.REQUESTED); // set with its message, so a request is never kept without one to send
+        try {
+            processModel.getTradeManager().persistNowAndWait(); // keep the cancel intent before the peer can act on it
+        } catch (Exception e) {
+            log.warn("Error persisting CancelTradeMessage for {} {}: {}", trade.getClass().getSimpleName(), trade.getId(), e.getMessage(), e);
+            throw e;
+        }
+        lastCancelSendArrived = false;
+        numCancelMessageResends = 0;
+        sendCancelTradeMessage(message, SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS, resultHandler, errorMessageHandler);
+    }
+
+    // sends the cancel message again until acked, with bounded backoff and attempts even if the peer remains offline
+    private void sendCancelTradeMessage(CancelTradeMessage message, long resendDelayMins, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        TradePeer peer = trade.getTradePeer();
+        log.info("Send {} to peer {} for {} {}, uid={}", message.getClass().getSimpleName(), peer.getNodeAddress(), trade.getClass().getSimpleName(), trade.getId(), message.getUid());
+        scheduleCancelTradeMessageResend(message, resendDelayMins);
+        try {
+
+            // use a fresh connection if the previous send arrived without an ack, as for other trade messages
+            if (lastCancelSendArrived) {
+                lastCancelSendArrived = false;
+                NetworkNode networkNode = processModel.getP2PService().getNetworkNode();
+                boolean hasOtherConnections = networkNode.getAllConnections().stream().anyMatch(connection -> !connection.isStopped() && !peer.getNodeAddress().equals(connection.getPeersNodeAddressOptional().orElse(null)));
+                if (hasOtherConnections) networkNode.closeConnections(peer.getNodeAddress(), CloseConnectionReason.NO_ACK_RECEIVED);
+            }
+            processModel.getP2PService().getMailboxMessageService().sendEncryptedMailboxMessage(peer.getNodeAddress(), peer.getPubKeyRing(), message, new SendMailboxMessageListener() {
+                @Override
+                public void onArrived() {
+                    if (!trade.isShutDownStarted()) ThreadUtils.execute(() -> {
+                        if (message == trade.getSelf().getCancelTradeMessage()) lastCancelSendArrived = true;
+                    }, trade.getId());
+                    resultHandler.handleResult();
+                }
+
+                @Override
+                public void onStoredInMailbox() {
+                    if (!trade.isShutDownStarted()) ThreadUtils.execute(() -> {
+                        if (message != trade.getSelf().getCancelTradeMessage() || trade.isShutDownStarted()) return;
+                        scheduleCancelTradeMessageResend(message, SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_MAILBOX);
+                    }, trade.getId());
+                    resultHandler.handleResult();
+                }
+
+                @Override
+                public void onFault(String errorMessage) {
+                    errorMessageHandler.handleErrorMessage(errorMessage);
+                }
+            });
+        } catch (Exception e) {
+            errorMessageHandler.handleErrorMessage(e.toString());
+        }
+    }
+
+    // mailbox storage is not an ack: the entry can expire or disappear before the peer receives it
+    private void scheduleCancelTradeMessageResend(CancelTradeMessage message, long resendDelayMins) {
+        if (cancelResendTimer != null) cancelResendTimer.stop();
+        long nextDelayMins = Math.min(resendDelayMins * SendMailboxMessageTask.RESEND_DELAY_MULTIPLIER, SendMailboxMessageTask.INITIAL_RESEND_DELAY_MINS_MAILBOX);
+        cancelResendTimer = UserThread.runAfter(() -> resendCancelTradeMessage(message, nextDelayMins), resendDelayMins, TimeUnit.MINUTES);
+    }
+
+    // sends this trader's latest cancel message again, e.g. if lost on a dead connection or before a restart
+    private void resendCancelTradeMessage(@Nullable CancelTradeMessage message, long resendDelayMins) {
+        if (message == null || trade.isShutDownStarted()) return;
+        ThreadUtils.execute(() -> {
+            TradePeer self = trade.getSelf();
+            if (message != self.getCancelTradeMessage() || trade.isShutDownStarted()) return;
+            if (!message.isDeclined() && (!trade.isCancelPermitted() || self.getCancelState() != CancelState.REQUESTED)) return; // a request is only sent again while it stands
+            if (numCancelMessageResends >= MAX_CANCEL_RESEND_ATTEMPTS) {
+                log.warn("Not sending CancelTradeMessage again for {} {} after {} attempts without an ack", trade.getClass().getSimpleName(), trade.getId(), MAX_CANCEL_RESEND_ATTEMPTS);
+                return;
+            }
+            numCancelMessageResends++;
+            sendCancelTradeMessage(message, resendDelayMins, () -> {}, errorMessage -> {});
+        }, trade.getId());
+    }
+
+    // stops sending the cancel message again once it is acked
+    private void onCancelTradeMessageDelivered(String uid) {
+        TradePeer self = trade.getSelf();
+        if (self.getCancelTradeMessage() == null || !self.getCancelTradeMessage().getUid().equals(uid)) return;
+        self.setCancelTradeMessage(null);
+        if (cancelResendTimer != null) cancelResendTimer.stop();
+        cancelResendTimer = null;
+        lastCancelSendArrived = false;
+        trade.requestPersistence();
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -1082,6 +1405,11 @@ public abstract class TradeProtocol implements DecryptedDirectMessageListener, D
                 log.info("Trade {} {} is finished after PaymentReceivedMessage ACK, shutting it down", trade.getClass().getSimpleName(), trade.getId());
                 trade.clearAndShutDown();
             }
+        }
+
+        // handle ack message for CancelTradeMessage, which is sent again until acked
+        if (ackMessage.getSourceMsgClassName().equals(CancelTradeMessage.class.getSimpleName()) && ackMessage.isSuccess() && verifiedPeer == trade.getTradePeer()) {
+            onCancelTradeMessageDelivered(ackMessage.getSourceUid());
         }
 
         // generic handling
