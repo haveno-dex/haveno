@@ -17,6 +17,7 @@
 
 package haveno.desktop.main.portfolio.pendingtrades;
 
+import haveno.common.UserThread;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.monetary.Price;
@@ -25,8 +26,10 @@ import haveno.core.trade.Trade;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.filtering.FilterableListItem;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.beans.binding.Bindings;
-import javafx.beans.value.ObservableValue;
+import javafx.beans.binding.ObjectBinding;
 import javafx.collections.ObservableMap;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -43,6 +46,8 @@ public class PendingTradesListItem implements FilterableListItem {
         CONFIRMING_DEPOSITS("portfolio.pending.tradeView.confirming", false),
         DEPOSITS_CONFIRMED("portfolio.pending.tradeView.depositsConfirmed", false),
         RECOMMENDED_WAIT("portfolio.pending.tradeView.recommendedWait", false),
+        CANCEL_REQUESTED("portfolio.pending.tradeView.cancelRequested", true),
+        CANCEL_AGREED("portfolio.pending.cancel.confirm.agreed", true),
         SEND_PAYMENT("portfolio.pending.tradeView.sendPayment", true),
         SEND_PAYMENT_OVERDUE("portfolio.pending.tradeView.sendPayment", true),
         WAITING_BUYER("portfolio.pending.tradeView.waitingBuyer", false),
@@ -54,6 +59,7 @@ public class PendingTradesListItem implements FilterableListItem {
         IN_DISPUTE("portfolio.pending.tradeView.inDispute", true),
         IN_DISPUTE_WAITING("portfolio.pending.tradeView.inDispute", false),
         ARBITRATED("portfolio.closed.ticketClosed", false),
+        CANCELED("portfolio.closed.canceled", false),
         COMPLETED("portfolio.pending.step5.completed", false);
 
         private final String resourceKey;
@@ -69,7 +75,8 @@ public class PendingTradesListItem implements FilterableListItem {
     private final CoinFormatter btcFormatter;
     private final Trade trade;
     @Getter
-    private final ObservableValue<TradeStatus> tradeStatus;
+    private final ObjectBinding<TradeStatus> tradeStatus;
+    private final InvalidationListener cancelListener; // held here, as it is observed weakly
 
     public PendingTradesListItem(Trade trade, CoinFormatter btcFormatter, ObservableMap<String, Boolean> showPaymentDetailsEarly) {
         this.trade = trade;
@@ -78,6 +85,13 @@ public class PendingTradesListItem implements FilterableListItem {
                 () -> calculateTradeStatus(showPaymentDetailsEarly.getOrDefault(trade.getId(), false)),
                 trade.stateProperty(), trade.payoutStateProperty(), trade.disputeStateProperty(), trade.tradePeriodStateProperty(),
                 showPaymentDetailsEarly);
+
+        // the cancel states change off the user thread
+        cancelListener = observable -> UserThread.execute(tradeStatus::invalidate);
+        if (!trade.isArbitrator()) {
+            trade.getSelf().getCancelStateProperty().addListener(new WeakInvalidationListener(cancelListener));
+            trade.getTradePeer().getCancelStateProperty().addListener(new WeakInvalidationListener(cancelListener));
+        }
     }
 
     public Trade getTrade() {
@@ -120,6 +134,7 @@ public class PendingTradesListItem implements FilterableListItem {
     }
 
     private TradeStatus calculateBaseTradeStatus(boolean showPaymentDetailsEarly) {
+        if (trade.isCanceled()) return TradeStatus.CANCELED;
         if (trade.isPayoutPublished() || trade.isCompleted()) return TradeStatus.COMPLETED;
         TradeStatus status = calculateStepStatus(showPaymentDetailsEarly);
         Trade.DisputeState disputeState = trade.getDisputeState();
@@ -155,6 +170,7 @@ public class PendingTradesListItem implements FilterableListItem {
             return trade.isBuyer() ? TradeStatus.WAITING_SELLER : TradeStatus.CONFIRM_RECEIPT;
         }
         if (trade.isDepositsUnlocked()) {
+            if (trade.isCancelActionable()) return trade.isCancelAgreed() ? TradeStatus.CANCEL_AGREED : TradeStatus.CANCEL_REQUESTED;
             if (trade.isSeller()) return TradeStatus.WAITING_BUYER;
             boolean recommendedWait = HavenoUtils.RECOMMEND_CONFIRMATIONS_BEFORE_SENDING_PAYMENT &&
                     !trade.isDepositsFinalized() && !showPaymentDetailsEarly;

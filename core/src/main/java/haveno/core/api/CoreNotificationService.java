@@ -70,6 +70,10 @@ public class CoreNotificationService {
         if (trade instanceof SellerTrade && phase == Trade.Phase.PAYMENT_SENT) HavenoUtils.playChimeSound();
 
         // send notification
+        sendTradeNotification(trade, title, message);
+    }
+
+    public void sendTradeNotification(Trade trade, String title, String message) {
         sendNotification(NotificationMessage.newBuilder()
                 .setType(NotificationType.TRADE_UPDATE)
                 .setTrade(TradeInfo.toTradeInfo(trade).toProtoMessage())

@@ -45,27 +45,36 @@ import haveno.daemon.grpc.interceptor.GrpcCallRateMeter;
 import static haveno.daemon.grpc.interceptor.GrpcServiceRateMeteringConfig.getCustomRateMeteringInterceptor;
 import haveno.proto.grpc.CompleteTradeReply;
 import haveno.proto.grpc.CompleteTradeRequest;
+import haveno.proto.grpc.ConfirmCancelTradeReply;
+import haveno.proto.grpc.ConfirmCancelTradeRequest;
 import haveno.proto.grpc.ConfirmPaymentReceivedReply;
 import haveno.proto.grpc.ConfirmPaymentReceivedRequest;
 import haveno.proto.grpc.ConfirmPaymentSentReply;
 import haveno.proto.grpc.ConfirmPaymentSentRequest;
+import haveno.proto.grpc.DeclineCancelTradeReply;
+import haveno.proto.grpc.DeclineCancelTradeRequest;
 import haveno.proto.grpc.GetChatMessagesReply;
 import haveno.proto.grpc.GetChatMessagesRequest;
 import haveno.proto.grpc.GetTradeReply;
 import haveno.proto.grpc.GetTradeRequest;
 import haveno.proto.grpc.GetTradesReply;
 import haveno.proto.grpc.GetTradesRequest;
+import haveno.proto.grpc.RequestCancelTradeReply;
+import haveno.proto.grpc.RequestCancelTradeRequest;
 import haveno.proto.grpc.SendChatMessageReply;
 import haveno.proto.grpc.SendChatMessageRequest;
 import haveno.proto.grpc.TakeOfferReply;
 import haveno.proto.grpc.TakeOfferRequest;
 import haveno.proto.grpc.TradesGrpc.TradesImplBase;
 import static haveno.proto.grpc.TradesGrpc.getCompleteTradeMethod;
+import static haveno.proto.grpc.TradesGrpc.getConfirmCancelTradeMethod;
 import static haveno.proto.grpc.TradesGrpc.getConfirmPaymentReceivedMethod;
 import static haveno.proto.grpc.TradesGrpc.getConfirmPaymentSentMethod;
+import static haveno.proto.grpc.TradesGrpc.getDeclineCancelTradeMethod;
 import static haveno.proto.grpc.TradesGrpc.getGetChatMessagesMethod;
 import static haveno.proto.grpc.TradesGrpc.getGetTradeMethod;
 import static haveno.proto.grpc.TradesGrpc.getGetTradesMethod;
+import static haveno.proto.grpc.TradesGrpc.getRequestCancelTradeMethod;
 import static haveno.proto.grpc.TradesGrpc.getSendChatMessageMethod;
 import static haveno.proto.grpc.TradesGrpc.getTakeOfferMethod;
 import static haveno.proto.grpc.TradesGrpc.getWithdrawFundsMethod;
@@ -193,6 +202,63 @@ class GrpcTradesService extends TradesImplBase {
         }
     }
 
+    @Override
+    public void requestCancelTrade(RequestCancelTradeRequest req,
+                                   StreamObserver<RequestCancelTradeReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getRequestCancelTradeMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+        try {
+            coreApi.requestCancelTrade(req.getTradeId(),
+                    () -> {
+                        var reply = RequestCancelTradeReply.newBuilder().build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
+        } catch (Throwable cause) {
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void confirmCancelTrade(ConfirmCancelTradeRequest req,
+                                   StreamObserver<ConfirmCancelTradeReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getConfirmCancelTradeMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+        try {
+            coreApi.confirmCancelTrade(req.getTradeId(),
+                    () -> {
+                        var reply = ConfirmCancelTradeReply.newBuilder().build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
+        } catch (Throwable cause) {
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
+    @Override
+    public void declineCancelTrade(DeclineCancelTradeRequest req,
+                                   StreamObserver<DeclineCancelTradeReply> responseObserver) {
+        GrpcErrorMessageHandler errorMessageHandler = new GrpcErrorMessageHandler(getDeclineCancelTradeMethod().getFullMethodName(), responseObserver, exceptionHandler, log);
+        try {
+            coreApi.declineCancelTrade(req.getTradeId(),
+                    () -> {
+                        var reply = DeclineCancelTradeReply.newBuilder().build();
+                        responseObserver.onNext(reply);
+                        responseObserver.onCompleted();
+                    },
+                    errorMessage -> {
+                        if (!errorMessageHandler.isErrorHandled()) errorMessageHandler.handleErrorMessage(errorMessage);
+                    });
+        } catch (Throwable cause) {
+            if (!errorMessageHandler.isErrorHandled()) exceptionHandler.handleException(log, cause, responseObserver);
+        }
+    }
+
     // TODO: rename CompleteTradeRequest to CloseTradeRequest
     @Override
     public void completeTrade(CompleteTradeRequest req,
@@ -253,6 +319,9 @@ class GrpcTradesService extends TradesImplBase {
                             put(getTakeOfferMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
                             put(getConfirmPaymentSentMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
                             put(getConfirmPaymentReceivedMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
+                            put(getRequestCancelTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
+                            put(getConfirmCancelTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
+                            put(getDeclineCancelTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
                             put(getCompleteTradeMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 3, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));
                             put(getWithdrawFundsMethod().getFullMethodName(), new GrpcCallRateMeter(3, MINUTES));
                             put(getGetChatMessagesMethod().getFullMethodName(), new GrpcCallRateMeter(Config.baseCurrencyNetwork().isLocal() ? 75 : 4, Config.baseCurrencyNetwork().isLocal() ? SECONDS : MINUTES));

@@ -66,6 +66,8 @@ message NetworkEnvelope {
         MediatedPayoutTxPublishedMessage mediated_payout_tx_published_message = 38;
 
         FileTransferPart file_transfer_part = 39 [deprecated = true]; // handling removed; kept to reserve the wire format
+
+        CancelTradeMessage cancel_trade_message = 40;
     }
 }
 
@@ -342,6 +344,15 @@ message PaymentReceivedMessage {
     string payout_tx_id = 12;
     // Signer chain proving the seller is a valid signer; excluded from the seller signature, validated on receipt.
     repeated SignedWitness signer_chain = 13;
+}
+
+message CancelTradeMessage {
+    string trade_id = 1;
+    NodeAddress sender_node_address = 2;
+    string uid = 3;
+    bool declined = 4;
+    string payout_tx_hex = 5;
+    string updated_multisig_hex = 6;
 }
 
 message MediatedPayoutTxPublishedMessage {
@@ -1772,9 +1783,16 @@ message ProcessModel {
     bool import_multisig_hex_scheduled = 20;
     bool payment_sent_payout_tx_stale = 21;
     bool error_on_payment_received_msg = 22 [deprecated = true]; // used during debugging across clients (can be repurposed)
+    repeated string processed_cancel_message_uids = 23;
 }
 
 message TradePeer {
+    enum CancelState {
+        UNDEFINED = 0;
+        REQUESTED = 1;
+        DECLINED = 2;
+    }
+
     NodeAddress node_address = 1;
     PubKeyRing pub_key_ring = 2;
     string account_id = 3;
@@ -1818,6 +1836,9 @@ message TradePeer {
     string payment_received_message_state = 45;
     string dispute_opened_message_state = 47;
     string dispute_closed_message_state = 48;
+    CancelState cancel_state = 49;
+    string cancel_payout_tx_hex = 50;
+    CancelTradeMessage cancel_trade_message = 51;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

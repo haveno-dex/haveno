@@ -73,6 +73,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.Trade.DisputeState;
 import haveno.core.trade.failed.FailedTradesManager;
 import haveno.core.trade.handlers.TradeResultHandler;
+import haveno.core.trade.messages.CancelTradeMessage;
 import haveno.core.trade.messages.DepositsConfirmedMessage;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.PaymentReceivedMessage;
@@ -203,6 +204,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         private static List<Class<? extends MailboxMessage>> messageOrder = Arrays.asList(
             AckMessage.class,
             DepositsConfirmedMessage.class,
+            CancelTradeMessage.class,
             PaymentSentMessage.class,
             PaymentReceivedMessage.class,
             DisputeOpenedMessage.class,
@@ -773,6 +775,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
     public void persistNow(@Nullable Runnable completeHandler) {
         persistenceManager.persistNow(completeHandler);
+    }
+
+    public void persistNowAndWait() {
+        persistenceManager.persistNowAndWait();
     }
 
     /**
