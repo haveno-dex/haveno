@@ -834,6 +834,12 @@ service Trades {
     }
     rpc ConfirmPaymentReceived (ConfirmPaymentReceivedRequest) returns (ConfirmPaymentReceivedReply) {
     }
+    rpc RequestCancelTrade (RequestCancelTradeRequest) returns (RequestCancelTradeReply) {
+    }
+    rpc ConfirmCancelTrade (ConfirmCancelTradeRequest) returns (ConfirmCancelTradeReply) {
+    }
+    rpc DeclineCancelTrade (DeclineCancelTradeRequest) returns (DeclineCancelTradeReply) {
+    }
     rpc CompleteTrade (CompleteTradeRequest) returns (CompleteTradeReply) {
     }
     rpc WithdrawFunds (WithdrawFundsRequest) returns (WithdrawFundsReply) {
@@ -868,6 +874,27 @@ message ConfirmPaymentReceivedRequest {
 }
 
 message ConfirmPaymentReceivedReply {
+}
+
+message RequestCancelTradeRequest {
+    string trade_id = 1;
+}
+
+message RequestCancelTradeReply {
+}
+
+message ConfirmCancelTradeRequest {
+    string trade_id = 1;
+}
+
+message ConfirmCancelTradeReply {
+}
+
+message DeclineCancelTradeRequest {
+    string trade_id = 1;
+}
+
+message DeclineCancelTradeReply {
 }
 
 message GetTradeRequest {
@@ -968,6 +995,10 @@ message TradeInfo {
     uint64 start_time = 40;
     uint64 max_duration_ms = 41;
     uint64 deadline_time = 42;
+    string buyer_cancel_state = 45;
+    string seller_cancel_state = 46;
+    bool is_canceled = 47;
+    bool is_cancel_signed = 48; // the buyer signed the cancel payout, so the payment must not be sent
 }
 
 message ContractInfo {

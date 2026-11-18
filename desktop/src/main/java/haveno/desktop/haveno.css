@@ -194,6 +194,10 @@
     -fx-text-fill: -bs-background-color;
 }
 
+.action-button.destructive-button {
+    -bs-color-primary-dark: -bs-red;
+}
+
 .action-button.compact-button, .compact-button  {
     -fx-padding: 0 15 0 15;
 }

@@ -420,6 +420,7 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             // deposits unlocked or finalized
             case DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN:
             case DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN:
+                if (trade.isPayoutPublished()) break; // stay on the last step if canceled or arbitrated before the payment
                 buyerState.set(BuyerState.STEP2);
                 sellerState.set(SellerState.STEP2);
                 break;
@@ -491,6 +492,9 @@ public class PendingTradesViewModel extends ActivatableWithDataModel<PendingTrad
             case PAYOUT_FINALIZED:
                 sellerState.set(SellerState.STEP4);
                 buyerState.set(BuyerState.STEP4);
+                break;
+            case PAYOUT_UNPUBLISHED:
+                onTradeStateChanged(trade.getState()); // a cancel payout can be lost without the trade state changing
                 break;
             default:
                 break;

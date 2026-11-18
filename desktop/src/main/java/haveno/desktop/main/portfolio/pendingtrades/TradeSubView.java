@@ -168,9 +168,10 @@ public abstract class TradeSubView extends VBox {
         boolean completed = viewState == PendingTradesViewModel.BuyerState.STEP4 || viewState == PendingTradesViewModel.SellerState.STEP4;
         boolean arbitrated = completed && selectedTrade != null && !selectedTrade.getDisputeState().isMediated() &&
                 selectedTrade.getDisputeState().isDisputed() && selectedTrade.getDisputeResult() != null;
-        steps.setVisible(!arbitrated);
-        steps.setManaged(!arbitrated);
-        pseudoClassStateChanged(PseudoClass.getPseudoClass("arbitrated"), arbitrated);
+        boolean canceled = completed && selectedTrade != null && selectedTrade.isCanceled();
+        steps.setVisible(!arbitrated && !canceled);
+        steps.setManaged(!arbitrated && !canceled);
+        pseudoClassStateChanged(PseudoClass.getPseudoClass("arbitrated"), arbitrated || canceled);
     }
 
     void addWizardsToGridPane(TradeWizardItem item) {

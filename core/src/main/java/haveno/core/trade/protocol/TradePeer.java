@@ -30,12 +30,15 @@ import haveno.core.proto.CoreProtoResolver;
 import haveno.core.support.dispute.messages.DisputeClosedMessage;
 import haveno.core.support.dispute.messages.DisputeOpenedMessage;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.messages.CancelTradeMessage;
 import haveno.core.trade.messages.PaymentReceivedMessage;
 import haveno.core.trade.messages.PaymentSentMessage;
 import haveno.network.p2p.AckMessage;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +57,14 @@ import java.util.Optional;
 @Getter
 @Setter
 public final class TradePeer implements PersistablePayload {
+
+    // state of a trader's request to cancel the trade
+    public enum CancelState {
+        UNDEFINED,
+        REQUESTED,
+        DECLINED
+    }
+
     // Transient/Mutable
     // Added in v1.2.0
     @Setter
@@ -167,6 +178,12 @@ public final class TradePeer implements PersistablePayload {
     private ObjectProperty<MessageState> disputeOpenedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
     @Setter
     private ObjectProperty<MessageState> disputeClosedMessageStateProperty = new SimpleObjectProperty<>(MessageState.UNDEFINED);
+
+    // a trader can ask to cancel once per trade, so the state is kept after the request is declined
+    private final ObjectProperty<CancelState> cancelStateProperty = new SimpleObjectProperty<>(CancelState.UNDEFINED);
+    private final StringProperty cancelPayoutTxHexProperty = new SimpleStringProperty(); // payout tx returning the deposits, as created by the seller or as signed by the buyer
+    @Nullable
+    private CancelTradeMessage cancelTradeMessage; // this trader's latest cancel message until it is acked
 
     public TradePeer() {
     }
@@ -282,6 +299,31 @@ public final class TradePeer implements PersistablePayload {
         }
     }
 
+    public CancelState getCancelState() {
+        return cancelStateProperty.get();
+    }
+
+    public void setCancelState(CancelState cancelState) {
+        cancelStateProperty.set(cancelState);
+        if (tradeManager != null) {
+            tradeManager.requestPersistence();
+        }
+    }
+
+    @Nullable
+    public String getCancelPayoutTxHex() {
+        return cancelPayoutTxHexProperty.get();
+    }
+
+    public void setCancelPayoutTxHex(@Nullable String cancelPayoutTxHex) {
+        cancelPayoutTxHexProperty.set(cancelPayoutTxHex);
+    }
+
+    // a trader can ask to cancel once, and once more to agree to the peer's request after their own was declined
+    public boolean canRequestCancel(TradePeer peer) {
+        return getCancelState() == CancelState.UNDEFINED || getCancelState() == CancelState.DECLINED && peer.getCancelState() == CancelState.REQUESTED;
+    }
+
     public boolean isDepositsConfirmedMessageAcked() {
         return depositsConfirmedMessageStateProperty.get() == MessageState.ACKNOWLEDGED;
     }
@@ -368,6 +410,9 @@ public final class TradePeer implements PersistablePayload {
         builder.setPaymentReceivedMessageState(paymentReceivedMessageStateProperty.get().name());
         builder.setDisputeOpenedMessageState(disputeOpenedMessageStateProperty.get().name());
         builder.setDisputeClosedMessageState(disputeClosedMessageStateProperty.get().name());
+        builder.setCancelState(protobuf.TradePeer.CancelState.valueOf(cancelStateProperty.get().name()));
+        Optional.ofNullable(getCancelPayoutTxHex()).ifPresent(builder::setCancelPayoutTxHex);
+        Optional.ofNullable(cancelTradeMessage).ifPresent(e -> builder.setCancelTradeMessage(e.toProtoNetworkEnvelope().getCancelTradeMessage()));
 
         builder.setCurrentDate(currentDate);
         return builder.build();
@@ -438,6 +483,10 @@ public final class TradePeer implements PersistablePayload {
             String disputeClosedMessageStateString = ProtoUtil.stringOrNullFromProto(proto.getDisputeClosedMessageState());
             MessageState disputeClosedMessageState = ProtoUtil.enumFromProto(MessageState.class, disputeClosedMessageStateString);
             tradePeer.setDisputeClosedMessageState(disputeClosedMessageState);
+
+            tradePeer.setCancelState(ProtoUtil.enumFromProto(CancelState.class, proto.getCancelState().name()));
+            tradePeer.setCancelPayoutTxHex(ProtoUtil.stringOrNullFromProto(proto.getCancelPayoutTxHex()));
+            tradePeer.setCancelTradeMessage(proto.hasCancelTradeMessage() ? CancelTradeMessage.fromProto(proto.getCancelTradeMessage()) : null);
 
             return tradePeer;
         }

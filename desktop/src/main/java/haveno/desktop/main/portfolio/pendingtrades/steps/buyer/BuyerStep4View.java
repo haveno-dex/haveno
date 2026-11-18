@@ -83,6 +83,8 @@ public class BuyerStep4View extends TradeStepView {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.mediated"));
         } else if (trade.getDisputeState().isDisputed() && trade.getDisputeResult() != null) {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.arbitrated"));
+        } else if (trade.isCanceled()) {
+            completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle.canceled"));
         } else {
             completedTradeLabel.setText(Res.get("portfolio.pending.step5_buyer.groupTitle"));
         }
@@ -124,7 +126,7 @@ public class BuyerStep4View extends TradeStepView {
         });
 
         String key = "tradeCompleted" + trade.getId();
-        if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key)) {
+        if (!DevEnv.isDevMode() && DontShowAgainLookup.showAgain(key) && !trade.isCanceled()) {
             DontShowAgainLookup.dontShowAgain(key, true);
             new Notification().headLine(Res.get("notification.tradeCompleted.headline"))
                     .notification(Res.get("notification.tradeCompleted.msg"))
@@ -138,7 +140,7 @@ public class BuyerStep4View extends TradeStepView {
         closeButton.setDisable(true);
         model.dataModel.xmrWalletService.swapAddressEntryToAvailable(trade.getId(), XmrAddressEntry.Context.TRADE_PAYOUT);
 
-        openTradeFeedbackWindow();
+        if (!trade.isCanceled()) openTradeFeedbackWindow();
     }
 
     private void openTradeFeedbackWindow() {

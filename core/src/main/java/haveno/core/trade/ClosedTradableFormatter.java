@@ -158,6 +158,8 @@ public class ClosedTradableFormatter {
                 if (arbitratedBuyerGain.signum() <= 0) return Res.get("portfolio.closed.canceledByArbitration");
                 if (arbitratedBuyerGain.compareTo(trade.getAmount()) >= 0) return Res.get("portfolio.closed.completedByArbitration");
                 return Res.get("portfolio.closed.ticketClosed");
+            } else if (trade.isCanceled()) {
+                return Res.get("portfolio.closed.canceled");
             } else if (trade.isCompleted() || trade.isPayoutPublished()) {
                 return Res.get("portfolio.closed.completed");
             } else if (trade.getDisputeState() == DISPUTE_CLOSED) {
