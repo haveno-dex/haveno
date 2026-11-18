@@ -205,6 +205,8 @@ public class SignedWitnessServiceTest {
                 new SignedWitness(ARBITRATOR, account1DataHash, signature1, new byte[0], witnessOwner1PubKey, date1, tradeAmount1),
                 new SignedWitness(ARBITRATOR, account1DataHash, Base64.getEncoder().encode(malformedSignature),
                         signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1),
+                new SignedWitness(ARBITRATOR, account1DataHash, ("A".repeat(64) + "=").getBytes(Charsets.UTF_8),
+                        signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1),
                 new SignedWitness(TRADE, account1DataHash, signature1, new byte[0], witnessOwner1PubKey, date1, tradeAmount1),
                 new SignedWitness(ARBITRATOR, new byte[0], signature1, signer1PubKey, witnessOwner1PubKey, date1, tradeAmount1),
                 new SignedWitness(TRADE, account1DataHash, signature1, signer1PubKey, new byte[0], date1, tradeAmount1))) {

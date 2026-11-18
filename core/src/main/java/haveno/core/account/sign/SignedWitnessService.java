@@ -46,7 +46,6 @@ import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -66,6 +65,7 @@ import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.util.encoders.Base64;
 
 @Slf4j
 public class SignedWitnessService {
@@ -556,9 +556,10 @@ public class SignedWitnessService {
             ECKey key = ECKey.fromPublicOnly(signedWitness.getSignerPubKey());
             // canonical encoding limits replays, but legacy signatures still leave the owner and date unbound
             // full replay protection requires a coordinated signing-format migration
-            byte[] signature = Base64.getDecoder().decode(signatureBase64);
+            // bouncycastle decodes in plain java, keeping peer input out of the JDK decoder intrinsic
+            byte[] signature = Base64.decode(signedWitness.getSignature());
             if (signature.length != 65
-                    || !Arrays.equals(Base64.getEncoder().encode(signature), signedWitness.getSignature())
+                    || !Arrays.equals(Base64.encode(signature), signedWitness.getSignature())
                     || signature[0] < 27 || signature[0] > 34
                     || (((signature[0] - 27) & 4) != 0) != key.isCompressed()
                     || new BigInteger(1, Arrays.copyOfRange(signature, 33, 65)).compareTo(ECKey.HALF_CURVE_ORDER) > 0) {
