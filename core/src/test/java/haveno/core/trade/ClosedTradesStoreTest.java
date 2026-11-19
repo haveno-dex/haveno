@@ -30,6 +30,7 @@ import haveno.common.file.FileUtil;
 import haveno.common.persistence.EncryptedAppendLog;
 import haveno.common.persistence.PersistenceManager;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.core.api.XmrConnectionService;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferPayload;
@@ -1607,6 +1608,28 @@ public class ClosedTradesStoreTest {
                         .setPayoutState(Trade.PayoutState.toProtoMessage(state)).setPayoutHeight(100)).build(), mock(XmrWalletService.class), resolver);
                 assertEquals(restored.isPayoutConfirmed() ? 100 : 0,
                         ((protobuf.Tradable) restored.toProtoMessage()).getBuyerAsMakerTrade().getTrade().getPayoutHeight(), state.name());
+            }
+        }
+    }
+
+    @Test
+    public void testPayoutConfirmationsCountFromRecordedHeight() throws Exception {
+        try (var userThread = mockStatic(UserThread.class)) {
+            XmrWalletService walletService = mock(XmrWalletService.class);
+            XmrConnectionService connectionService = mock(XmrConnectionService.class);
+            when(walletService.getXmrConnectionService()).thenReturn(connectionService);
+            protobuf.BuyerAsMakerTrade proto = ((protobuf.Tradable) handoffTrade().toProtoMessage()).getBuyerAsMakerTrade();
+            for (Trade.PayoutState state : Trade.PayoutState.values()) {
+                Trade restored = (Trade) BuyerAsMakerTrade.fromProto(proto.toBuilder().setTrade(proto.getTrade().toBuilder()
+                        .setPayoutState(Trade.PayoutState.toProtoMessage(state)).setPayoutHeight(100)).build(), walletService, resolver);
+                Long unconfirmed = restored.isPayoutPublished() ? 0L : null;
+                when(connectionService.getHeight()).thenReturn(null);
+                assertEquals(restored.isPayoutConfirmed() ? null : unconfirmed, restored.getNumPayoutConfirmations(), state.name());
+                when(connectionService.getHeight()).thenReturn(103L);
+                assertEquals(restored.isPayoutConfirmed() ? Long.valueOf(3) : unconfirmed, restored.getNumPayoutConfirmations(), state.name());
+                // a daemon behind the payout block still counts the block that confirmed it
+                when(connectionService.getHeight()).thenReturn(99L);
+                assertEquals(restored.isPayoutConfirmed() ? Long.valueOf(1) : unconfirmed, restored.getNumPayoutConfirmations(), state.name());
             }
         }
     }

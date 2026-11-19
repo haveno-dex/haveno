@@ -122,6 +122,7 @@ public abstract class TradeStepView extends VBox {
     private VBox depositDetails;
     private ToggleButton depositsToggle;
     private Subscription payoutSubscription;
+    private Subscription payoutConfirmationsSubscription;
     private final Label syncLabel = new Label();
     private boolean confirmationInProgress;
     private boolean walletUpdatePending;
@@ -253,8 +254,13 @@ public abstract class TradeStepView extends VBox {
                 boolean showHelp = !completed && !trade.isPayoutPublished();
                 helpPane.setVisible(showHelp);
                 helpPane.setManaged(showHelp);
+                if (completed) showPayoutTx();
             }
         }));
+        // payout confirmations follow the chain height, which each daemon update announces
+        payoutConfirmationsSubscription = EasyBind.subscribe(model.dataModel.xmrWalletService.getXmrConnectionService().numUpdatesProperty(), numUpdates -> {
+            if (completed) showPayoutTx();
+        });
         trade.errorMessageProperty().addListener(errorMessageListener);
 
         tradeStepInfo.setOnAction(e -> {
@@ -431,6 +437,7 @@ public abstract class TradeStepView extends VBox {
         if (selfDeposit != null) selfDeposit.cleanup();
         if (peerDeposit != null) peerDeposit.cleanup();
         if (payout != null) payout.cleanup();
+        if (payoutConfirmationsSubscription != null) payoutConfirmationsSubscription.unsubscribe();
         if (payoutSubscription != null) payoutSubscription.unsubscribe();
 
         if (errorMessageListener != null)
@@ -949,16 +956,23 @@ public abstract class TradeStepView extends VBox {
         deadlinePane.setVisible(false);
         deadlinePane.setManaged(false);
         tradeStepInfo.setState(TradeStepInfo.State.TRADE_COMPLETED);
+        showPayoutTx();
+    }
+
+    // a payout published by the peer is first seen as spent funds, before its id is known
+    private void showPayoutTx() {
         String payoutId = trade.getPayoutTxId();
-        if (payout == null && payoutId != null && !payoutId.isEmpty()) {
-            Label title = new Label(Res.get("portfolio.pending.tradeView.payoutTransaction"));
-            title.getStyleClass().add("trade-section-heading");
-            payout = new TradeDepositView(Res.get("shared.txId"), preferences, false);
-            payout.update(null, payoutId, false);
-            VBox payoutPane = new VBox(16, title, payout);
-            payoutPane.getStyleClass().addAll("trade-panel", "trade-payout-panel");
-            sidebar.getChildren().add(0, payoutPane);
-        }
+        if (payoutId == null || payoutId.isEmpty()) return;
+        boolean shown = payout != null;
+        if (!shown) payout = new TradeDepositView(Res.get("shared.txId"), preferences);
+        // the id is set before the view joins the scene, where its text area sizes itself to the text it has
+        payout.updateConfirmations(payoutId, trade.getNumPayoutConfirmations(), trade.isPayoutUnlocked());
+        if (shown) return;
+        Label title = new Label(Res.get("portfolio.pending.tradeView.payoutTransaction"));
+        title.getStyleClass().add("trade-section-heading");
+        VBox payoutPane = new VBox(16, title, payout);
+        payoutPane.getStyleClass().addAll("trade-panel", "trade-payout-panel");
+        sidebar.getChildren().add(0, payoutPane);
     }
 
     protected String getFirstHalfOverWarnText() {

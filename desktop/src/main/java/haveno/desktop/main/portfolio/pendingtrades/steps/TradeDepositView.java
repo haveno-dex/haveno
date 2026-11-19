@@ -25,6 +25,7 @@ import haveno.desktop.util.GUIUtil;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import javafx.animation.PauseTransition;
+import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.control.Hyperlink;
@@ -34,6 +35,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.util.Duration;
 import monero.wallet.model.MoneroTxWallet;
 
@@ -47,10 +49,6 @@ public class TradeDepositView extends VBox {
     private String txId;
 
     public TradeDepositView(String title, Preferences preferences) {
-        this(title, preferences, true);
-    }
-
-    public TradeDepositView(String title, Preferences preferences, boolean showConfirmations) {
         this.preferences = preferences;
         getStyleClass().add("trade-deposit");
         setSpacing(10);
@@ -61,8 +59,8 @@ public class TradeDepositView extends VBox {
         confirmations.getStyleClass().add("trade-field-label");
         confirmations.setWrapText(true);
         confirmations.setAlignment(Pos.CENTER_RIGHT);
-        confirmations.setVisible(showConfirmations);
-        confirmations.setManaged(showConfirmations);
+        keepWordsWhole(heading);
+        keepWordsWhole(confirmations);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox header = new HBox(8, heading, spacer, confirmations);
@@ -112,6 +110,31 @@ public class TradeDepositView extends VBox {
         else if (count == null)
             confirmations.setText(unlocked ? Res.get("confidence.confirmed", ">=10") : Res.get("confidence.unknown"));
         else confirmations.setText(Res.get("portfolio.pending.tradeView.depositCount", count));
+    }
+
+    // shows a known confirmation count instead of a wallet transaction's
+    public void updateConfirmations(String hash, Long numConfirmations, boolean unlocked) {
+        update(null, hash, unlocked);
+        if (numConfirmations == null) return;
+        confirmations.pseudoClassStateChanged(PseudoClass.getPseudoClass("confirmed"), unlocked || numConfirmations > 0);
+        confirmations.setText(Res.get("portfolio.pending.tradeView.depositCount", numConfirmations));
+    }
+
+    // a label is never narrower than its longest word, which would break otherwise
+    private static void keepWordsWhole(Label label) {
+        Text word = new Text();
+        label.minWidthProperty().bind(Bindings.createDoubleBinding(() -> {
+            String text = label.getText();
+            // text without spaces is one word in Latin, Greek or Cyrillic, while other scripts may wrap anywhere
+            if (!text.contains(" ") && text.chars().anyMatch(c -> c >= 0x0590)) return Region.USE_COMPUTED_SIZE;
+            word.setFont(label.getFont());
+            double width = 0;
+            for (String part : text.split(" ")) {
+                word.setText(part);
+                width = Math.max(width, word.getLayoutBounds().getWidth());
+            }
+            return Math.ceil(width);
+        }, label.textProperty(), label.fontProperty()));
     }
 
     static Long getNumConfirmations(MoneroTxWallet transaction) {
