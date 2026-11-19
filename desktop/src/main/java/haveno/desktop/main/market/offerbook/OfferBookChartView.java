@@ -1318,6 +1318,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
     // from the market price, or from the best price if that is nearer the other side, at most 7% of its price.
     private static final double RANGE_CONTEXT_RATIO = 2;
     private static final double RANGE_CONTEXT_PRICE_RATIO = 0.07;
+    // Past 12% from the market price, or from the best price without one, the range ends past its farthest offer
+    // by a twentieth of that offer's distance from the price.
+    private static final double RANGE_CONTEXT_REACH_RATIO = 0.12;
+    private static final double RANGE_MARGIN_RATIO = 0.05;
     // The range reaches at least the tenth offer of the side, so thin books show in full.
     private static final int RANGE_MIN_OFFERS = 10;
     // The range ends short of 3x the farther of the market price and the best price.
@@ -1384,10 +1388,16 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             }
             double nearPrice = farSideHigh ? Math.min(bestPrice, anchorPrice) : Math.max(bestPrice, anchorPrice);
             double context = Math.min(RANGE_CONTEXT_RATIO * Math.abs(earnedPrice - nearPrice), earnedPrice * RANGE_CONTEXT_PRICE_RATIO);
-            double rangeEnd = farSideHigh ? earnedPrice + context : earnedPrice - context;
+            double rangeEnd = farSideHigh
+                    ? Math.min(Math.max(earnedPrice + context, minOffersPrice), Math.nextDown(outerLimit))
+                    : Math.max(Math.min(earnedPrice - context, minOffersPrice), Math.nextUp(outerLimit));
+            double farthestPrice = outward.stream().mapToDouble(o -> o.getXValue().doubleValue())
+                    .takeWhile(price -> farSideHigh ? price <= rangeEnd : price >= rangeEnd).reduce(bestPrice, (nearer, farther) -> farther);
+            double marginEnd = farthestPrice + (farthestPrice - anchorPrice) * RANGE_MARGIN_RATIO;
+            double contextReach = anchorPrice * (farSideHigh ? 1 + RANGE_CONTEXT_REACH_RATIO : 1 - RANGE_CONTEXT_REACH_RATIO);
             return new Range(earnedPrice, farSideHigh
-                    ? Math.min(Math.max(rangeEnd, minOffersPrice), Math.nextDown(outerLimit))
-                    : Math.max(Math.min(rangeEnd, minOffersPrice), Math.nextUp(outerLimit)));
+                    ? Math.min(rangeEnd, Math.max(marginEnd, contextReach))
+                    : Math.max(rangeEnd, Math.min(marginEnd, contextReach)));
         }
     }
 
