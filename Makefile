@@ -196,8 +196,8 @@ funding-wallet-local:
 		--wallet-dir ./.localnet \
 
 # mine blocks at random intervals averaging one second, e.g. make miner-local ADDRESS=<address>
+miner-local: ADDRESS ?= 45L2BnYnjPe4K74PfyNLCg37UPr7GTeVcRaSQYVTNFw9XebBpTexBTFNzCMhHWM5ftFBFiQMbAAd5ZR5fRdjx67R3h5mhTY
 miner-local:
-	@test -n "$(ADDRESS)" || { echo "Usage: make miner-local ADDRESS=<address>"; exit 1; }
 	@echo "Mining a block about every second to $(ADDRESS)"
 	@while true; do \
 		curl -s http://localhost:28081/json_rpc -H 'Content-Type: application/json' \
