@@ -1112,9 +1112,10 @@ public class OfferBookChartView extends ActivatableViewAndModel<VBox, OfferBookC
             String percentText = offer != null ? model.getPriceAsPercentage(offer.offer)
                     : isMarketPrice || chartMarketPrice <= 0 ? "" : FormattingUtils.formatPercentagePrice(Math.abs(price / chartMarketPrice - 1));
             if (!percentText.isEmpty()) percentChip = chipBox(addChip(percentText, x, plot.getMinY() - DEVIATION_TICK_HEIGHT - CHIP_HEIGHT, plot));
-            if (offer != null && isPlotted) {
-                // the depth up to the offer reads on the volume axis, level with the marker
-                Label chip = addChip(FormattingUtils.formatRoundedDoubleWithPrecision(offer.accumulated, 2), x, y, plot);
+            if (offer != null) {
+                // the depth up to the offer reads on the volume axis at its height, pinned to the top past the scale
+                String depthText = FormattingUtils.formatRoundedDoubleWithPrecision(offer.accumulated, 2);
+                Label chip = addChip(offer.accumulated > yAxis.getUpperBound() ? depthText + " \u25B4" : depthText, x, y, plot);
                 chip.relocate(Math.min(plot.getMaxX() + yAxis.getTickLength(), focusPane.getWidth() - chip.getWidth()),
                         Math.max(plot.getMinY(), Math.min(y - CHIP_HEIGHT / 2, plot.getMaxY() - CHIP_HEIGHT)));
                 depthChip = chipBox(chip);
