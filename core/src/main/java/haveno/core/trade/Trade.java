@@ -3072,6 +3072,16 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         return getPayoutState().ordinal() >= PayoutState.PAYOUT_FINALIZED.ordinal();
     }
 
+    // counted from the recorded payout height, which is persisted unlike the payout tx
+    @Nullable
+    public Long getNumPayoutConfirmations() {
+        if (!isPayoutPublished()) return null;
+        if (!isPayoutConfirmed()) return 0L;
+        Long height = xmrConnectionService.getHeight();
+        Long payoutHeight = this.payoutHeight;
+        return height == null || payoutHeight == null ? null : Math.max(1, height - payoutHeight);
+    }
+
     /**
      * The trade wallet is retained (but no longer opened or synced) after the payout is finalized,
      * then deleted once the payout tx reaches {@link #NUM_BLOCKS_PAYOUT_DELETED} confirmations.
