@@ -23,6 +23,7 @@ import haveno.common.app.Capability;
 import haveno.common.crypto.Sig;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.TestUtils;
+import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.NetworkNode;
 import haveno.network.p2p.peers.getdata.messages.GetDataRequest;
 import haveno.network.p2p.peers.getdata.messages.GetDataResponse;
@@ -245,6 +246,32 @@ public class P2PDataStorageBuildGetDataResponseTest {
             // We use a set at the filter so it is not deterministic which item get truncated
             assertEquals(1, persistableNetworkPayloadSet.size());
             assertTrue(getDataResponse.getDataSet().isEmpty());
+        }
+
+        // TESTCASE: Given a GetDataRequest w/o known PNP, a PNP above the size limit is left out without truncating the rest
+        @Test
+        public void buildGetDataResponse_unknownPNPAboveSizeLimitLeftOut() {
+            PersistableNetworkPayload oversized = new PersistableNetworkPayloadStub(new byte[]{1});
+            when(oversized.toProtoMessage().getSerializedSize()).thenReturn(Connection.getMaxPermittedMessageSize());
+            PersistableNetworkPayload onlyLocal = new PersistableNetworkPayloadStub(new byte[]{2});
+
+            this.testState.mockedStorage.addPersistableNetworkPayload(
+                    oversized, this.localNodeAddress, false);
+            this.testState.mockedStorage.addPersistableNetworkPayload(
+                    onlyLocal, this.localNodeAddress, false);
+
+            GetDataRequest getDataRequest =
+                    this.buildGetDataRequest(1, new HashSet<>());
+
+            AtomicBoolean outPNPTruncated = new AtomicBoolean(false);
+            AtomicBoolean outPSETruncated = new AtomicBoolean(false);
+            Capabilities peerCapabilities = new Capabilities();
+            GetDataResponse getDataResponse = this.testState.mockedStorage.buildGetDataResponse(
+                    getDataRequest, 2, outPNPTruncated, outPSETruncated, peerCapabilities);
+
+            assertFalse(outPNPTruncated.get());
+            assertFalse(outPSETruncated.get());
+            assertEquals(Set.of(onlyLocal), getDataResponse.getPersistableNetworkPayloadSet());
         }
 
         // TESTCASE: Given a GetDataRequest w/o known PNP, but missing required capabilities, nothing is sent back

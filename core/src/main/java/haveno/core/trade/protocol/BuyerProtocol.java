@@ -113,8 +113,11 @@ public class BuyerProtocol extends DisputeProtocol {
             return;
         }
 
-        // advance trade state
-        if (trade.isDepositsUnlocked() || trade.isDepositsFinalized() || trade.isPaymentSent()) {
+        // advance trade state, keeping the progress of an earlier confirmation
+        boolean wasPaymentSent = trade.isPaymentSent();
+        if (wasPaymentSent) {
+            log.info("Payment was already confirmed as sent for {} {}, sending message again if not acknowledged", trade.getClass().getSimpleName(), trade.getShortId());
+        } else if (trade.isDepositsUnlocked() || trade.isDepositsFinalized()) {
             trade.setStateIfValidTransitionTo(Trade.State.BUYER_CONFIRMED_PAYMENT_SENT);
         } else {
             errorMessageHandler.handleErrorMessage("Cannot confirm payment sent for " + trade.getClass().getSimpleName() + " " + trade.getShortId() + " in state " + trade.getState());
@@ -145,6 +148,8 @@ public class BuyerProtocol extends DisputeProtocol {
                                     (errorMessage) -> {
                                         if (trade.isPayoutPublished()) {
                                             log.warn("Error confirming payment sent, payout already published, error={}", errorMessage);
+                                        } else if (wasPaymentSent) {
+                                            log.warn("Error confirming payment sent again, keeping state {}, error={}", trade.getState(), errorMessage);
                                         } else {
                                             log.warn("Error confirming payment sent, reverting state to {}, error={}", Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN, errorMessage);
                                             trade.setState(Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);

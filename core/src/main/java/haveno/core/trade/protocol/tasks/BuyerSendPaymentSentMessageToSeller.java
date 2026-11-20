@@ -49,20 +49,27 @@ public class BuyerSendPaymentSentMessageToSeller extends BuyerSendPaymentSentMes
 
     @Override
     protected void setStateArrived() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
+        trade.advanceState(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG);
         super.setStateArrived();
+        advanceStateIfAcked();
     }
 
     @Override
     protected void setStateStoredInMailbox() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG);
+        if (!getReceiver().isPaymentSentMessageAcked()) trade.setStateIfValidTransitionTo(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG); // replaces an arrival which was not acked
         super.setStateStoredInMailbox();
+        advanceStateIfAcked();
     }
 
     @Override
     protected void setStateFault() {
-        trade.setStateIfValidTransitionTo(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+        trade.advanceState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG); // do not revert previous send progress
         super.setStateFault();
+    }
+
+    // the ack is processed on another thread, so it can land while a delivery callback sets the state
+    private void advanceStateIfAcked() {
+        if (getReceiver().isPaymentSentMessageAcked()) trade.advanceState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
     }
 
     // continue execution on fault so payment sent message is sent to arbitrator

@@ -35,6 +35,7 @@
 package haveno.core.locale;
 
 import com.google.common.base.Suppliers;
+import com.google.common.cache.CacheBuilder;
 import haveno.asset.Asset;
 import haveno.asset.AssetRegistry;
 import haveno.asset.Coin;
@@ -54,7 +55,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -78,8 +78,10 @@ public class CurrencyUtil {
     // the caching still reduces performance costs by about 20% for isCryptoCurrency (1752 ms vs 2121 ms) and about 50%
     // for isTraditionalCurrency calls (1777 ms vs 3467 ms).
     // See: https://github.com/bisq-network/bisq/pull/4955#issuecomment-745302802
-    private static final Map<String, Boolean> isTraditionalCurrencyMap = new ConcurrentHashMap<>();
-    private static final Map<String, Boolean> isCryptoCurrencyMap = new ConcurrentHashMap<>();
+    // Bounded, since the codes of received trade statistics are looked up before the statistics are accepted.
+    private static final int MAX_CACHED_CURRENCIES = 1024;
+    private static final Map<String, Boolean> isTraditionalCurrencyMap = CacheBuilder.newBuilder().maximumSize(MAX_CACHED_CURRENCIES).<String, Boolean>build().asMap();
+    private static final Map<String, Boolean> isCryptoCurrencyMap = CacheBuilder.newBuilder().maximumSize(MAX_CACHED_CURRENCIES).<String, Boolean>build().asMap();
 
     private static final Supplier<Map<String, TraditionalCurrency>> traditionalCurrencyMapSupplier = Suppliers.memoize(
             CurrencyUtil::createTraditionalCurrencyMap);
@@ -247,8 +249,9 @@ public class CurrencyUtil {
     public static boolean isTraditionalCurrency(String currencyCode) {
         if (currencyCode != null) currencyCode = currencyCode.toUpperCase();
 
-        if (currencyCode != null && isTraditionalCurrencyMap.containsKey(currencyCode)) {
-            return isTraditionalCurrencyMap.get(currencyCode);
+        Boolean cached = currencyCode == null ? null : isTraditionalCurrencyMap.get(currencyCode); // read once, the entry can be evicted
+        if (cached != null) {
+            return cached;
         }
 
         try {
@@ -296,8 +299,9 @@ public class CurrencyUtil {
      */
     public static boolean isCryptoCurrency(String currencyCode) {
         if (currencyCode != null) currencyCode = currencyCode.toUpperCase();
-        if (currencyCode != null && isCryptoCurrencyMap.containsKey(currencyCode.toUpperCase())) {
-            return isCryptoCurrencyMap.get(currencyCode.toUpperCase());
+        Boolean cached = currencyCode == null ? null : isCryptoCurrencyMap.get(currencyCode); // read once, the entry can be evicted
+        if (cached != null) {
+            return cached;
         }
         if (isCryptoCurrencyCodeBase(currencyCode)) {
             return true;

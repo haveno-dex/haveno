@@ -84,7 +84,10 @@ public class ChartCalculations {
 
             dateMapsPerTickUnit.forEach((tick, map) -> {
                 HashMap<Long, Long> priceMap = new HashMap<>();
-                map.forEach((date, tradeStatistics) -> priceMap.put(date, getAverageTraditionalPrice(tradeStatistics)));
+                map.forEach((date, tradeStatistics) -> {
+                    long averagePrice = getAverageTraditionalPrice(tradeStatistics);
+                    if (averagePrice > 0) priceMap.put(date, averagePrice); // 0 stands for no average
+                });
                 usdAveragePriceMapsPerTickUnit.put(tick, priceMap);
             });
             return usdAveragePriceMapsPerTickUnit;
@@ -223,7 +226,7 @@ public class ChartCalculations {
         }
 
         BigInteger accumulatedVolumeAsBI = MathUtils.scaleUpByPowerOf10(accumulatedVolume, TraditionalMoney.SMALLEST_UNIT_EXPONENT + 4);
-        return MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
+        return MathUtils.roundDoubleToLongOrZero(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
     }
 
     @VisibleForTesting
@@ -266,7 +269,7 @@ public class ChartCalculations {
         boolean isBullish = close > open;
         int smallestUnitExponent = CurrencyUtil.isCryptoCurrency(currencyCode) ? CryptoMoney.SMALLEST_UNIT_EXPONENT : TraditionalMoney.SMALLEST_UNIT_EXPONENT;
         BigInteger accumulatedVolumeAsBI = MathUtils.scaleUpByPowerOf10(accumulatedVolume, smallestUnitExponent + 4);
-        averagePrice = MathUtils.roundDoubleToLong(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
+        averagePrice = MathUtils.roundDoubleToLongOrZero(HavenoUtils.divide(accumulatedVolumeAsBI, accumulatedAmount));
 
         Date dateFrom = new Date(getTimeFromTickIndex(tick, itemsPerInterval));
         Date dateTo = new Date(getTimeFromTickIndex(tick + 1, itemsPerInterval));
@@ -290,8 +293,13 @@ public class ChartCalculations {
             // We store USD value without decimals as its only total volume, no precision is needed.
             volumeInUsd += (long) MathUtils.scaleDownByPowerOf10((double) partialVolumeInUsd, smallestUnitExponent);
         }
-        return new CandleData(tick, open, close, high, low, averagePrice, medianPrice, accumulatedAmount.longValueExact(), accumulatedVolume.longValueExact(),
+        return new CandleData(tick, open, close, high, low, averagePrice, medianPrice, toLongClamped(accumulatedAmount), toLongClamped(accumulatedVolume),
                 numTrades, isBullish, dateString, volumeInUsd);
+    }
+
+    // sums over the statistics of peers can exceed the long range
+    private static long toLongClamped(BigInteger value) {
+        return value.bitLength() < Long.SIZE ? value.longValue() : Long.MAX_VALUE;
     }
 
     /**

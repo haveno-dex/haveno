@@ -77,6 +77,8 @@ public final class BundleOfEnvelopes extends BroadcastMessage implements Extende
         List<NetworkEnvelope> envelopes = proto.getEnvelopesList()
                 .stream()
                 .map(envelope -> {
+                    // drop an element of another network, since a relay of an earlier version forwards it unchecked
+                    if (!envelope.getMessageVersion().equals(messageVersion)) return null;
                     try {
                         return resolver.fromProto(envelope);
                     } catch (ProtobufferException | InvalidPersistableNetworkPayloadException e) {

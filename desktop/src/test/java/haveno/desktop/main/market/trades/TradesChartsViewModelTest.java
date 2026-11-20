@@ -219,6 +219,26 @@ public class TradesChartsViewModelTest {
     }
 
     @Test
+    public void testStatisticsOutsideLongRange() {
+        long now = System.currentTimeMillis();
+
+        // the average price of a statistic with a dust amount is outside the long range
+        TradeStatistics3 dust = new TradeStatistics3("USD", 1, 1, PaymentMethod.SEPA_ID, now, null, null, null);
+        assertTrue(dust.isValid());
+        Map<TradesChartsViewModel.TickUnit, Map<Long, Long>> usdAveragePriceMaps = ChartCalculations.getUsdAveragePriceMapsPerTickUnit(new ArrayList<>(List.of(dust))).join();
+        assertTrue(usdAveragePriceMaps.get(TradesChartsViewModel.TickUnit.DAY).isEmpty());
+
+        // the amounts of two statistics sum up outside the long range
+        Set<TradeStatistics3> set = Set.of(
+                new TradeStatistics3("EUR", 1, 5_000_000_000_000_000_000L, PaymentMethod.SEPA_ID, now, null, null, null),
+                new TradeStatistics3("EUR", 1, 5_000_000_000_000_000_001L, PaymentMethod.SEPA_ID, now + 1, null, null, null));
+        set.forEach(tradeStatistics -> assertTrue(tradeStatistics.isValid()));
+        long tick = ChartCalculations.roundToTick(new Date(now), TradesChartsViewModel.TickUnit.DAY).getTime();
+        CandleData candleData = ChartCalculations.getCandleData(tick, set, new TreeMap<>(), TradesChartsViewModel.TickUnit.DAY, "EUR", null);
+        assertEquals(Long.MAX_VALUE, candleData.accumulatedAmount);
+    }
+
+    @Test
     public void testGetInterpolatedUsdRate() {
         // Empty map: no rate available anywhere
         assertEquals(0, ChartCalculations.getInterpolatedUsdRate(new TreeMap<>(), 2000));
