@@ -19,10 +19,18 @@ package haveno.common.crypto;
 
 import haveno.common.file.FileUtil;
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PublicKey;
+import java.security.interfaces.DSAPublicKey;
+import java.security.spec.DSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.List;
@@ -40,6 +48,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class EncryptionTest {
+
+    private static final byte[] SIGNATURE_DATA = new byte[32];
 
     @TempDir
     Path keyDir;
@@ -370,5 +380,53 @@ public class EncryptionTest {
         public void close() {
             closed = true;
         }
+    }
+
+    @Test
+    public void testVerifiesGeneratedSignatureKeys() throws Exception {
+        KeyPair keyPair = Sig.generateKeyPair();
+        byte[] signature = Sig.sign(keyPair.getPrivate(), SIGNATURE_DATA);
+        assertTrue(Sig.verify(parsed(keyPair.getPublic()), SIGNATURE_DATA, signature));
+        assertFalse(Sig.verify(parsed(keyPair.getPublic()), new byte[31], signature));
+
+        // keys of 1024 bits remain accepted
+        KeyPairGenerator generator = KeyPairGenerator.getInstance(Sig.KEY_ALGO);
+        generator.initialize(1024);
+        KeyPair smallKeyPair = generator.genKeyPair();
+        assertTrue(Sig.verify(parsed(smallKeyPair.getPublic()), SIGNATURE_DATA, Sig.sign(smallKeyPair.getPrivate(), SIGNATURE_DATA)));
+    }
+
+    @Test
+    public void testRejectsOversizedSignatureKeys() throws Exception {
+        KeyPair keyPair = Sig.generateKeyPair();
+        byte[] signature = Sig.sign(keyPair.getPrivate(), SIGNATURE_DATA);
+        DSAPublicKey publicKey = (DSAPublicKey) keyPair.getPublic();
+        BigInteger p = publicKey.getParams().getP();
+        BigInteger q = publicKey.getParams().getQ();
+        BigInteger g = publicKey.getParams().getG();
+
+        // modulus above the permitted size
+        BigInteger oversizedModulus = BigInteger.ONE.shiftLeft(4096).add(BigInteger.ONE);
+        assertThrows(CryptoException.class, () -> Sig.verify(parsed(dsaKey(publicKey.getY(), oversizedModulus, q, g)), SIGNATURE_DATA, signature));
+
+        // encoding above the permitted size with a permitted modulus
+        BigInteger oversizedY = BigInteger.ONE.shiftLeft(8 * 1024);
+        assertThrows(CryptoException.class, () -> Sig.verify(parsed(dsaKey(oversizedY, p, q, g)), SIGNATURE_DATA, signature));
+
+        // subgroup above the permitted size with a permitted modulus and encoding
+        BigInteger oversizedSubgroup = BigInteger.ONE.shiftLeft(4096);
+        assertThrows(CryptoException.class, () -> Sig.verify(parsed(dsaKey(BigInteger.TWO, p, oversizedSubgroup, BigInteger.TWO)), SIGNATURE_DATA, signature));
+
+        // modulus which is not positive
+        assertThrows(CryptoException.class, () -> Sig.verify(parsed(dsaKey(publicKey.getY(), p.negate(), q, g)), SIGNATURE_DATA, signature));
+    }
+
+    private static PublicKey dsaKey(BigInteger y, BigInteger p, BigInteger q, BigInteger g) throws Exception {
+        return KeyFactory.getInstance(Sig.KEY_ALGO).generatePublic(new DSAPublicKeySpec(y, p, q, g));
+    }
+
+    // round trips the key through its encoding as received from a peer
+    private static PublicKey parsed(PublicKey publicKey) throws Exception {
+        return Sig.getPublicKeyFromBytes(new X509EncodedKeySpec(publicKey.getEncoded()).getEncoded());
     }
 }
