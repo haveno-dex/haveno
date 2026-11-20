@@ -17,14 +17,24 @@
 
 package haveno.core.trade;
 
+import haveno.common.crypto.Encryption;
 import haveno.core.offer.Offer;
+import haveno.core.offer.OfferDirection;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
+import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
+import haveno.core.payment.payload.ZelleAccountPayload;
 import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeResult.Winner;
+import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.beans.property.SimpleObjectProperty;
 import org.junit.jupiter.api.Test;
 
+import javax.crypto.SecretKey;
 import java.math.BigInteger;
 import java.util.Date;
 import java.util.List;
@@ -32,6 +42,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -69,6 +80,72 @@ public class TradeTest {
         assertFalse(mockTrade(false, mockDispute(Winner.BUYER, BUYER_DEPOSIT, 1)).shouldPublishTradeStatistics()); // buyer gets all without a seller deposit
         assertFalse(mockTrade(false, mockDispute(Winner.SELLER, BUYER_DEPOSIT, 1)).shouldPublishTradeStatistics());
         assertFalse(mockTrade(false).shouldPublishTradeStatistics());
+    }
+
+    @Test
+    public void testPeerPaymentAccountPayloadMustBeOfContractPaymentMethod() throws Exception {
+        assertPeerPaymentAccountRejected(new ZelleAccountPayload(PaymentMethod.ZELLE_ID, "id"), PaymentMethod.REVOLUT_ID);
+    }
+
+    @Test
+    public void testPeerPaymentAccountPayloadTypeMustMatchContractMethod() throws Exception {
+        assertPeerPaymentAccountRejected(new ZelleAccountPayload(PaymentMethod.REVOLUT_ID, "id"), PaymentMethod.REVOLUT_ID);
+    }
+
+    @Test
+    public void testMatchingPeerPaymentAccountPayloads() throws Exception {
+        for (PaymentMethod method : List.of(PaymentMethod.ZELLE, PaymentMethod.REVOLUT, PaymentMethod.SEPA,
+                PaymentMethod.SEPA_INSTANT, PaymentMethod.BLOCK_CHAINS, PaymentMethod.BLOCK_CHAINS_INSTANT,
+                PaymentMethod.getDummyPaymentMethod(PaymentMethod.OK_PAY_ID),
+                PaymentMethod.getDummyPaymentMethod(PaymentMethod.POPMONEY_ID),
+                PaymentMethod.getDummyPaymentMethod(PaymentMethod.CHASE_QUICK_PAY_ID))) {
+            PaymentAccount account = PaymentAccountFactory.getPaymentAccount(method);
+            account.init();
+            PaymentAccountPayload payload = account.getPaymentAccountPayload();
+            for (boolean maker : List.of(true, false)) {
+                Trade trade = tradeWithPeerPaymentAccount(maker, payload, method.getId());
+                if (maker && method == PaymentMethod.SEPA_INSTANT) when(trade.getContract().getMakerPaymentMethodId()).thenReturn(PaymentMethod.SEPA_ID);
+                if (!maker && method == PaymentMethod.SEPA) when(trade.getContract().getTakerPaymentMethodId()).thenReturn(PaymentMethod.SEPA_INSTANT_ID);
+                trade.decryptPeerPaymentAccountPayload(trade.getTradePeer().getPaymentAccountKey());
+                assertEquals(payload.toProtoMessage(), trade.getTradePeer().getPaymentAccountPayload().toProtoMessage());
+                assertTrue(trade.getProcessModel().getPaymentAccountDecryptedProperty().get());
+            }
+        }
+    }
+
+    private static void assertPeerPaymentAccountRejected(PaymentAccountPayload payload, String method) throws Exception {
+        for (boolean maker : List.of(true, false)) {
+            Trade trade = tradeWithPeerPaymentAccount(maker, payload, method);
+            RuntimeException e = assertThrows(RuntimeException.class, () -> trade.decryptPeerPaymentAccountPayload(trade.getTradePeer().getPaymentAccountKey()));
+            assertTrue(e.getCause() instanceof IllegalArgumentException, String.valueOf(e.getCause()));
+            assertNull(trade.getTradePeer().getPaymentAccountPayload());
+            assertFalse(trade.getProcessModel().getPaymentAccountDecryptedProperty().get());
+        }
+    }
+
+    private static Trade tradeWithPeerPaymentAccount(boolean maker, PaymentAccountPayload payload, String method) throws Exception {
+        Trade trade = newTrade(maker);
+        SecretKey key = Encryption.generateSecretKey(256);
+        trade.getTradePeer().setPaymentAccountKey(key.getEncoded());
+        trade.getTradePeer().setEncryptedPaymentAccountPayload(Encryption.encrypt(payload.toProtoMessage().toByteArray(), key));
+        Contract contract = mock(Contract.class);
+        when(contract.getMakerPaymentAccountPayloadHash()).thenReturn(payload.getHash());
+        when(contract.getTakerPaymentAccountPayloadHash()).thenReturn(payload.getHash());
+        when(contract.getMakerPaymentMethodId()).thenReturn(method);
+        when(contract.getTakerPaymentMethodId()).thenReturn(method);
+        trade.setContract(contract);
+        return trade;
+    }
+
+    private static Trade newTrade(boolean maker) {
+        Offer offer = mock(Offer.class);
+        when(offer.getId()).thenReturn("offer");
+        when(offer.getDirection()).thenReturn(OfferDirection.SELL);
+        ProcessModel processModel = new ProcessModel("offer", "account", null);
+        processModel.applyTransient(null, mock(TradeManager.class), offer);
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        return maker ? new SellerAsMakerTrade(offer, BigInteger.valueOf(AMOUNT), 1, walletService, processModel, "uid", null, null, null, null)
+                : new BuyerAsTakerTrade(offer, BigInteger.valueOf(AMOUNT), 1, walletService, processModel, "uid", null, null, null, null);
     }
 
     private static Trade mockTrade(boolean isPaymentReceived, Dispute... disputes) {
