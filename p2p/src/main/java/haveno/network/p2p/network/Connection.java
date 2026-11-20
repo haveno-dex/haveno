@@ -64,6 +64,7 @@ import haveno.network.p2p.peers.peerexchange.messages.GetPeersRequest;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.messages.AddDataMessage;
 import haveno.network.p2p.storage.messages.AddPersistableNetworkPayloadMessage;
+import haveno.network.p2p.storage.messages.BroadcastMessage;
 import haveno.network.p2p.storage.messages.RefreshOfferMessage;
 import haveno.network.p2p.storage.messages.RemoveDataMessage;
 import haveno.network.p2p.storage.payload.CapabilityRequiringPayload;
@@ -191,7 +192,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     private final CopyOnWriteArraySet<WeakReference<SupportedCapabilitiesListener>> capabilitiesListeners = new CopyOnWriteArraySet<>();
 
     @Getter
-    private RuleViolation ruleViolation;
+    private volatile RuleViolation ruleViolation;
     // ensures the peer failure counter is adjusted at most once, as onDisconnect can fire more than once
     private final AtomicBoolean peerFaultAccounted = new AtomicBoolean();
     private final ConcurrentHashMap<RuleViolation, Integer> ruleViolations = new ConcurrentHashMap<>();
@@ -552,13 +553,11 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
         for (NetworkEnvelope networkEnvelope : networkEnvelopes) {
             if (Thread.currentThread().isInterrupted()) return; // skip if thread is interrupted
 
-            // If SendersNodeAddressMessage we do some verifications and apply if successful, otherwise we return false.
-            if (networkEnvelope instanceof SendersNodeAddressMessage) {
-                boolean isValid = processSendersNodeAddressMessage((SendersNodeAddressMessage) networkEnvelope);
-                if (!isValid) {
-                    throttleWarn("Received an invalid " + networkEnvelope.getClass().getSimpleName() + " at processing BundleOfEnvelopes");
-                    continue;
-                }
+            // only broadcast messages are bundled, any other element would skip the handling of a single message
+            if (!(networkEnvelope instanceof BroadcastMessage) || networkEnvelope instanceof BundleOfEnvelopes) {
+                if (reportInvalidRequest(RuleViolation.INVALID_DATA_TYPE, "Received a " + networkEnvelope.getClass().getSimpleName() + " in a BundleOfEnvelopes"))
+                    return;
+                continue;
             }
 
             if (networkEnvelope instanceof AddPersistableNetworkPayloadMessage) {
@@ -1153,6 +1152,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
 
                         statistic.updateLastReceivedMessageTimestamp();
                         onMessage(networkEnvelope, this);
+                        if (ruleViolation != null) return; // an element of a bundle closed the connection
                         ThreadUtils.execute(() -> connectionStatistics.addReceivedMsgMetrics(System.currentTimeMillis() - ts, size), THREAD_ID);
                     }
                 } catch (InvalidClassException e) {
