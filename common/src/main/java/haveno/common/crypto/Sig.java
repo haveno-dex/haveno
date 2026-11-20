@@ -23,6 +23,7 @@ import haveno.common.util.Utilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -32,6 +33,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.interfaces.DSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -48,6 +50,11 @@ public class Sig {
 
     public static final String KEY_ALGO = "DSA";
     private static final String ALGO = "SHA256withDSA";
+
+    // verification cost grows with the square of the modulus size and with the subgroup size, which the JDK does not bound
+    private static final int MAX_MODULUS_BIT_LENGTH = 2048;
+    private static final int MAX_SUBGROUP_BIT_LENGTH = 256;
+    private static final int MAX_PUB_KEY_BYTES = 1024;
 
 
     /**
@@ -99,13 +106,14 @@ public class Sig {
      * @return
      */
     public static boolean verify(PublicKey publicKey, byte[] data, byte[] signature) throws CryptoException {
+        checkKeyForVerification(publicKey);
         try {
             Signature sig = Signature.getInstance(ALGO);
             sig.initVerify(publicKey);
             sig.update(data);
             return sig.verify(signature);
-        } catch (SignatureException | InvalidKeyException | NoSuchAlgorithmException e) {
-            throw new CryptoException("Signature verification failed", e);
+        } catch (SignatureException | InvalidKeyException | NoSuchAlgorithmException | ArithmeticException e) {
+            throw new CryptoException("Signature verification failed", e); // key parameters are unchecked, so the arithmetic can fail
         }
     }
 
@@ -135,5 +143,24 @@ public class Sig {
 
     public static byte[] getPublicKeyBytes(PublicKey sigPublicKey) {
         return new X509EncodedKeySpec(sigPublicKey.getEncoded()).getEncoded();
+    }
+
+    // checked at verification and not at parsing, so relayed and persisted data with such a key stays readable
+    private static void checkKeyForVerification(PublicKey publicKey) throws CryptoException {
+        if (!(publicKey instanceof DSAPublicKey) || ((DSAPublicKey) publicKey).getParams() == null) {
+            throw new CryptoException("Signature public key is not a DSA key with parameters");
+        }
+        BigInteger modulus = ((DSAPublicKey) publicKey).getParams().getP();
+        if (modulus.signum() <= 0 || modulus.bitLength() > MAX_MODULUS_BIT_LENGTH) {
+            throw new CryptoException("Signature public key modulus is not within the permitted size, bitLength=" + modulus.bitLength());
+        }
+        BigInteger subgroup = ((DSAPublicKey) publicKey).getParams().getQ();
+        if (subgroup.bitLength() > MAX_SUBGROUP_BIT_LENGTH) {
+            throw new CryptoException("Signature public key subgroup is not within the permitted size, bitLength=" + subgroup.bitLength());
+        }
+        byte[] encoded = publicKey.getEncoded();
+        if (encoded == null || encoded.length > MAX_PUB_KEY_BYTES) {
+            throw new CryptoException("Signature public key exceeds the permitted size of " + MAX_PUB_KEY_BYTES + " bytes");
+        }
     }
 }
