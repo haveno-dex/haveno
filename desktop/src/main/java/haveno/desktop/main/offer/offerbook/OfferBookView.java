@@ -1166,6 +1166,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                     if (deposit == null) {
                                         setText(Res.get("shared.na"));
                                         setGraphic(null);
+                                    } else if (item.getOffer().hasBuyerAsTakerWithoutDeposit()) {
+                                        setText(Res.get("offerbook.filterNoDeposit"));
+                                        setGraphic(null);
                                     } else {
                                         setText("");
                                         String rangePrefix = item.getOffer().isRange() ? "<= " : "";
