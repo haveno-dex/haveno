@@ -22,6 +22,8 @@ import com.google.common.util.concurrent.SettableFuture;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.proto.network.NetworkEnvelope;
+import haveno.common.proto.network.NetworkProtoResolver;
+import haveno.network.p2p.BundleOfEnvelopes;
 import haveno.network.p2p.NodeAddress;
 import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.NetworkNode;
@@ -51,6 +53,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BroadcastHandlerTest {
+
+    @Test
+    public void testBundleDropsElementsOfAnotherNetwork() throws Exception {
+        NetworkProtoResolver resolver = mock(NetworkProtoResolver.class);
+        when(resolver.fromProto(any(protobuf.NetworkEnvelope.class))).thenReturn(mock(NetworkEnvelope.class));
+        protobuf.BundleOfEnvelopes proto = protobuf.BundleOfEnvelopes.newBuilder()
+                .addEnvelopes(protobuf.NetworkEnvelope.newBuilder().setMessageVersion("1X"))
+                .addEnvelopes(protobuf.NetworkEnvelope.newBuilder().setMessageVersion("0X"))
+                .build();
+        assertEquals(1, BundleOfEnvelopes.fromProto(proto, resolver, "1X").getEnvelopes().size());
+    }
 
     @Test
     public void testSufficientlyBroadcastAfterThreeSuccessfulSends() {
