@@ -95,6 +95,21 @@ public class CurrencyUtilTest {
      }
 
     @Test
+    public void testLookupsAfterManyUnknownCodes() {
+        assertTrue(CurrencyUtil.isTraditionalCurrency("USD"));
+        assertFalse(CurrencyUtil.isCryptoCurrency("USD"));
+
+        // unknown codes fill the bounded lookup caches and evict earlier entries
+        for (int i = 0; i < 5000; i++) {
+            assertTrue(CurrencyUtil.isCryptoCurrency("UNKNOWN" + i));
+            assertFalse(CurrencyUtil.isTraditionalCurrency("UNKNOWN" + i));
+        }
+        assertTrue(CurrencyUtil.isTraditionalCurrency("USD"));
+        assertFalse(CurrencyUtil.isCryptoCurrency("USD"));
+        assertTrue(CurrencyUtil.isCryptoCurrency("UNKNOWN0"));
+    }
+
+    @Test
     public void testGetNameAndCodeOfRemovedAsset() {
         assertEquals("N/A (XYZ)", CurrencyUtil.getNameAndCode("XYZ"));
     }
