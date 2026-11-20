@@ -54,7 +54,10 @@ import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OpenOffer;
+import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentAccountPayload;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.proto.CoreProtoResolver;
 import haveno.core.proto.network.CoreNetworkProtoResolver;
 import haveno.core.support.dispute.Dispute;
@@ -2021,6 +2024,19 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             // verify hash of payment account payload
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();
             HavenoUtils.verifyPaymentAccountPayloadHash(paymentAccountPayload, peerPaymentAccountPayloadHash, "peer");
+
+            // verify payment method of payment account payload, which the hash does not bind to the contract
+            String peerPaymentMethodId = this instanceof MakerTrade ? getContract().getTakerPaymentMethodId() : getContract().getMakerPaymentMethodId();
+            if (!peerPaymentMethodId.equals(paymentAccountPayload.getPaymentMethodId())) {
+                throw new IllegalArgumentException("Payment method of peer's payment account payload does not match contract, expected=" + peerPaymentMethodId + ", actual=" + paymentAccountPayload.getPaymentMethodId());
+            }
+
+            // bind the payload type to the method, including retired methods supported by the factory
+            PaymentAccount peerPaymentAccount = PaymentAccountFactory.getPaymentAccount(PaymentMethod.getDummyPaymentMethod(peerPaymentMethodId));
+            peerPaymentAccount.init();
+            if (!peerPaymentAccount.getPaymentAccountPayload().getClass().equals(paymentAccountPayload.getClass())) {
+                throw new IllegalArgumentException("Type of peer's payment account payload does not match contract payment method " + peerPaymentMethodId);
+            }
 
             // set payment account payload
             getTradePeer().setPaymentAccountPayload(paymentAccountPayload);
