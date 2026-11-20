@@ -17,7 +17,9 @@
 
 package haveno.core.trade;
 
+import haveno.common.UserThread;
 import haveno.common.crypto.Encryption;
+import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.PaymentAccount;
@@ -30,9 +32,11 @@ import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeResult.Winner;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.TradePeer;
+import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToSeller;
 import haveno.core.xmr.wallet.XmrWalletService;
 import javafx.beans.property.SimpleObjectProperty;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import javax.crypto.SecretKey;
 import java.math.BigInteger;
@@ -46,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 public class TradeTest {
@@ -110,6 +115,47 @@ public class TradeTest {
                 assertEquals(payload.toProtoMessage(), trade.getTradePeer().getPaymentAccountPayload().toProtoMessage());
                 assertTrue(trade.getProcessModel().getPaymentAccountDecryptedProperty().get());
             }
+        }
+    }
+
+    @Test
+    public void testPaymentSentDeliveryCallbacksPreserveAcknowledgment() {
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            Trade trade = newTrade(false);
+            trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+            trade.getSeller().setPaymentSentMessageState(MessageState.ACKNOWLEDGED);
+            List<Runnable> callbacks = new BuyerSendPaymentSentMessageToSeller(null, trade) {
+                List<Runnable> deliveryCallbacks() {
+                    return List.of(this::setStateSent, this::setStateArrived, this::setStateStoredInMailbox, this::setStateFault);
+                }
+            }.deliveryCallbacks();
+            for (Runnable callback : callbacks) {
+                callback.run();
+                assertEquals(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG, trade.getState());
+                assertTrue(trade.getSeller().isPaymentSentMessageAcked());
+            }
+
+            // an ack which landed while a delivery callback set the state is applied again
+            for (Trade.State state : List.of(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG, Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG)) {
+                for (Runnable callback : callbacks.subList(1, 3)) {
+                    trade.setState(state);
+                    callback.run();
+                    assertEquals(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG, trade.getState());
+                }
+            }
+
+            // an explicit negative acknowledgment still permits a retry
+            trade.getSeller().setPaymentSentMessageState(MessageState.NACKED);
+            assertEquals(MessageState.NACKED, trade.getSeller().getPaymentSentMessageStateProperty().get());
+            trade.setState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+            callbacks.get(1).run();
+            assertEquals(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG, trade.getState());
+            assertEquals(MessageState.ARRIVED, trade.getSeller().getPaymentSentMessageStateProperty().get());
+
+            // a resend stored in the mailbox replaces an arrival which was not acked
+            callbacks.get(2).run();
+            assertEquals(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, trade.getState());
+            assertEquals(MessageState.STORED_IN_MAILBOX, trade.getSeller().getPaymentSentMessageStateProperty().get());
         }
     }
 
