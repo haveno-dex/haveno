@@ -63,6 +63,15 @@ public class MathUtils {
         return DoubleMath.roundToLong(value, roundingMode);
     }
 
+    // gives 0 for a value which is not finite or outside the long range, for results computed from data of peers
+    public static long roundDoubleToLongOrZero(double value) {
+        try {
+            return roundDoubleToLong(value);
+        } catch (ArithmeticException e) {
+            return 0;
+        }
+    }
+
     public static int roundDoubleToInt(double value) {
         return roundDoubleToInt(value, RoundingMode.HALF_UP);
     }
