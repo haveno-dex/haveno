@@ -715,6 +715,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
         // reset states if not awaiting processing
         if (!isPayoutPublished()) {
 
+            // keep the seller's ack of the payment sent message over an earlier persisted state
+            if (this instanceof BuyerTrade && getSeller().isPaymentSentMessageAcked()) advanceState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+
             // reset buyer's payment sent state
             if (this instanceof BuyerTrade && (getState().ordinal() == Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal() || getState() == State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG)) {
                 log.warn("Resetting state of {} {} from {} to {} because sending PaymentSentMessage failed", getClass().getSimpleName(), getId(), getState(), Trade.State.DEPOSIT_TXS_UNLOCKED_IN_BLOCKCHAIN);

@@ -264,7 +264,8 @@ public final class TradePeer implements PersistablePayload {
         }
     }
 
-    public void setPaymentSentMessageState(MessageState paymentSentMessageStateProperty) {
+    public synchronized void setPaymentSentMessageState(MessageState paymentSentMessageStateProperty) {
+        if (isPaymentSentMessageAcked() && paymentSentMessageStateProperty != MessageState.NACKED) return; // keep an ack when delivery callbacks arrive late
         this.paymentSentMessageStateProperty.set(paymentSentMessageStateProperty);
         if (tradeManager != null) {
             tradeManager.requestPersistence();

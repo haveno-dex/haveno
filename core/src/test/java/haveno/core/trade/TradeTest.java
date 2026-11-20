@@ -29,6 +29,7 @@ import haveno.common.handlers.ResultHandler;
 import haveno.common.proto.network.NetworkEnvelope;
 import haveno.core.api.CoreNotificationService;
 import haveno.core.api.XmrConnectionService;
+import haveno.core.network.MessageState;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.PaymentAccount;
@@ -40,10 +41,12 @@ import haveno.core.support.dispute.Dispute;
 import haveno.core.support.dispute.DisputeResult;
 import haveno.core.support.dispute.DisputeResult.Winner;
 import haveno.core.trade.messages.CancelTradeMessage;
+import haveno.core.trade.protocol.BuyerProtocol;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.protocol.TradePeer.CancelState;
 import haveno.core.trade.protocol.TradeProtocol;
+import haveno.core.trade.protocol.tasks.BuyerSendPaymentSentMessageToSeller;
 import haveno.core.trade.protocol.tasks.SendMailboxMessageTask;
 import haveno.core.trade.protocol.tasks.TradeTask;
 import haveno.core.xmr.wallet.XmrWalletBase;
@@ -81,8 +84,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -178,6 +185,104 @@ public class TradeTest {
                 assertEquals(payload.toProtoMessage(), trade.getTradePeer().getPaymentAccountPayload().toProtoMessage());
                 assertTrue(trade.getProcessModel().getPaymentAccountDecryptedProperty().get());
             }
+        }
+    }
+
+    @Test
+    public void testPaymentSentDeliveryCallbacksPreserveAcknowledgment() {
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class)) {
+            Trade trade = newTrade(false);
+            trade.setState(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG);
+            trade.getSeller().setPaymentSentMessageState(MessageState.ACKNOWLEDGED);
+            List<Runnable> callbacks = new BuyerSendPaymentSentMessageToSeller(null, trade) {
+                List<Runnable> deliveryCallbacks() {
+                    return List.of(this::setStateSent, this::setStateArrived, this::setStateStoredInMailbox, this::setStateFault);
+                }
+            }.deliveryCallbacks();
+            for (Runnable callback : callbacks) {
+                callback.run();
+                assertEquals(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG, trade.getState());
+                assertTrue(trade.getSeller().isPaymentSentMessageAcked());
+            }
+
+            // an ack which landed while a delivery callback set the state is applied again
+            for (Trade.State state : List.of(Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG,
+                    Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG, Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG)) {
+                for (Runnable callback : callbacks) {
+                    trade.setState(state);
+                    callback.run();
+                    assertEquals(Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG, trade.getState());
+                }
+            }
+
+            // an explicit negative acknowledgment still permits a retry
+            trade.getSeller().setPaymentSentMessageState(MessageState.NACKED);
+            assertEquals(MessageState.NACKED, trade.getSeller().getPaymentSentMessageStateProperty().get());
+            trade.setState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+            callbacks.get(1).run();
+            assertEquals(Trade.State.BUYER_SAW_ARRIVED_PAYMENT_SENT_MSG, trade.getState());
+            assertEquals(MessageState.ARRIVED, trade.getSeller().getPaymentSentMessageStateProperty().get());
+
+            // a resend stored in the mailbox replaces an arrival which was not acked
+            callbacks.get(2).run();
+            assertEquals(Trade.State.BUYER_STORED_IN_MAILBOX_PAYMENT_SENT_MSG, trade.getState());
+            assertEquals(MessageState.STORED_IN_MAILBOX, trade.getSeller().getPaymentSentMessageStateProperty().get());
+        }
+    }
+
+    @Test
+    public void testPaymentSentAcknowledgmentDuringDeliveryCallback() throws Exception {
+        TradePeer peer = new TradePeer();
+        CountDownLatch deliveryRead = new CountDownLatch(1);
+        CountDownLatch releaseDelivery = new CountDownLatch(1);
+        AtomicBoolean firstRead = new AtomicBoolean(true);
+        peer.setPaymentSentMessageStateProperty(new SimpleObjectProperty<>(MessageState.SENT) {
+            @Override
+            public MessageState get() {
+                MessageState value = super.get();
+                if (firstRead.getAndSet(false)) {
+                    deliveryRead.countDown();
+                    try {
+                        assertTrue(releaseDelivery.await(10, TimeUnit.SECONDS));
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new AssertionError(e);
+                    }
+                }
+                return value;
+            }
+        });
+        CompletableFuture<Void> delivery = CompletableFuture.runAsync(() -> peer.setPaymentSentMessageState(MessageState.ARRIVED));
+        FutureTask<Void> acknowledgment = new FutureTask<>(() -> peer.setPaymentSentMessageState(MessageState.ACKNOWLEDGED), null);
+        Thread acknowledging = new Thread(acknowledgment);
+        try {
+            assertTrue(deliveryRead.await(10, TimeUnit.SECONDS));
+            acknowledging.start();
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (acknowledging.getState() != Thread.State.BLOCKED && acknowledging.isAlive() && System.nanoTime() < deadline) {
+                Thread.sleep(10);
+            }
+            assertTrue(acknowledging.getState() == Thread.State.BLOCKED || !acknowledging.isAlive());
+        } finally {
+            releaseDelivery.countDown();
+            acknowledging.join(10_000);
+            delivery.get(10, TimeUnit.SECONDS);
+        }
+        acknowledgment.get(10, TimeUnit.SECONDS);
+        assertTrue(peer.isPaymentSentMessageAcked());
+    }
+
+    @Test
+    public void testPaymentSentRetryPreservesFailedSendState() {
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedStatic<ThreadUtils> threadUtils = mockStatic(ThreadUtils.class)) {
+            Trade trade = newTrade(false);
+            trade.getMaker().setDepositTxHash("maker-deposit");
+            trade.getTaker().setDepositTxHash("taker-deposit");
+            trade.getSeller().setPaymentAccountPayload(new ZelleAccountPayload(PaymentMethod.ZELLE_ID, "id"));
+            trade.setState(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG);
+            new BuyerProtocol((BuyerTrade) trade).onPaymentSent(mock(ResultHandler.class), mock(ErrorMessageHandler.class));
+            assertEquals(Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG, trade.getState());
         }
     }
 
