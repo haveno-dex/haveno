@@ -25,6 +25,7 @@ import haveno.common.app.DevEnv;
 import haveno.common.app.Log;
 import haveno.common.app.Version;
 import haveno.common.config.Config;
+import haveno.common.file.FileUtil;
 import haveno.common.util.Profiler;
 import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +68,7 @@ public class CommonSetup {
 
     public static void setup(Config config, GracefulShutDownHandler gracefulShutDownHandler) {
         setupLog(config);
+        FileUtil.setOwnerOnlyPermissions(config.appDataDir.toPath()); // covers the wallet, stores and logs below it
         setupHeapDump(config);
         AsciiLogo.showAsciiLogo();
         Version.setBaseCryptoNetworkId(config.baseCurrencyNetwork.ordinal());
