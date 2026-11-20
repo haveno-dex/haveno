@@ -17,9 +17,11 @@
 
 package haveno.core.offer;
 
+import com.google.common.cache.CacheBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import haveno.common.app.Version;
+import haveno.common.util.Utilities;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.filter.FilterManager;
 import haveno.core.payment.PaymentAccount;
@@ -29,10 +31,9 @@ import haveno.core.trade.HavenoUtils;
 import haveno.core.user.Preferences;
 import haveno.core.user.User;
 import haveno.network.p2p.P2PService;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import javafx.collections.ListChangeListener;
+import java.util.Set;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
@@ -45,8 +46,10 @@ public class OfferFilterService {
     private final Preferences preferences;
     private final FilterManager filterManager;
     private final AccountAgeWitnessService accountAgeWitnessService;
-    private final Map<String, Boolean> insufficientCounterpartyTradeLimitCache = new HashMap<>();
-    private final Map<String, Boolean> myInsufficientTradeLimitCache = new HashMap<>();
+    private static final int MAX_CACHED_OFFERS = 10000; // bounded, since each edit of an offer adds an entry
+    private final Map<String, Boolean> insufficientCounterpartyTradeLimitCache = CacheBuilder.newBuilder().maximumSize(MAX_CACHED_OFFERS).<String, Boolean>build().asMap();
+    private final Map<String, Boolean> myInsufficientTradeLimitCache = CacheBuilder.newBuilder().maximumSize(MAX_CACHED_OFFERS).<String, Boolean>build().asMap();
+    private Set<PaymentAccount> myInsufficientTradeLimitCacheAccounts; // accounts which the cached results depend on
 
     @Inject
     public OfferFilterService(User user,
@@ -59,12 +62,6 @@ public class OfferFilterService {
         this.preferences = preferences;
         this.filterManager = filterManager;
         this.accountAgeWitnessService = accountAgeWitnessService;
-
-        if (user != null && user.getPaymentAccountsAsObservable() != null) {
-            // If our accounts have changed we reset our myInsufficientTradeLimitCache as it depends on account data
-            user.getPaymentAccountsAsObservable().addListener((ListChangeListener<PaymentAccount>) c ->
-                    myInsufficientTradeLimitCache.clear());
-        }
     }
 
     public enum Result {
@@ -189,28 +186,39 @@ public class OfferFilterService {
 
     // This call is a bit expensive so we cache results
     public boolean isInsufficientCounterpartyTradeLimit(Offer offer) {
-        String offerId = offer.getId();
-        if (insufficientCounterpartyTradeLimitCache.containsKey(offerId)) {
-            return insufficientCounterpartyTradeLimitCache.get(offerId);
+        String cacheKey = getCacheKey(offer);
+        Boolean cached = insufficientCounterpartyTradeLimitCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
         }
 
         boolean result = offer.isTraditionalOffer() &&
                 !accountAgeWitnessService.verifyPeersTradeAmount(offer, offer.getAmount(),
                         errorMessage -> {
                         });
-        insufficientCounterpartyTradeLimitCache.put(offerId, result);
+        insufficientCounterpartyTradeLimitCache.put(cacheKey, result);
         return result;
     }
 
     // This call is a bit expensive so we cache results
     public boolean isMyInsufficientTradeLimit(Offer offer) {
-        String offerId = offer.getId();
-        if (myInsufficientTradeLimitCache.containsKey(offerId)) {
-            return myInsufficientTradeLimitCache.get(offerId);
+        String cacheKey = getCacheKey(offer);
+        Set<PaymentAccount> accounts = user.getPaymentAccounts();
+        synchronized (myInsufficientTradeLimitCache) {
+
+            // the user replaces its account set on every change, which resets the cache
+            if (accounts != myInsufficientTradeLimitCacheAccounts) {
+                myInsufficientTradeLimitCache.clear();
+                myInsufficientTradeLimitCacheAccounts = accounts;
+            }
+            Boolean cached = myInsufficientTradeLimitCache.get(cacheKey);
+            if (cached != null) {
+                return cached;
+            }
         }
 
         Optional<PaymentAccount> accountOptional = PaymentAccountUtil.getMostMaturePaymentAccountForOffer(offer,
-                user.getPaymentAccounts(),
+                accounts,
                 accountAgeWitnessService);
         long myTradeLimit = accountOptional
                 .map(paymentAccount -> accountAgeWitnessService.getMyTradeLimit(paymentAccount,
@@ -224,8 +232,15 @@ public class OfferFilterService {
         boolean result = offer.isTraditionalOffer() &&
                 accountOptional.isPresent() &&
                 myTradeLimit < offerMinAmount;
-        myInsufficientTradeLimitCache.put(offerId, result);
+        synchronized (myInsufficientTradeLimitCache) {
+            if (accounts == myInsufficientTradeLimitCacheAccounts) myInsufficientTradeLimitCache.put(cacheKey, result);
+        }
         return result;
+    }
+
+    // an edited offer keeps its id, so results are cached by the hash of the payload
+    private static String getCacheKey(Offer offer) {
+        return Utilities.encodeToHex(offer.getOfferPayload().getHash());
     }
 
     private boolean hasValidArbitrator(Offer offer) {
