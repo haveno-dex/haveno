@@ -70,7 +70,7 @@ public class EncryptionService {
 
         try {
             final byte[] bytes = Encryption.decryptPayloadWithHmac(sealedAndSigned.getEncryptedPayloadWithHmac(), secretKey);
-            final protobuf.NetworkEnvelope envelope = protobuf.NetworkEnvelope.parseFrom(bytes);
+            final protobuf.NetworkEnvelope envelope = NetworkEnvelope.PROTO_PARSER.parseFrom(bytes);
             NetworkEnvelope decryptedPayload = networkProtoResolver.fromProto(envelope);
             return new DecryptedDataTuple(decryptedPayload, sealedAndSigned.getSigPublicKey());
         } catch (InvalidProtocolBufferException e) {
