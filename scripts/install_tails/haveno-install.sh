@@ -133,12 +133,24 @@ fi
 
 # Verify the downloaded binary with the signature
 echo_blue "Verifying the signature of the downloaded file ..."
-if OUTPUT=$(LC_ALL=C gpg --digest-algo SHA256 --verify "${signature_filename}" "${binary_filename}" 2>&1); then
-    mv -f "${binary_filename}" "${package_filename}"
-else
-    echo_red "Verification failed: $OUTPUT"
+if ! OUTPUT=$(LC_ALL=C gpg --status-fd 1 --digest-algo SHA256 --verify "${signature_filename}" "${binary_filename}" 2>&1); then
+    # gpg mixes its machine-readable status lines into the output, keep them out of the message
+    echo_red "Verification failed: $(printf '%s\n' "${OUTPUT}" | grep -v '^\[GNUPG:\]')"
     exit 1
 fi
+
+
+# The check above only says the signature is good, not which key made it, so read the
+# signing key from the status output and require it to be the expected one. The last
+# field of VALIDSIG is the primary key, which is what the expected fingerprint names;
+# the first field would be a signing subkey's own fingerprint
+signing_fingerprint=$(printf '%s\n' "${OUTPUT}" | awk '/^\[GNUPG:\] VALIDSIG /{print $NF}')
+if [ "${signing_fingerprint}" != "${formatted_expected_fingerprint}" ]; then
+    echo_red "Signed by an unexpected key: ${signing_fingerprint:-none}"
+    exit 1
+fi
+
+mv -f "${binary_filename}" "${package_filename}"
 
 echo_blue "Haveno binaries have been successfully verified."
 
