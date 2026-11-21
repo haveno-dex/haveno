@@ -40,6 +40,7 @@ import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
 import haveno.core.util.coin.CoinFormatter;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableViewAndModel;
 import haveno.desktop.components.AccountStatusTooltipLabel;
@@ -1168,7 +1169,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         setGraphic(null);
                                     } else {
                                         setText("");
-                                        String rangePrefix = item.getOffer().isRange() ? "<= " : "";
+                                        // a deposit up to the minimum is the same for any amount
+                                        boolean isDepositRange = item.getOffer().isRange() &&
+                                                deposit.compareTo(Restrictions.getMinSecurityDeposit()) > 0;
+                                        String rangePrefix = isDepositRange ? "<= " : "";
                                         setGraphic(new ColoredDecimalPlacesWithZerosText(rangePrefix + model.formatDepositString(
                                                 deposit, item.getOffer().getAmount().longValueExact()),
                                                 GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
