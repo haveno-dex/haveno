@@ -732,7 +732,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     public String formatDepositString(BigInteger deposit, long amount) {
         var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(HavenoUtils.divide(deposit, BigInteger.valueOf(amount)));
-        return HavenoUtils.formatXmr(deposit) + " (" + percentage + ")";
+        return deposit.signum() == 0 ? percentage : HavenoUtils.formatXmr(deposit) + " (" + percentage + ")";
     }
 
     PaymentMethod getShowAllEntryForPaymentMethod() {

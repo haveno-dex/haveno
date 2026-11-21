@@ -1168,7 +1168,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                                         setGraphic(null);
                                     } else {
                                         setText("");
-                                        String rangePrefix = item.getOffer().isRange() ? "<= " : "";
+                                        String rangePrefix = item.getOffer().isRange() && deposit.signum() > 0 ? "<= " : "";
                                         setGraphic(new ColoredDecimalPlacesWithZerosText(rangePrefix + model.formatDepositString(
                                                 deposit, item.getOffer().getAmount().longValueExact()),
                                                 GUIUtil.AMOUNT_DECIMALS_WITH_ZEROS));
