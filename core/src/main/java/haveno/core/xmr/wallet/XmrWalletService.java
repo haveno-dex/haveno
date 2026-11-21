@@ -2948,7 +2948,7 @@ public class XmrWalletService extends XmrWalletBase {
         return HavenoUtils.havenoSetup.getWalletInitialized().get();
     }
 
-    public boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
+    private boolean requestConnectionSwitchSynchronous(MoneroRpcConnection sourceConnection) {
         return requestConnectionSwitchSynchronous(sourceConnection, false);
     }
 
@@ -2956,15 +2956,13 @@ public class XmrWalletService extends XmrWalletBase {
         synchronized (requestConnectionSwitchSynchronousLock) {
             isProcessingRequestConnectionSwitchSynchronous = true;
             try {
-                if (xmrConnectionService.requestConnectionSwitch(sourceConnection, this, skipCooldown)) {
-                    onConnectionChanged(xmrConnectionService.getConnection()); // handle connection change on same thread
-                    return true;
-                }
-                return false;
+                if (!xmrConnectionService.requestConnectionSwitch(sourceConnection, this, skipCooldown)) return false;
             } finally {
                 isProcessingRequestConnectionSwitchSynchronous = false;
             }
         }
+        onConnectionChanged(xmrConnectionService.getConnection()); // handle on same thread, off the switch lock since callers can hold walletLock
+        return true;
     }
 
     private void onNewBlock(long height) {

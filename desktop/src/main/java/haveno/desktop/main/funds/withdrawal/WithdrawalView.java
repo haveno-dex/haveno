@@ -399,23 +399,25 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
                 MoneroTxWallet tx = null;
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrWalletService.getXmrConnectionService().getConnection();
-                    try {
-                        log.info("Creating withdraw tx");
-                        long startTime = System.currentTimeMillis();
-                        tx = xmrWalletService.createTx(new MoneroTxConfig()
-                                .setAccountIndex(0)
-                                .setAmount(amount)
-                                .setAddress(withdrawToAddress)
-                                .setSubtractFeeFrom(sendMax ? Arrays.asList(0) : null));
-                        log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
-                        break;
-                    } catch (Exception e) {
-                        if (HavenoUtils.isInvalidTx(e)) throw e;
-                        log.warn("Error creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
-                        if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
-                        if (xmrWalletService.getXmrConnectionService().isConnected()) xmrWalletService.requestConnectionSwitchSynchronous(sourceConnection); // TODO: use xmrWalletService.handleMainWalletError instead and make this private?
-                        HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
+                    synchronized (xmrWalletService.getWalletLock()) { // hold through recovery so it cannot interrupt another wallet operation
+                        try {
+                            log.info("Creating withdraw tx");
+                            long startTime = System.currentTimeMillis();
+                            tx = xmrWalletService.createTx(new MoneroTxConfig()
+                                    .setAccountIndex(0)
+                                    .setAmount(amount)
+                                    .setAddress(withdrawToAddress)
+                                    .setSubtractFeeFrom(sendMax ? Arrays.asList(0) : null));
+                            log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
+                            break;
+                        } catch (Exception e) {
+                            if (HavenoUtils.isInvalidTx(e)) throw e;
+                            log.warn("Error creating withdraw tx, attempt={}/{}, error={}", i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());
+                            xmrWalletService.handleMainWalletError(e, sourceConnection, i + 1);
+                            if (i == TradeProtocol.MAX_ATTEMPTS - 1) throw e;
+                        }
                     }
+                    HavenoUtils.waitFor(TradeProtocol.REPROCESS_DELAY_MS); // wait before retrying
                 }
 
                 // popup confirmation message
