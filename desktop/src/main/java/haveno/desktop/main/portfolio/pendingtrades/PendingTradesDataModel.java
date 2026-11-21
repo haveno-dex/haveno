@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import haveno.common.ThreadUtils;
 import haveno.common.UserThread;
 import haveno.common.crypto.PubKeyRing;
 import haveno.common.crypto.PubKeyRingProvider;
@@ -64,12 +65,16 @@ import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.P2PService;
 import java.math.BigInteger;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javafx.beans.Observable;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -99,6 +104,7 @@ public class PendingTradesDataModel extends ActivatableDataModel {
     private final CoinFormatter btcFormatter;
 
     final ObservableMap<String, Boolean> showPaymentDetailsEarly = FXCollections.observableHashMap();
+    private final Map<String, BooleanProperty> cancelBusyProperties = new HashMap<>(); // by trade id
     final ObservableList<PendingTradesListItem> list = FXCollections.observableArrayList(
             item -> new Observable[]{item.getTradeStatus()});
     private final ListChangeListener<Trade> tradesListChangeListener;
@@ -191,6 +197,31 @@ public class PendingTradesDataModel extends ActivatableDataModel {
         checkNotNull(trade, "trade must not be null");
         checkArgument(trade instanceof SellerTrade, "Trade must be instance of SellerTrade");
         ((SellerProtocol) tradeManager.getTradeProtocol(trade)).onPaymentReceived(resultHandler, errorMessageHandler);
+    }
+
+    public void onCancelRequested(Trade trade, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        tradeManager.getTradeProtocol(trade).onCancelRequested(resultHandler, errorMessageHandler);
+        setCancelBusy(trade);
+    }
+
+    public void onCancelConfirmed(Trade trade, ResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        tradeManager.getTradeProtocol(trade).onCancelConfirmed(resultHandler, errorMessageHandler);
+        setCancelBusy(trade);
+    }
+
+    public void onCancelDeclined(Trade trade) {
+        tradeManager.getTradeProtocol(trade).onCancelDeclined(() -> {}, errorMessage -> {});
+    }
+
+    // set while a cancel request or confirmation is being processed, kept across rebuilds of the trade's step view
+    public BooleanProperty getCancelBusyProperty(Trade trade) {
+        return cancelBusyProperties.computeIfAbsent(trade.getId(), id -> new SimpleBooleanProperty());
+    }
+
+    private void setCancelBusy(Trade trade) {
+        BooleanProperty busy = getCancelBusyProperty(trade);
+        busy.set(true);
+        ThreadUtils.execute(() -> UserThread.execute(() -> busy.set(false)), trade.getId()); // runs after the action on the trade's thread
     }
 
     public void onWithdrawRequest(String toAddress,

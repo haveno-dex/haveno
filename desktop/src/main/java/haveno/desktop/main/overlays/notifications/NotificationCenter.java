@@ -38,6 +38,7 @@ import haveno.core.support.messages.ChatMessage;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
+import haveno.core.trade.protocol.TradePeer.CancelState;
 import haveno.core.user.Preferences;
 import haveno.desktop.Navigation;
 import haveno.desktop.main.MainView;
@@ -71,6 +72,7 @@ import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyLongProperty;
 import javafx.beans.property.ReadOnlyLongWrapper;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.MapChangeListener;
@@ -120,6 +122,7 @@ public class NotificationCenter {
     private final ObservableMap<String, String> unseenTradeUpdates = FXCollections.observableHashMap();
     private final Map<String, Notification> tradeNotifications = new HashMap<>();
     private final Set<String> notifiedTradeUpdates = new HashSet<>();
+    private final Map<String, Trade.Phase> restoredTradePhases = new HashMap<>();
     private final ReadOnlyBooleanWrapper unreadPortfolio = new ReadOnlyBooleanWrapper();
     private final ReadOnlyLongWrapper openTradeCount = new ReadOnlyLongWrapper();
     private final Set<ObservableList<ChatMessage>> focusedChats = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -155,6 +158,16 @@ public class NotificationCenter {
         EasyBind.subscribe(preferences.getUseAnimationsProperty(), useAnimations -> NotificationCenter.useAnimations = useAnimations);
     }
 
+    // records trade activity from before startup, which keeps its dot without replaying its popup
+    public void onTradesRestored() {
+        snapshot(tradeManager.getObservableList()).forEach(trade -> {
+            restoredTradePhases.put(trade.getId(), trade.getPhase());
+            refreshTradeNotification(trade, null);
+            String key = unseenTradeUpdates.remove(trade.getId()); // the dot returns when the views initialize
+            if (key != null) notifiedTradeUpdates.add(key);
+        });
+    }
+
     public void onAllServicesAndViewsInitialized() {
         tradeManager.addAmbiguousPaymentRejectedListener(this::onAmbiguousPaymentRejected);
 
@@ -162,10 +175,10 @@ public class NotificationCenter {
         mainWindow = scene.getWindow();
         // acknowledge content interaction after selection and focus settle, not title-bar drags
         scene.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(() -> setViewedTradeId(viewedTradeId));
+            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(this::onContentInteraction);
         });
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(() -> setViewedTradeId(viewedTradeId));
+            if (!Notification.isNotificationTarget(event.getTarget())) UserThread.execute(this::onContentInteraction);
         });
         tradeManager.getObservableList().addListener((ListChangeListener<Trade>) change ->
                 UserThread.execute(this::refreshChatState));
@@ -183,12 +196,13 @@ public class NotificationCenter {
                 List<Trade> newTrades = added.stream().filter(trade -> !trade.isDepositsPublished()).toList();
                 UserThread.execute(() -> {
                     removed.forEach(this::removeTradeSubscriptions);
-                    added.forEach(trade -> addTradeSubscriptions(trade, newTrades.contains(trade)));
+                    added.forEach(trade -> addTradeSubscriptions(trade, newTrades.contains(trade) ? Trade.Phase.INIT : null));
                     refreshOpenTradeCount();
                 });
             }
         });
-        snapshot(tradeManager.getObservableList()).forEach(trade -> addTradeSubscriptions(trade, false));
+        // trade activity since the trades were restored notifies as a transition from their restored phase
+        snapshot(tradeManager.getObservableList()).forEach(trade -> addTradeSubscriptions(trade, restoredTradePhases.remove(trade.getId())));
         refreshOpenTradeCount();
         preferences.getDontShowAgainMapAsObservable().addListener((MapChangeListener<String, Boolean>) change -> {
             String key = change.getKey();
@@ -252,6 +266,11 @@ public class NotificationCenter {
                     .filter(trade -> trade.getId().equals(viewedTradeId))
                     .findFirst().ifPresent(trade -> refreshTradeNotification(trade, null));
         }
+    }
+
+    // input acknowledges the viewed trade, unless its notification is open to be closed or used
+    private void onContentInteraction() {
+        if (!tradeNotifications.containsKey(viewedTradeId)) setViewedTradeId(viewedTradeId);
     }
 
     public void onChatFocusChanged(ObservableList<ChatMessage> messages, boolean focused, Runnable persist) {
@@ -417,7 +436,7 @@ public class NotificationCenter {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void addTradeSubscriptions(Trade trade, boolean notifyInitialState) {
+    private void addTradeSubscriptions(Trade trade, @Nullable Trade.Phase previousPhase) {
         String tradeId = trade.getId();
         if (disputeStateSubscriptionsMap.containsKey(tradeId)) return;
         disputeStateSubscriptionsMap.put(tradeId, EasyBind.subscribe(trade.disputeStateProperty(),
@@ -430,10 +449,11 @@ public class NotificationCenter {
         ChangeListener<Trade.Phase> phaseListener = (observable, oldValue, newValue) -> onTradeStateChanged(trade, oldValue);
         trade.statePhaseProperty().addListener(phaseListener);
         tradePhaseSubscriptionsMap.put(tradeId, () -> trade.statePhaseProperty().removeListener(phaseListener));
-        ChangeListener<Trade.PayoutState> payoutListener = (observable, oldValue, newValue) -> onTradeStateChanged(trade, trade.getPhase());
-        trade.payoutStateProperty().addListener(payoutListener);
-        tradePayoutSubscriptionsMap.put(tradeId, () -> trade.payoutStateProperty().removeListener(payoutListener));
-        onTradeStateChanged(trade, notifyInitialState ? Trade.Phase.INIT : null);
+        ChangeListener<Object> stateListener = (observable, oldValue, newValue) -> onTradeStateChanged(trade, trade.getPhase());
+        List<ObservableValue<?>> states = List.of(trade.payoutStateProperty(), trade.disputeStateProperty(), trade.getSelf().getCancelStateProperty(), trade.getTradePeer().getCancelStateProperty(), trade.getSelf().getCancelPayoutTxHexProperty());
+        states.forEach(state -> state.addListener(stateListener));
+        tradePayoutSubscriptionsMap.put(tradeId, () -> states.forEach(state -> state.removeListener(stateListener)));
+        onTradeStateChanged(trade, previousPhase);
     }
 
     private void removeTradeSubscriptions(Trade trade) {
@@ -469,6 +489,21 @@ public class NotificationCenter {
         return NOTIFICATION_KEY_PREFIX + event + trade.getId();
     }
 
+    // the peer's unseen request to cancel, agreement or decline, as the key of its message
+    @Nullable
+    private String getCancelEvent(Trade trade) {
+        if (!trade.isCancelPermitted() || !trade.isDepositsUnlocked()) return null;
+        CancelState self = trade.getSelf().getCancelState();
+        String event = null;
+        if (trade.getTradePeer().getCancelState() == CancelState.REQUESTED) {
+            if (self != CancelState.REQUESTED) event = "portfolio.pending.cancel.peerRequested";
+            else if (trade.isBuyer()) event = "portfolio.pending.cancel.peerAgreed"; // the buyer cancels the trade
+        } else if (self == CancelState.DECLINED) {
+            event = "portfolio.pending.cancel.declined";
+        }
+        return event != null && preferences.showAgain(tradeNotificationKey(trade, event)) ? event : null;
+    }
+
     private void markTradeUpdatesSeen(Trade trade) {
         for (Trade.Phase phase : List.of(Trade.Phase.DEPOSITS_PUBLISHED, Trade.Phase.DEPOSITS_UNLOCKED,
                 Trade.Phase.DEPOSITS_FINALIZED, Trade.Phase.PAYMENT_SENT)) {
@@ -481,6 +516,8 @@ public class NotificationCenter {
             String key = tradeNotificationKey(trade, Trade.PayoutState.PAYOUT_PUBLISHED.name());
             if (preferences.showAgain(key)) preferences.dontShowAgain(key, true);
         }
+        String cancelEvent = getCancelEvent(trade);
+        if (cancelEvent != null) preferences.dontShowAgain(tradeNotificationKey(trade, cancelEvent), true);
         unseenTradeUpdates.remove(trade.getId());
         dismissTradeNotification(trade.getId());
     }
@@ -548,16 +585,21 @@ public class NotificationCenter {
                 trade.getNumDepositConfirmations() : null;
         boolean depositsFinalized = phase == Trade.Phase.DEPOSITS_FINALIZED ||
                 (depositConfirmations != null && depositConfirmations >= Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
+        boolean isPayer = trade.isBuyer() && !trade.isCancelSigned(); // a buyer who signed to cancel is not told to pay
+        String cancelEvent = getCancelEvent(trade);
         String event = Trade.Phase.DEPOSITS_PUBLISHED.name();
         String message = trade.isMaker() ? Res.get("notification.trade.accepted",
                 trade.isBuyer() ? Res.get("shared.seller") : Res.get("shared.buyer")) : null;
         if (trade.isPayoutPublished()) {
             event = Trade.PayoutState.PAYOUT_PUBLISHED.name();
-            message = Res.get("notification.trade.completed");
-        } else if (trade.isBuyer() && depositsFinalized) {
+            message = Res.get(trade.isCanceled() ? "notification.trade.canceled" : "notification.trade.completed");
+        } else if (cancelEvent != null) {
+            event = cancelEvent;
+            message = Res.get(cancelEvent, HavenoUtils.formatXmr(trade.getReservedAmount(), true));
+        } else if (isPayer && depositsFinalized) {
             event = Trade.Phase.DEPOSITS_FINALIZED.name();
             message = Res.get("notification.trade.finalized", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED);
-        } else if (trade.isBuyer() && phase.ordinal() >= Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
+        } else if (isPayer && phase.ordinal() >= Trade.Phase.DEPOSITS_UNLOCKED.ordinal()) {
             event = Trade.Phase.DEPOSITS_UNLOCKED.name();
             message = Res.get("notification.trade.unlocked");
         } else if (trade.isSeller() && phase.ordinal() >= Trade.Phase.PAYMENT_SENT.ordinal()) {
@@ -577,7 +619,7 @@ public class NotificationCenter {
         }
         unseenTradeUpdates.put(tradeId, key);
         if (message == null || previousPhase == null) return;
-        if (!trade.isPayoutPublished() && !event.equals(phase.name())) {
+        if (!trade.isPayoutPublished() && cancelEvent == null && !event.equals(phase.name())) {
             // a milestone crossed live still notifies when the later phases carry no notice of their own
             boolean derived = event.equals(Trade.Phase.DEPOSITS_FINALIZED.name()); // inferred from confirmations
             if (derived || Trade.Phase.valueOf(event).ordinal() <= previousPhase.ordinal()) return;

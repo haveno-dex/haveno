@@ -78,6 +78,10 @@ public final class TradeInfoV1Builder {
     private long startTime;
     private long maxDurationMs;
     private long deadlineTime;
+    private String buyerCancelState;
+    private String sellerCancelState;
+    private boolean isCanceled;
+    private boolean isCancelSigned;
 
     public TradeInfoV1Builder withOffer(OfferInfo offer) {
         this.offer = offer;
@@ -311,6 +315,26 @@ public final class TradeInfoV1Builder {
 
     public TradeInfoV1Builder withDeadlineTime(long deadlineTime) {
         this.deadlineTime = deadlineTime;
+        return this;
+    }
+
+    public TradeInfoV1Builder withBuyerCancelState(String buyerCancelState) {
+        this.buyerCancelState = buyerCancelState;
+        return this;
+    }
+
+    public TradeInfoV1Builder withSellerCancelState(String sellerCancelState) {
+        this.sellerCancelState = sellerCancelState;
+        return this;
+    }
+
+    public TradeInfoV1Builder withIsCanceled(boolean isCanceled) {
+        this.isCanceled = isCanceled;
+        return this;
+    }
+
+    public TradeInfoV1Builder withIsCancelSigned(boolean isCancelSigned) {
+        this.isCancelSigned = isCancelSigned;
         return this;
     }
 

@@ -2396,6 +2396,7 @@ public class OverlayTest {
         private final ObjectProperty<Trade.State> state = new SimpleObjectProperty<>(Trade.State.DEPOSIT_TXS_CONFIRMED_IN_BLOCKCHAIN);
         private final ObjectProperty<Trade.PayoutState> payout = new SimpleObjectProperty<>(Trade.PayoutState.PAYOUT_UNPUBLISHED);
         private final ObjectProperty<Trade.DisputeState> dispute = new SimpleObjectProperty<>(Trade.DisputeState.NO_DISPUTE);
+        private final TradePeer peer = new TradePeer();
         private ObservableMap<String, Boolean> showPaymentDetailsEarly;
         private ObservableList<PendingTradesListItem> source;
         private PendingTradesListItem item;
@@ -2423,6 +2424,7 @@ public class OverlayTest {
             when(trade.getOffer().getCombinedExtraInfo()).thenReturn("account note");
             when(trade.getBuyer().getPaymentAccountPayload()).thenReturn(null);
             when(trade.getSeller().getPaymentAccountPayload()).thenReturn(null);
+            when(trade.getTradePeer()).thenReturn(peer);
             PendingTradesDataModel dataModel = new PendingTradesDataModel(null, null, null, null, null,
                     null, null, null, null, null, null, null, null, null, null);
             var earlyPayment = PendingTradesDataModel.class.getDeclaredField("showPaymentDetailsEarly");
@@ -2520,6 +2522,22 @@ public class OverlayTest {
             source.clear();
             showPaymentDetailsEarly.put(trade.getId(), true);
             assertTrue(filtered.isEmpty());
+        }
+
+        @Test
+        void refiltersOnCancelRequests() {
+            FilteredList<PendingTradesListItem> filtered = new FilteredList<>(source, row -> row.match("cancel requested"));
+            when(trade.isDepositsUnlocked()).thenReturn(true);
+            when(trade.isCancelActionable()).thenAnswer(invocation -> peer.getCancelState() == TradePeer.CancelState.REQUESTED);
+            assertTrue(filtered.isEmpty());
+            peer.setCancelState(TradePeer.CancelState.REQUESTED);
+            assertEquals(List.of(item), filtered);
+            peer.setCancelState(TradePeer.CancelState.DECLINED);
+            assertTrue(filtered.isEmpty());
+            when(trade.isCancelAgreed()).thenReturn(true);
+            filtered.setPredicate(row -> row.match("confirm cancel"));
+            peer.setCancelState(TradePeer.CancelState.REQUESTED);
+            assertEquals(List.of(item), filtered);
         }
     }
 
@@ -4476,6 +4494,52 @@ public class OverlayTest {
         }
 
         @Test
+        void signingCancelDismissesPaymentReminder() {
+            Trade trade = addTrade(false);
+            when(trade.isCancelPermitted()).thenReturn(true);
+            when(trade.isDepositsUnlocked()).thenReturn(true);
+            when(trade.isCancelSigned()).thenAnswer(invocation -> trade.getSelf().getCancelPayoutTxHex() != null);
+            trade.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+            seenUpdates.put("NotificationCenter_portfolio.pending.cancel.peerRequested" + trade.getId(), true);
+            setPhase(trade, Trade.Phase.DEPOSITS_UNLOCKED);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                setPhase(trade, Trade.Phase.DEPOSITS_FINALIZED);
+                Notification reminder = notifications.constructed().get(0);
+                verify(reminder).message(Res.get("notification.trade.finalized", Trade.NUM_BLOCKS_DEPOSITS_FINALIZED));
+                trade.getSelf().setCancelPayoutTxHex("signed-cancel");
+                verify(reminder).hide();
+                assertEquals(1, notifications.constructed().size());
+            }
+        }
+
+        @Test
+        void peerCancelRequestNotifiesOnceUntilSeen() {
+            Trade trade = addTrade(false);
+            when(trade.isCancelPermitted()).thenReturn(true);
+            when(trade.isDepositsUnlocked()).thenReturn(true);
+            when(trade.getReservedAmount()).thenReturn(BigInteger.ZERO);
+            setPhase(trade, Trade.Phase.DEPOSITS_UNLOCKED);
+            notificationCenter.onAllServicesAndViewsInitialized();
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                trade.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+                assertEquals(1, notifications.constructed().size());
+                verify(notifications.constructed().get(0)).message(Res.get("portfolio.pending.cancel.peerRequested",
+                        HavenoUtils.formatXmr(BigInteger.ZERO, true)));
+                assertTrue(notificationCenter.unseenTradeUpdateProperty(trade.getId()).get());
+                viewTrade(trade);
+                assertFalse(notificationCenter.unseenTradeUpdateProperty(trade.getId()).get());
+
+                // a request which was seen does not notify again
+                when(navigation.getCurrentPath()).thenReturn(ViewPath.to(MainView.class));
+                trade.getTradePeer().setCancelState(TradePeer.CancelState.DECLINED);
+                trade.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+                assertEquals(1, notifications.constructed().size());
+                assertFalse(notificationCenter.unseenTradeUpdateProperty(trade.getId()).get());
+            }
+        }
+
+        @Test
         void tradeActionLabelReflectsWhetherOpenTradesIsAlreadyVisible() {
             notificationCenter.onAllServicesAndViewsInitialized();
             when(navigation.getCurrentPath()).thenReturn(ViewPath.to(MainView.class));
@@ -4632,7 +4696,12 @@ public class OverlayTest {
                 verify(notification, never()).hide();
                 assertTrue(guard.getValue().getAsBoolean());
                 assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                // content input keeps the open notification, selecting its trade acknowledges it
                 mousePressedHandler.handle(mock(MouseEvent.class));
+                keyPressedHandler.handle(mock(KeyEvent.class));
+                verify(notification, never()).hide();
+                assertTrue(notificationCenter.unreadPortfolioProperty().get());
+                viewTrade(trade);
                 assertFalse(notificationCenter.unreadPortfolioProperty().get());
                 assertTrue(seenUpdates.get("NotificationCenter_PAYMENT_SENT" + trade.getId()));
                 verify(notification).hide();
@@ -4651,7 +4720,7 @@ public class OverlayTest {
             mainWindowFocused.set(false);
             try (MockedConstruction<Notification> notifications = mockNotifications()) {
                 setPhase(trade, Trade.Phase.PAYMENT_SENT);
-                Notification notification = notifications.constructed().get(0);
+                notifications.constructed().get(0).getIsHiddenProperty().set(true); // closing leaves the trade unseen
                 mainWindowFocused.set(true);
                 StackPane card = mock(StackPane.class);
                 ObservableMap<Object, Object> properties = FXCollections.observableHashMap();
@@ -4666,11 +4735,9 @@ public class OverlayTest {
                 when(key.getTarget()).thenReturn(button);
                 mousePressedHandler.handle(click);
                 keyPressedHandler.handle(key);
-                verify(notification, never()).hide();
                 assertTrue(notificationCenter.unreadPortfolioProperty().get());
                 assertFalse(seenUpdates.containsKey("NotificationCenter_PAYMENT_SENT" + trade.getId()));
                 mousePressedHandler.handle(mock(MouseEvent.class));
-                verify(notification).hide();
                 assertFalse(notificationCenter.unreadPortfolioProperty().get());
             }
         }
@@ -5000,6 +5067,41 @@ public class OverlayTest {
         }
 
         @Test
+        void tradeActivityDuringStartupNotifiesWhileRestoredActivityKeepsItsDot() {
+            Trade restored = addTrade(false);
+            Trade active = addTrade(false);
+            Trade disputed = addTrade(true);
+            when(disputed.isBuyer()).thenReturn(false);
+            for (Trade trade : List.of(restored, active, disputed)) {
+                when(trade.isCancelPermitted()).thenReturn(true);
+                when(trade.isDepositsUnlocked()).thenReturn(true);
+                when(trade.getReservedAmount()).thenReturn(BigInteger.ZERO);
+                setPhase(trade, Trade.Phase.DEPOSITS_UNLOCKED);
+            }
+            restored.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+            disputed.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+            notificationCenter.onTradesRestored();
+            assertFalse(notificationCenter.unreadPortfolioProperty().get());
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                active.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+                when(disputed.isCancelPermitted()).thenReturn(false); // its older milestone does not notify instead
+                Trade moved = addTrade(true); // a trade moved to the open trades is not new activity
+                setPhase(moved, Trade.Phase.DEPOSITS_PUBLISHED);
+                notificationCenter.onAllServicesAndViewsInitialized();
+                assertEquals(1, notifications.constructed().size());
+                ArgumentCaptor<Runnable> action = ArgumentCaptor.forClass(Runnable.class);
+                verify(notifications.constructed().get(0)).onAction(action.capture());
+                action.getValue().run();
+                verify(navigation).navigateToWithData(active, MainView.class, PortfolioView.class, PendingTradesView.class);
+                for (Trade trade : List.of(restored, disputed, moved)) assertTrue(notificationCenter.unseenTradeUpdateProperty(trade.getId()).get());
+
+                // later activity of a restored trade still notifies
+                setPayout(restored, Trade.PayoutState.PAYOUT_PUBLISHED);
+                assertEquals(2, notifications.constructed().size());
+            }
+        }
+
+        @Test
         void makerAcceptanceSurvivesDepositsConfirmingBeforeQueuedUpdatesRun() {
             notificationCenter.onAllServicesAndViewsInitialized();
             Trade trade = addTrade(true);
@@ -5137,6 +5239,8 @@ public class OverlayTest {
             when(trade.isPayoutPublished()).thenAnswer(invocation -> payout.get().ordinal() >= Trade.PayoutState.PAYOUT_PUBLISHED.ordinal());
             when(trade.isBuyer()).thenReturn(true);
             when(trade.disputeStateProperty()).thenReturn(new SimpleObjectProperty<>(Trade.DisputeState.NO_DISPUTE));
+            when(trade.getSelf()).thenReturn(new TradePeer());
+            when(trade.getTradePeer()).thenReturn(new TradePeer());
             when(tradeManager.getOpenTrade(trade.getId())).thenReturn(Optional.of(trade));
             trades.add(trade);
             return trade;

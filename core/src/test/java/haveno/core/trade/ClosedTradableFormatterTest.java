@@ -49,6 +49,14 @@ public class ClosedTradableFormatterTest {
         assertEquals(Res.get("portfolio.closed.completedByArbitration"), getState(BigInteger.valueOf(AMOUNT)));
     }
 
+    @Test
+    public void testCanceledTradeState() {
+        Trade trade = mock(Trade.class);
+        when(trade.isPayoutPublished()).thenReturn(true);
+        when(trade.isCanceled()).thenReturn(true);
+        assertEquals(Res.get("portfolio.closed.canceled"), formatter.getStateAsString(trade));
+    }
+
     private String getState(BigInteger arbitratedBuyerGain) {
         Trade trade = mock(Trade.class);
         when(trade.isPayoutPublished()).thenReturn(true);

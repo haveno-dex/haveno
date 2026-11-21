@@ -677,6 +677,7 @@ public class BuyerStep2View extends TradeStepView {
 
     private boolean confirmPaymentSentPermitted() {
         if (!trade.confirmPermitted()) return false;
+        if (trade.isCancelSigned()) return false;
         if (model.dataModel.getSellersPaymentAccountPayload() == null) return false;
         if (trade.getState() == Trade.State.BUYER_SEND_FAILED_PAYMENT_SENT_MSG) return true;
         return trade.isDepositsUnlocked() && trade.getState().ordinal() < Trade.State.BUYER_CONFIRMED_PAYMENT_SENT.ordinal();
@@ -708,6 +709,11 @@ public class BuyerStep2View extends TradeStepView {
     protected void updateDisputeState(Trade.DisputeState disputeState) {
         super.updateDisputeState(disputeState);
         confirmButton.setDisable(!confirmPaymentSentPermitted());
+    }
+
+    @Override
+    protected void onCancelUpdated() {
+        if (confirmButton != null) confirmButton.setDisable(!confirmPaymentSentPermitted());
     }
 
 
@@ -758,7 +764,7 @@ public class BuyerStep2View extends TradeStepView {
 
     @Override
     protected void showPaymentReminder() {
-        if (!trade.isDepositsUnlocked() || trade.isPaymentSent()) return;
+        if (!trade.isDepositsUnlocked() || trade.isPaymentSent() || trade.isCancelSigned()) return;
         PaymentAccountPayload account = model.dataModel.getSellersPaymentAccountPayload();
         if (account != null && !trade.isPayoutPublished()) {
             String key = "startPayment" + trade.getId();
