@@ -122,6 +122,7 @@ public class NotificationCenter {
     private final ObservableMap<String, String> unseenTradeUpdates = FXCollections.observableHashMap();
     private final Map<String, Notification> tradeNotifications = new HashMap<>();
     private final Set<String> notifiedTradeUpdates = new HashSet<>();
+    private final Map<String, Trade.Phase> restoredTradePhases = new HashMap<>();
     private final ReadOnlyBooleanWrapper unreadPortfolio = new ReadOnlyBooleanWrapper();
     private final ReadOnlyLongWrapper openTradeCount = new ReadOnlyLongWrapper();
     private final Set<ObservableList<ChatMessage>> focusedChats = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -157,6 +158,16 @@ public class NotificationCenter {
         EasyBind.subscribe(preferences.getUseAnimationsProperty(), useAnimations -> NotificationCenter.useAnimations = useAnimations);
     }
 
+    // records trade activity from before startup, which keeps its dot without replaying its popup
+    public void onTradesRestored() {
+        snapshot(tradeManager.getObservableList()).forEach(trade -> {
+            restoredTradePhases.put(trade.getId(), trade.getPhase());
+            refreshTradeNotification(trade, null);
+            String key = unseenTradeUpdates.remove(trade.getId()); // the dot returns when the views initialize
+            if (key != null) notifiedTradeUpdates.add(key);
+        });
+    }
+
     public void onAllServicesAndViewsInitialized() {
         tradeManager.addAmbiguousPaymentRejectedListener(this::onAmbiguousPaymentRejected);
 
@@ -185,12 +196,13 @@ public class NotificationCenter {
                 List<Trade> newTrades = added.stream().filter(trade -> !trade.isDepositsPublished()).toList();
                 UserThread.execute(() -> {
                     removed.forEach(this::removeTradeSubscriptions);
-                    added.forEach(trade -> addTradeSubscriptions(trade, newTrades.contains(trade)));
+                    added.forEach(trade -> addTradeSubscriptions(trade, newTrades.contains(trade) ? Trade.Phase.INIT : null));
                     refreshOpenTradeCount();
                 });
             }
         });
-        snapshot(tradeManager.getObservableList()).forEach(trade -> addTradeSubscriptions(trade, false));
+        // trade activity since the trades were restored notifies as a transition from their restored phase
+        snapshot(tradeManager.getObservableList()).forEach(trade -> addTradeSubscriptions(trade, restoredTradePhases.remove(trade.getId())));
         refreshOpenTradeCount();
         preferences.getDontShowAgainMapAsObservable().addListener((MapChangeListener<String, Boolean>) change -> {
             String key = change.getKey();
@@ -424,7 +436,7 @@ public class NotificationCenter {
     // Private
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    private void addTradeSubscriptions(Trade trade, boolean notifyInitialState) {
+    private void addTradeSubscriptions(Trade trade, @Nullable Trade.Phase previousPhase) {
         String tradeId = trade.getId();
         if (disputeStateSubscriptionsMap.containsKey(tradeId)) return;
         disputeStateSubscriptionsMap.put(tradeId, EasyBind.subscribe(trade.disputeStateProperty(),
@@ -441,7 +453,7 @@ public class NotificationCenter {
         List<ObservableValue<?>> states = List.of(trade.payoutStateProperty(), trade.disputeStateProperty(), trade.getSelf().getCancelStateProperty(), trade.getTradePeer().getCancelStateProperty(), trade.getSelf().getCancelPayoutTxHexProperty());
         states.forEach(state -> state.addListener(stateListener));
         tradePayoutSubscriptionsMap.put(tradeId, () -> states.forEach(state -> state.removeListener(stateListener)));
-        onTradeStateChanged(trade, notifyInitialState ? Trade.Phase.INIT : null);
+        onTradeStateChanged(trade, previousPhase);
     }
 
     private void removeTradeSubscriptions(Trade trade) {
