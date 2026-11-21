@@ -146,6 +146,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
     private final BooleanProperty useSoundForNotificationsProperty = new SimpleBooleanProperty(prefPayload.isUseSoundForNotifications());
     @Getter
     private final IntegerProperty repeatNotificationSoundSecondsProperty = new SimpleIntegerProperty(prefPayload.getRepeatNotificationSoundSeconds());
+    @Getter
+    private final BooleanProperty autoCompleteTradesProperty = new SimpleBooleanProperty(prefPayload.isAutoCompleteTrades());
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -194,6 +196,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         repeatNotificationSoundSecondsProperty.addListener((ov) -> {
             prefPayload.setRepeatNotificationSoundSeconds(repeatNotificationSoundSecondsProperty.get());
+            requestPersistence();
+        });
+
+        autoCompleteTradesProperty.addListener((ov) -> {
+            prefPayload.setAutoCompleteTrades(autoCompleteTradesProperty.get());
             requestPersistence();
         });
 
@@ -304,6 +311,7 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         useStandbyModeProperty.set(prefPayload.isUseStandbyMode());
         useSoundForNotificationsProperty.set(prefPayload.isUseSoundForNotifications());
         repeatNotificationSoundSecondsProperty.set(prefPayload.getRepeatNotificationSoundSeconds());
+        autoCompleteTradesProperty.set(prefPayload.isAutoCompleteTrades());
 
         // read the css theme from the unencrypted store, migrating from the encrypted payload on first run
         Integer cssThemeFromSettings = readCssThemeFromSettings();
@@ -960,6 +968,10 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         this.repeatNotificationSoundSecondsProperty.set(repeatNotificationSoundSeconds);
     }
 
+    public void setAutoCompleteTrades(boolean autoCompleteTrades) {
+        this.autoCompleteTradesProperty.set(autoCompleteTrades);
+    }
+
     public void setTakeOfferSelectedPaymentAccountId(String value) {
         prefPayload.setTakeOfferSelectedPaymentAccountId(value);
         requestPersistence();
@@ -1258,6 +1270,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         void setUseSoundForNotifications(boolean useSoundForNotifications);
 
         void setRepeatNotificationSoundSeconds(int repeatNotificationSoundSeconds);
+
+        void setAutoCompleteTrades(boolean autoCompleteTrades);
 
         void setTakeOfferSelectedPaymentAccountId(String value);
 

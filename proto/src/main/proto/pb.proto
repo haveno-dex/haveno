@@ -1988,6 +1988,7 @@ message PreferencesPayload {
     int32 tac_accepted_version = 79;
     bool use_native_xmr_wallet = 80;
     int32 repeat_notification_sound_seconds = 81;
+    bool auto_complete_trades = 82;
 }
 
 message AutoConfirmSettings {

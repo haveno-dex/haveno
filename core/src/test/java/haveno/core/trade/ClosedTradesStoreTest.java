@@ -37,7 +37,9 @@ import haveno.core.offer.OfferPayload;
 import haveno.core.offer.OpenOffer;
 import haveno.core.payment.ZelleAccount;
 import haveno.core.proto.persistable.CorePersistenceProtoResolver;
+import haveno.core.support.dispute.arbitration.ArbitrationManager;
 import haveno.core.trade.protocol.ProcessModel;
+import haveno.core.trade.protocol.TradePeer.CancelState;
 import haveno.core.trade.statistics.TradeStatistics3;
 import haveno.core.trade.statistics.TradeStatistics3StorageService;
 import haveno.core.trade.statistics.TradeStatisticsManager;
@@ -75,6 +77,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,6 +106,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -1974,6 +1979,51 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
+    public void testAutoCompleteTrades() throws Exception {
+        Preferences previousPreferences = HavenoUtils.preferences;
+        ArbitrationManager previousArbitrationManager = HavenoUtils.arbitrationManager;
+        HavenoUtils.preferences = mock(Preferences.class);
+        HavenoUtils.arbitrationManager = mock(ArbitrationManager.class);
+        try (var userThread = mockStatic(UserThread.class)) {
+            Trade settledBuyer = autoCompleteTrade(false, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            Trade settledSeller = autoCompleteTrade(true, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_FINALIZED);
+            Trade canceled = autoCompleteTrade(true, Trade.State.DEPOSIT_TXS_FINALIZED_IN_BLOCKCHAIN, Trade.PayoutState.PAYOUT_UNLOCKED);
+            canceled.getSeller().setCancelState(CancelState.REQUESTED);
+            Trade awaitingMessage = autoCompleteTrade(false, Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            Trade arbitrated = autoCompleteTrade(true, Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            Trade disputed = autoCompleteTrade(false, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            disputed.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+            Trade locked = autoCompleteTrade(false, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_CONFIRMED);
+            ClosedTradableManager closed = handoffClosedManager();
+            TradeManager manager = handoffManager(closed, mock(PersistenceManager.class));
+            manager.getObservableList().addAll(settledBuyer, settledSeller, canceled, awaitingMessage, arbitrated, disputed, locked);
+            BooleanProperty isMailboxInitialized = new SimpleBooleanProperty();
+            P2PService p2PService = mock(P2PService.class, RETURNS_DEEP_STUBS);
+            when(p2PService.getMailboxMessageService().getIsInitializedProperty()).thenReturn(isMailboxInitialized);
+            var p2PServiceField = TradeManager.class.getDeclaredField("p2PService");
+            p2PServiceField.setAccessible(true);
+            p2PServiceField.set(manager, p2PService);
+            var autoComplete = TradeManager.class.getDeclaredMethod("autoCompleteTrades");
+            autoComplete.setAccessible(true);
+
+            autoComplete.invoke(manager);
+            assertTrue(closed.getClosedTrades().isEmpty());
+
+            when(HavenoUtils.preferences.isAutoCompleteTrades()).thenReturn(true);
+            autoComplete.invoke(manager);
+            assertTrue(closed.getClosedTrades().isEmpty()); // waits for the startup mailbox messages
+
+            isMailboxInitialized.set(true);
+            autoComplete.invoke(manager);
+            assertEquals(List.of(settledBuyer, settledSeller, canceled), closed.getClosedTrades());
+            assertEquals(List.of(awaitingMessage, arbitrated, disputed, locked), manager.getObservableList());
+        } finally {
+            HavenoUtils.preferences = previousPreferences;
+            HavenoUtils.arbitrationManager = previousArbitrationManager;
+        }
+    }
+
+    @Test
     public void testRetainedWalletDoesNotRepersistUnchangedProcessData() throws Exception {
         Trade trade = spy(handoffTrade());
         doReturn(true).when(trade).walletExists();
@@ -2188,6 +2238,15 @@ public class ClosedTradesStoreTest {
         return new BuyerAsMakerTrade(openOffer("handoff", 0).getOffer(), BigInteger.ONE, 100,
                 mock(XmrWalletService.class), new ProcessModel("handoff", "account", keyRing.getPubKeyRing()),
                 uid, null, null, null, null);
+    }
+
+    private Trade autoCompleteTrade(boolean isSeller, Trade.State state, Trade.PayoutState payoutState) {
+        Trade trade = isSeller ? new SellerAsMakerTrade(openOffer("handoff", 0).getOffer(), BigInteger.ONE, 100,
+                mock(XmrWalletService.class), new ProcessModel("handoff", "account", keyRing.getPubKeyRing()),
+                "handoff-uid", null, null, null, null) : handoffTrade();
+        trade.setState(state);
+        trade.setPayoutState(payoutState);
+        return trade;
     }
 
     private ClosedTradableManager handoffClosedManager(Trade... trades) {
