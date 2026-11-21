@@ -27,7 +27,7 @@ On all platforms, install Java JDK 21:
 
 ```
 curl -s "https://get.sdkman.io" | bash
-sdk install java 21.0.9.fx-librca
+sdk install java 21.0.13.1+5-librca
 ```
 
 Restart the terminal for the changes to take effect.
