@@ -36,7 +36,6 @@ package haveno.network.p2p.network;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.inject.Inject;
 import com.google.protobuf.CodedInputStream;
@@ -99,6 +98,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -128,6 +128,8 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
     //TODO decrease limits again after testing
     private static final int SOCKET_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(240);
     private static final int SHUTDOWN_TIMEOUT = 100;
+    // the objects of a parsed frame need many times its size, so frames above the standard limit are parsed one at a time
+    private static final ReentrantLock LARGE_FRAME_LOCK = new ReentrantLock(true);
     public static final String THREAD_ID = Connection.class.getSimpleName();
     public static final long LOG_THROTTLE_INTERVAL_MS = 180000; // throttle logging rule violations and warnings to once every 3 mins
     public static final int POSSIBLE_DOS_THRESHOLD = 60;
@@ -1006,16 +1008,19 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                                 closeOnFrameViolation(RuleViolation.MAX_MSG_SIZE_EXCEEDED, "size > MAX_MSG_SIZE before parsing. size=" + envelopeSize);
                                 return;
                             }
-                            proto = protobuf.NetworkEnvelope.parseFrom(ByteStreams.limit(protoInputStream, envelopeSize));
+                            // buffered before parsing, so a peer sending slowly holds only the bytes it sent
+                            byte[] frame = protoInputStream.readNBytes(envelopeSize);
+                            if (frame.length == envelopeSize) { // else the stream ended inside the frame, which is a disconnect
+                                if (envelopeSize > PERMITTED_MESSAGE_SIZE) LARGE_FRAME_LOCK.lockInterruptibly();
+                                proto = NetworkEnvelope.PROTO_PARSER.parseFrom(frame);
+                            }
                         } catch (InvalidProtocolBufferException e) {
-                            // a malformed frame may be partially consumed, so the stream cannot be resynchronized
+                            // a malformed size prefix or frame closes the connection, an end of stream inside the prefix is a disconnect
                             if (!protoInputStream.eof) {
                                 closeOnFrameViolation(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
                                 return;
                             }
                         }
-                        // a frame cut short by end of stream is a disconnect, whether or not its prefix parsed
-                        if (protoInputStream.eof) proto = null;
                     }
 
                     long ts = System.currentTimeMillis();
@@ -1075,6 +1080,7 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     }
 
                     NetworkEnvelope networkEnvelope = networkProtoResolver.fromProto(proto);
+                    releaseLargeFrameLock();
                     log.debug("<< Received networkEnvelope of type: {}", networkEnvelope.getClass().getSimpleName());
 
                     // We want to track the network_messages also before the checks, so do it early...
@@ -1170,11 +1176,17 @@ public class Connection implements HasCapabilities, Runnable, MessageListener {
                     reportInvalidRequest(RuleViolation.INVALID_DATA_TYPE, e.getMessage());
                 } catch (Throwable t) {
                     handleException(t);
+                } finally {
+                    releaseLargeFrameLock(); // a frame which was not converted ends here
                 }
             }
         } catch (Throwable t) {
             handleException(t);
         }
+    }
+
+    private static void releaseLargeFrameLock() {
+        if (LARGE_FRAME_LOCK.isHeldByCurrentThread()) LARGE_FRAME_LOCK.unlock();
     }
 
     public boolean maybeHandleSupportedCapabilitiesMessage(NetworkEnvelope networkEnvelope) {

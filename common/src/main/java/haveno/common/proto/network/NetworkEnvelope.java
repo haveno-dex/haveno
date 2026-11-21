@@ -17,7 +17,9 @@
 
 package haveno.common.proto.network;
 
+import com.google.protobuf.DiscardUnknownFieldsParser;
 import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
 import haveno.common.Envelope;
 import lombok.EqualsAndHashCode;
 
@@ -25,6 +27,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 @EqualsAndHashCode
 public abstract class NetworkEnvelope implements Envelope {
+
+    // parses an envelope of a peer without its unknown fields, which are never read and need many times their size in memory
+    public static final Parser<protobuf.NetworkEnvelope> PROTO_PARSER = DiscardUnknownFieldsParser.wrap(protobuf.NetworkEnvelope.parser());
 
     protected final String messageVersion;
 
