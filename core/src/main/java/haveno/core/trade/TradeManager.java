@@ -1242,7 +1242,7 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
     // If trade was completed (closed without fault but might be closed by a dispute) we move it to the closed trades
     public void onTradeCompleted(Trade trade) {
         synchronized (trade) {
-            if (trade.isCompleted()) throw new RuntimeException("Trade " + trade.getId() + " was already completed");
+            if (trade.isCompleted()) return; // already completed, e.g. automatically
             // Mark completed BEFORE adding: add() synchronously appends a snapshot to the closed log,
             // so this persisted flag must already be set. Do not reorder.
             trade.setCompleted(true);
@@ -1251,6 +1251,17 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
         }
         xmrWalletService.swapPayoutAddressEntryToAvailable(trade.getId()); // TODO The address entry should have been removed already. Check and if its the case remove that.
         requestPersistence();
+    }
+
+    // complete undisputed trades which settled normally once their payout is unlocked
+    private void autoCompleteTrades() {
+        if (isShutDownStarted || !HavenoUtils.preferences.isAutoCompleteTrades()) return;
+        for (Trade trade : getOpenTrades()) {
+            boolean isSettled = trade.isBuyer() ? trade.isPaymentReceivedMessageProcessed() : trade.isPaymentReceived(); // buyer awaits the seller's message
+            if (!isSettled || !trade.isPayoutUnlocked() || trade.getDisputeState().isDisputed()) continue;
+            log.info("Completing {} {} automatically", trade.getClass().getSimpleName(), trade.getShortId());
+            onTradeCompleted(trade);
+        }
     }
 
     public void unregisterTrade(Trade trade) {
@@ -1311,7 +1322,10 @@ public class TradeManager implements PersistedDataHost, DecryptedDirectMessageLi
 
             @Override
             public void onMinuteTick() {
-                ThreadUtils.submitToPool(() -> updateTradePeriodState()); // update trade period off main thread
+                ThreadUtils.submitToPool(() -> { // update trades off main thread
+                    updateTradePeriodState();
+                    autoCompleteTrades();
+                });
             }
         });
     }

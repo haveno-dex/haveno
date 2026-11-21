@@ -1000,6 +1000,11 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
+    public void setAutoCompleteTrades(boolean value) {
+        prefPayload.setAutoCompleteTrades(value);
+        requestPersistence();
+    }
+
     public void setNotifyOnPreRelease(boolean value) {
         prefPayload.setNotifyOnPreRelease(value);
         requestPersistence();

@@ -1974,6 +1974,36 @@ public class ClosedTradesStoreTest {
     }
 
     @Test
+    public void testAutoCompleteTrades() throws Exception {
+        Preferences previousPreferences = HavenoUtils.preferences;
+        HavenoUtils.preferences = mock(Preferences.class);
+        try (var userThread = mockStatic(UserThread.class)) {
+            Trade settledBuyer = autoCompleteTrade(false, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            Trade settledSeller = autoCompleteTrade(true, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_FINALIZED);
+            Trade awaitingMessage = autoCompleteTrade(false, Trade.State.BUYER_SENT_PAYMENT_SENT_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            Trade arbitrated = autoCompleteTrade(true, Trade.State.SELLER_RECEIVED_PAYMENT_SENT_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            Trade disputed = autoCompleteTrade(false, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_UNLOCKED);
+            disputed.setDisputeState(Trade.DisputeState.DISPUTE_CLOSED);
+            Trade locked = autoCompleteTrade(false, Trade.State.SELLER_SENT_PAYMENT_RECEIVED_MSG, Trade.PayoutState.PAYOUT_CONFIRMED);
+            ClosedTradableManager closed = handoffClosedManager();
+            TradeManager manager = handoffManager(closed, mock(PersistenceManager.class));
+            manager.getObservableList().addAll(settledBuyer, settledSeller, awaitingMessage, arbitrated, disputed, locked);
+            var autoComplete = TradeManager.class.getDeclaredMethod("autoCompleteTrades");
+            autoComplete.setAccessible(true);
+
+            autoComplete.invoke(manager);
+            assertTrue(closed.getClosedTrades().isEmpty());
+
+            when(HavenoUtils.preferences.isAutoCompleteTrades()).thenReturn(true);
+            autoComplete.invoke(manager);
+            assertEquals(List.of(settledBuyer, settledSeller), closed.getClosedTrades());
+            assertEquals(List.of(awaitingMessage, arbitrated, disputed, locked), manager.getObservableList());
+        } finally {
+            HavenoUtils.preferences = previousPreferences;
+        }
+    }
+
+    @Test
     public void testRetainedWalletDoesNotRepersistUnchangedProcessData() throws Exception {
         Trade trade = spy(handoffTrade());
         doReturn(true).when(trade).walletExists();
@@ -2188,6 +2218,15 @@ public class ClosedTradesStoreTest {
         return new BuyerAsMakerTrade(openOffer("handoff", 0).getOffer(), BigInteger.ONE, 100,
                 mock(XmrWalletService.class), new ProcessModel("handoff", "account", keyRing.getPubKeyRing()),
                 uid, null, null, null, null);
+    }
+
+    private Trade autoCompleteTrade(boolean isSeller, Trade.State state, Trade.PayoutState payoutState) {
+        Trade trade = isSeller ? new SellerAsMakerTrade(openOffer("handoff", 0).getOffer(), BigInteger.ONE, 100,
+                mock(XmrWalletService.class), new ProcessModel("handoff", "account", keyRing.getPubKeyRing()),
+                "handoff-uid", null, null, null, null) : handoffTrade();
+        trade.setState(state);
+        trade.setPayoutState(payoutState);
+        return trade;
     }
 
     private ClosedTradableManager handoffClosedManager(Trade... trades) {
