@@ -48,6 +48,7 @@ import haveno.core.util.PriceUtil;
 import haveno.core.util.VolumeUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.setup.WalletsSetup;
+import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableViewModel;
 import haveno.desktop.main.MainView;
@@ -730,9 +731,13 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
     }
 
-    public String formatDepositString(BigInteger deposit, long amount) {
+    public String formatDepositString(BigInteger deposit, long amount, boolean isRange) {
         var percentage = FormattingUtils.formatToRoundedPercentWithSymbol(HavenoUtils.divide(deposit, BigInteger.valueOf(amount)));
-        return HavenoUtils.formatXmr(deposit) + " (" + percentage + ")";
+        if (deposit.signum() == 0) return percentage;
+
+        // the minimum deposit is a set amount for any trade amount
+        if (deposit.compareTo(Restrictions.getMinSecurityDeposit()) <= 0) return HavenoUtils.formatXmr(deposit);
+        return (isRange ? "<= " : "") + HavenoUtils.formatXmr(deposit) + " (" + percentage + ")";
     }
 
     PaymentMethod getShowAllEntryForPaymentMethod() {
