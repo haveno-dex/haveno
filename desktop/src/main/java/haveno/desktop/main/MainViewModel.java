@@ -215,6 +215,9 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
 
         setupHandlers();
         havenoSetup.addHavenoSetupListener(this);
+
+        // persisted trades are loaded and not yet initialized, so later trade activity notifies
+        notificationCenter.onTradesRestored();
     }
 
 

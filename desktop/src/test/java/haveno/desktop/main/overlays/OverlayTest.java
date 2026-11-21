@@ -5067,6 +5067,41 @@ public class OverlayTest {
         }
 
         @Test
+        void tradeActivityDuringStartupNotifiesWhileRestoredActivityKeepsItsDot() {
+            Trade restored = addTrade(false);
+            Trade active = addTrade(false);
+            Trade disputed = addTrade(true);
+            when(disputed.isBuyer()).thenReturn(false);
+            for (Trade trade : List.of(restored, active, disputed)) {
+                when(trade.isCancelPermitted()).thenReturn(true);
+                when(trade.isDepositsUnlocked()).thenReturn(true);
+                when(trade.getReservedAmount()).thenReturn(BigInteger.ZERO);
+                setPhase(trade, Trade.Phase.DEPOSITS_UNLOCKED);
+            }
+            restored.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+            disputed.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+            notificationCenter.onTradesRestored();
+            assertFalse(notificationCenter.unreadPortfolioProperty().get());
+            try (MockedConstruction<Notification> notifications = mockNotifications()) {
+                active.getTradePeer().setCancelState(TradePeer.CancelState.REQUESTED);
+                when(disputed.isCancelPermitted()).thenReturn(false); // its older milestone does not notify instead
+                Trade moved = addTrade(true); // a trade moved to the open trades is not new activity
+                setPhase(moved, Trade.Phase.DEPOSITS_PUBLISHED);
+                notificationCenter.onAllServicesAndViewsInitialized();
+                assertEquals(1, notifications.constructed().size());
+                ArgumentCaptor<Runnable> action = ArgumentCaptor.forClass(Runnable.class);
+                verify(notifications.constructed().get(0)).onAction(action.capture());
+                action.getValue().run();
+                verify(navigation).navigateToWithData(active, MainView.class, PortfolioView.class, PendingTradesView.class);
+                for (Trade trade : List.of(restored, disputed, moved)) assertTrue(notificationCenter.unseenTradeUpdateProperty(trade.getId()).get());
+
+                // later activity of a restored trade still notifies
+                setPayout(restored, Trade.PayoutState.PAYOUT_PUBLISHED);
+                assertEquals(2, notifications.constructed().size());
+            }
+        }
+
+        @Test
         void makerAcceptanceSurvivesDepositsConfirmingBeforeQueuedUpdatesRun() {
             notificationCenter.onAllServicesAndViewsInitialized();
             Trade trade = addTrade(true);
