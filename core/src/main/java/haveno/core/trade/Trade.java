@@ -796,6 +796,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                     ThreadUtils.submitToPool(() -> {
                         processModel.getXmrWalletService().swapPayoutAddressEntryToAvailable(getId());
                     });
+
+                    // notify api clients last, so a failure cannot skip the steps above
+                    HavenoUtils.notificationService.sendTradeNotification(this, "Trade Payout Published", "The payout transaction has been published");
                 }
 
                 // handle when payout finalized
