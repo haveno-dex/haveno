@@ -65,7 +65,7 @@ public class StartupWizardCurrencyStep implements StartupWizard.Step {
 
         filteredCurrencies = new FilteredList<>(FXCollections.observableArrayList(new ArrayList<>(CurrencyUtil.getAllSortedTraditionalCurrencies())));
         currencyListView.setItems(filteredCurrencies);
-        currencyListView.getStyleClass().add("wizard-currency-list");
+        currencyListView.getStyleClass().add("wizard-list");
         currencyListView.setPrefHeight(240);
         currencyListView.setMinHeight(160);
         currencyListView.setMaxWidth(LIST_WIDTH);

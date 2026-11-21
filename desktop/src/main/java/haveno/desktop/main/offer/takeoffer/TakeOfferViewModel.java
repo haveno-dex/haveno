@@ -230,6 +230,12 @@ class TakeOfferViewModel extends ActivatableWithDataModel<TakeOfferDataModel> im
         setVolumeToModel();
     }
 
+    // called after initWithData and before activate, to trade the amount closest to the volume
+    void applyVolume(Volume volume) {
+        dataModel.setVolume(volume);
+        dataModel.calculateAmount();
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // UI actions
     ///////////////////////////////////////////////////////////////////////////////////////////

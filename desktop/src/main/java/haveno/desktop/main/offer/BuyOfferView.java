@@ -26,6 +26,7 @@ import haveno.core.user.User;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.common.view.ViewLoader;
+import haveno.desktop.main.offer.quicktrade.QuickTradeWindow;
 import haveno.network.p2p.P2PService;
 
 @FxmlView
@@ -36,12 +37,14 @@ public class BuyOfferView extends OfferView {
                         Navigation navigation,
                         Preferences preferences,
                         User user,
-                        P2PService p2PService) {
+                        P2PService p2PService,
+                        QuickTradeWindow quickTradeWindow) {
         super(viewLoader,
                 navigation,
                 preferences,
                 user,
                 p2PService,
+                quickTradeWindow,
                 OfferDirection.BUY);
     }
 

@@ -331,7 +331,7 @@ public class StartupWizard {
     }
 
     // ease the incoming page in with a subtle directional slide
-    private void playStepTransition(Region content, boolean forward) {
+    public static void playStepTransition(Region content, boolean forward) {
         content.setOpacity(0);
         content.setTranslateX(forward ? 32 : -32);
         FadeTransition fade = new FadeTransition(Duration.millis(250), content);

@@ -63,6 +63,7 @@ import haveno.desktop.main.overlays.windows.RemoveOfferWindow;
 import haveno.desktop.main.overlays.windows.OfferDetailsWindow;
 import haveno.desktop.main.portfolio.PortfolioView;
 import haveno.desktop.main.portfolio.editoffer.EditOfferView;
+import haveno.desktop.util.FormBuilder;
 import haveno.desktop.util.GUIUtil;
 import haveno.network.p2p.NodeAddress;
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -77,6 +78,7 @@ import javafx.geometry.VPos;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
@@ -235,7 +237,18 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         disabledCreateOfferButtonTooltip.setManaged(false);
         disabledCreateOfferButtonTooltip.setVisible(false);
 
-        var createOfferVBox = new VBox(createOfferButton, disabledCreateOfferButtonTooltip);
+        // the quick trade button sits before the create offer button and is as tall
+        Button quickTradeButton = new AutoTooltipButton(Res.get("quickTrade.title"));
+        quickTradeButton.setGraphic(FormBuilder.getIcon(MaterialDesignIcon.FLASH, "1.1em"));
+        quickTradeButton.getStyleClass().add("quick-trade-button");
+        quickTradeButton.setMinWidth(Region.USE_PREF_SIZE); // never ellipsize
+        quickTradeButton.setMaxHeight(Double.MAX_VALUE);
+        quickTradeButton.setOnAction(event -> model.onQuickTrade());
+        HBox createOfferBox = new HBox(10, quickTradeButton, createOfferButton);
+        createOfferBox.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(createOfferButton, Priority.ALWAYS);
+
+        var createOfferVBox = new VBox(createOfferBox, disabledCreateOfferButtonTooltip);
         createOfferVBox.setAlignment(Pos.BOTTOM_RIGHT);
 
         filterInputField = new FilterTextField();
@@ -736,6 +749,16 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
                 .filter(item -> item.getOffer().getId().equals(offer.getId()))
                 .findAny()
                 .orElse(null);
+    }
+
+    // Takes the request's offer, or creates one if it has none. Its currency and payment method are stored as the
+    // filters of this book, to show once the book is activated again.
+    public void onTradeRequest(OfferView.TradeRequest request) {
+        if (!model.canCreateOrTakeOffer()) return;
+        model.saveSelectedCurrencyCodeInPreferences(model.getDirection(), request.tradeCurrency().getCode());
+        if (request.paymentMethod() != null) model.savePaymentMethodInPreferences(model.getDirection(), request.paymentMethod().getId());
+        if (request.offer() != null) onTakeOffer(request.offer());
+        else model.onCreateOffer(request.tradeCurrency(), request.paymentMethod());
     }
 
     public void onTabSelected(boolean isSelected) {

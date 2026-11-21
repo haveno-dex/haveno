@@ -41,7 +41,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class CryptoAccountsDataModel extends ActivatableDataModel {
+public class CryptoAccountsDataModel extends ActivatableDataModel {
 
     private final User user;
     private final Preferences preferences;

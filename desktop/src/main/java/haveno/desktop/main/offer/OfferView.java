@@ -22,6 +22,7 @@ import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.payment.payload.PaymentMethod;
@@ -39,6 +40,7 @@ import haveno.desktop.main.offer.offerbook.FiatOfferBookView;
 import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.offer.offerbook.CryptoOfferBookView;
 import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
+import haveno.desktop.main.offer.quicktrade.QuickTradeWindow;
 import haveno.desktop.main.offer.takeoffer.TakeOfferView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.util.GUIUtil;
@@ -72,10 +74,12 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
     private final Preferences preferences;
     private final User user;
     private final P2PService p2PService;
+    private final QuickTradeWindow quickTradeWindow;
     private final OfferDirection direction;
 
     private Offer offer;
     private TradeCurrency tradeCurrency;
+    private TradeRequest tradeRequest;
     private Navigation.Listener navigationListener;
     private ChangeListener<Tab> tabChangeListener;
     private OfferView.OfferActionHandler offerActionHandler;
@@ -85,12 +89,14 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
                         Preferences preferences,
                         User user,
                         P2PService p2PService,
+                        QuickTradeWindow quickTradeWindow,
                         OfferDirection direction) {
         this.viewLoader = viewLoader;
         this.navigation = navigation;
         this.preferences = preferences;
         this.user = user;
         this.p2PService = p2PService;
+        this.quickTradeWindow = quickTradeWindow;
         this.direction = direction;
     }
 
@@ -111,9 +117,10 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
                 if (viewPath.size() == 3 && viewPath.indexOf(this.getClass()) == 1) {
                     loadView(viewPath.tip(), null, data);
                     if (data instanceof Offer offer) {
-                        OfferBookView<?, ?> offerBookView = viewPath.tip() == FiatOfferBookView.class ? fiatOfferBookView :
-                                viewPath.tip() == CryptoOfferBookView.class ? cryptoOfferBookView : otherOfferBookView;
-                        offerBookView.showOffer(offer);
+                        getOfferBookView(viewPath.tip()).showOffer(offer);
+                    } else if (data instanceof TradeRequest request) {
+                        tradeRequest = request;
+                        getOfferBookView(viewPath.tip()).onTradeRequest(request);
                     }
                 } else if (viewPath.size() == 4 && viewPath.indexOf(this.getClass()) == 1) {
                     loadView(viewPath.get(2), viewPath.tip(), data);
@@ -169,6 +176,11 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
                 if (canCreateOrTakeOffer(tradeCurrency)) {
                     showCreateOffer(tradeCurrency, paymentMethod);
                 }
+            }
+
+            @Override
+            public void onQuickTrade(@Nullable TradeCurrency tradeCurrency, @Nullable PaymentMethod paymentMethod) {
+                quickTradeWindow.show(direction, tradeCurrency, paymentMethod);
             }
 
             @Override
@@ -369,6 +381,10 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
         // CreateOffer and TakeOffer must not be cached by ViewLoader as we cannot use a view multiple times
         // in different graphs
         ((InitializableViewWithTakeOfferData) view).initWithData(offer);
+        if (tradeRequest != null && tradeRequest.offer() == offer && tradeRequest.volume() != null) {
+            ((TakeOfferView) view).setVolume(tradeRequest.volume());
+        }
+        tradeRequest = null;
         ((SelectableView) view).onTabSelected(true);
 
         // close handler from close on take offer action
@@ -378,6 +394,11 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
         });
         marketOfferBookTab.setContent(view.getRoot());
         assignOfferView(viewClass, view);
+    }
+
+    private OfferBookView<?, ?> getOfferBookView(Class<? extends View> viewClass) {
+        return viewClass == FiatOfferBookView.class ? fiatOfferBookView :
+                viewClass == CryptoOfferBookView.class ? cryptoOfferBookView : otherOfferBookView;
     }
 
     private void assignOfferView(Class<? extends View> viewClass, View view) {
@@ -424,10 +445,19 @@ public abstract class OfferView extends ActivatableView<StackPane, Void> {
         return offerBookViewClass;
     }
 
+    // A trade chosen outside the offer book: take the offer for the volume, or create an offer if none is given.
+    public record TradeRequest(@Nullable Offer offer,
+                               TradeCurrency tradeCurrency,
+                               @Nullable PaymentMethod paymentMethod,
+                               @Nullable Volume volume) {
+    }
+
     public interface OfferActionHandler {
         void onCreateOffer(TradeCurrency tradeCurrency, PaymentMethod paymentMethod);
 
         void onTakeOffer(Offer offer);
+
+        void onQuickTrade(@Nullable TradeCurrency tradeCurrency, @Nullable PaymentMethod paymentMethod);
     }
 
     public interface CloseHandler {
