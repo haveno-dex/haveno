@@ -1069,7 +1069,14 @@ public final class XmrConnectionService {
         return connection.isOnion() || (HavenoUtils.preferences.getUseTorForXmr().isUseTorForXmr() && !NetworkUtils.isPrivateIp(connection.getUri()));
     }
 
+    // result of checking a node, kept apart from its connection so it can be applied under a lock
+    private record ConnectionCheck(Boolean online, Boolean authenticated, MoneroDaemonInfo info, Exception error, long timestamp, Long responseTime) {}
+
     protected static void checkConnection(MoneroRpcConnection connection) {
+        applyCheck(requestCheck(connection), connection);
+    }
+
+    private static ConnectionCheck requestCheck(MoneroRpcConnection connection) {
         long startTime = System.currentTimeMillis();
         try {
             connection.setTimeout(getTimeoutMs(connection));
@@ -1078,24 +1085,22 @@ public final class XmrConnectionService {
             if (Boolean.TRUE.equals(info.isRegtest()) != (Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL)) {
                 throw new IllegalStateException("Monero node regtest mode does not match the configured network");
             }
-            connection.setOnline(getNumOutgoingConnections(info) != 0);
-            connection.setAuthenticated(true);
-            connection.setAttribute(LAST_INFO_KEY, info);
-            connection.setAttribute(LAST_ERROR_KEY, null);
+            boolean online = getNumOutgoingConnections(info) != 0;
+            long timestamp = System.currentTimeMillis();
+            return new ConnectionCheck(online, true, info, null, timestamp, timestamp - startTime);
         } catch (Exception e) {
-            connection.setOnline(false);
-            connection.setAuthenticated(null);
-            if (e instanceof MoneroRpcError) {
-                if (((MoneroRpcError) e).getCode() == 401) {
-                    connection.setOnline(true);
-                    connection.setAuthenticated(false);
-                }
-            }
-            connection.setAttribute(LAST_INFO_KEY, null);
-            connection.setAttribute(LAST_ERROR_KEY, e);
+            boolean unauthorized = e instanceof MoneroRpcError && ((MoneroRpcError) e).getCode() == 401;
+            return new ConnectionCheck(unauthorized, unauthorized ? Boolean.FALSE : null, null, e, System.currentTimeMillis(), null);
         }
-        connection.setAttribute(LAST_CHECKED_KEY, System.currentTimeMillis());
-        connection.setResponseTime(getCachedDaemonInfo(connection) == null ? null : System.currentTimeMillis() - startTime);
+    }
+
+    private static void applyCheck(ConnectionCheck check, MoneroRpcConnection connection) {
+        connection.setOnline(check.online());
+        connection.setAuthenticated(check.authenticated());
+        connection.setAttribute(LAST_INFO_KEY, check.info());
+        connection.setAttribute(LAST_ERROR_KEY, check.error());
+        connection.setAttribute(LAST_CHECKED_KEY, check.timestamp());
+        connection.setResponseTime(check.responseTime());
     }
 
     public static Long getLastCheckedTimestamp(MoneroRpcConnection connection) {
@@ -1425,16 +1430,13 @@ public final class XmrConnectionService {
     // polls for the poll loop, checking the node before taking the poll lock so node edits do not wait for the request
     private void pollMonerod(MoneroDaemonRpc polledDaemon, MoneroDaemonInfo applyInfo) {
         MoneroRpcConnection connection = null;
-        MoneroRpcConnection probe = null;
+        ConnectionCheck probe = null;
         if (applyInfo == null) {
             try {
                 if (isShutDownStarted || polledDaemon != monerod || !isPolling()) return;
                 if (HavenoUtils.xmrWalletService != null && HavenoUtils.xmrWalletService.isSyncingWithProgress()) return; // as the poll skips fetching
                 connection = getConnection();
-                if (connection != null) {
-                    probe = new MoneroRpcConnection(connection); // the result is applied under the lock, so a discarded poll leaves the node alone
-                    checkConnection(probe);
-                }
+                if (connection != null) probe = requestCheck(connection); // the result is applied under the lock, so a discarded poll leaves the node alone
             } catch (Exception e) {
                 // the poll handles the error
             }
@@ -1445,16 +1447,7 @@ public final class XmrConnectionService {
         }
     }
 
-    // copies a check result onto the listed connection
-    private static void applyCheck(MoneroRpcConnection checked, MoneroRpcConnection connection) {
-        connection.setTimeout(checked.getTimeout());
-        connection.setOnline(checked.isOnline());
-        connection.setAuthenticated(checked.isAuthenticated());
-        connection.setResponseTime(checked.getResponseTime());
-        for (String key : List.of(LAST_INFO_KEY, LAST_ERROR_KEY, LAST_CHECKED_KEY)) connection.setAttribute(key, checked.getAttribute(key));
-    }
-
-    private void tryPollMonerod(MoneroDaemonInfo applyInfo, MoneroRpcConnection probed, MoneroRpcConnection probe) {
+    private void tryPollMonerod(MoneroDaemonInfo applyInfo, MoneroRpcConnection probed, ConnectionCheck probe) {
         try {
             doPollMonerod(applyInfo, probed, probe);
         } catch (Exception e) {
@@ -1469,7 +1462,7 @@ public final class XmrConnectionService {
      * @param probed connection checked for this poll before taking the lock
      * @param probe result of that check, applied instead of checking the connection again
      */
-    private void doPollMonerod(MoneroDaemonInfo applyInfo, MoneroRpcConnection probed, MoneroRpcConnection probe) {
+    private void doPollMonerod(MoneroDaemonInfo applyInfo, MoneroRpcConnection probed, ConnectionCheck probe) {
         synchronized (pollLock) {
             if (isShutDownStarted) return;
             MoneroRpcConnection connection = getConnection();
