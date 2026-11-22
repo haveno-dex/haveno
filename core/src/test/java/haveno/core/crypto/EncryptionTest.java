@@ -57,6 +57,7 @@ import haveno.core.xmr.wallet.WalletPasswordChange;
 import haveno.core.xmr.wallet.WalletPasswordRecovery;
 import haveno.core.xmr.wallet.WalletsManager;
 import monero.common.MoneroError;
+import monero.common.MoneroRpcError;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroNetworkType;
 import monero.wallet.MoneroWalletFull;
@@ -80,6 +81,9 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -87,6 +91,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -126,6 +131,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -285,6 +291,7 @@ public class EncryptionTest {
             assertEquals(binary.toString(), command.get(0));
             assertFalse(command.contains("--rpc-login"));
             assertEquals("127.0.0.1", command.get(command.indexOf("--rpc-bind-ip") + 1));
+            assertTrue(command.contains("--no-initial-sync"));
             Path config = Path.of(command.get(command.indexOf("--config-file") + 1));
             configs.add(config);
             if (failStartup[0]) throw new MoneroError("startup failed");
@@ -2124,6 +2131,25 @@ public class EncryptionTest {
     }
 
     @Test
+    public void testShutdownStopsRemainingWalletRpcInstancesBeforeCompleting() throws Exception {
+        for (boolean exit : List.of(false, true)) { // a restart shuts down without exiting
+            HavenoExecutable executable = mock(HavenoExecutable.class, withSettings().useConstructor("", "", "", "").defaultAnswer(CALLS_REAL_METHODS));
+            setField(HavenoExecutable.class, executable, "isReadOnly", true);
+            List<String> calls = new ArrayList<>();
+            try (var setup = mockStatic(CommonSetup.class); var service = mockStatic(XmrWalletService.class, CALLS_REAL_METHODS)) {
+                service.when(XmrWalletService::stopRemainingWalletRpcInstances).then(invocation -> calls.add("stop"));
+                executable.gracefulShutDown(() -> calls.add("complete"), exit);
+                assertEquals(List.of("stop", "complete"), calls);
+                setup.verify(() -> CommonSetup.exitAfter(HavenoExecutable.EXIT_SUCCESS, 100, TimeUnit.MILLISECONDS), exit ? times(1) : never());
+                Method complete = HavenoExecutable.class.getDeclaredMethod("notifyGracefulShutDownComplete");
+                complete.setAccessible(true);
+                complete.invoke(executable);
+                assertEquals(List.of("stop", "complete"), calls); // a late callback must not stop a restarted service's wallets
+            }
+        }
+    }
+
+    @Test
     public void testRpcStartupBlocksExistingProcessesRegardlessOfParent() {
         File executable = new File(dir, XmrWalletService.MONERO_WALLET_RPC_NAME);
         for (ProcessHandle parent : Arrays.asList(null, parentProcess(1, "/sbin/init"),
@@ -2188,6 +2214,269 @@ public class EncryptionTest {
             for (ProcessHandle process : processes) {
                 verify(process, never()).destroy();
                 verify(process, never()).destroyForcibly();
+            }
+        }
+    }
+
+    @Test
+    public void testStopsRemainingWalletRpcInstances() throws Exception {
+        MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+        CountDownLatch release = new CountDownLatch(1);
+
+        // one saves and stops, one refuses to stop with no wallet open, one is busy until terminated, and one hangs until destroyed
+        Process saved = walletRpcChild();
+        MoneroWalletRpc savedRpc = walletRpc(saved);
+        doAnswer(invocation -> saved.onExit().complete(saved)).when(savedRpc).stop();
+        Process refused = walletRpcChild();
+        MoneroWalletRpc refusedRpc = walletRpc(refused);
+        doThrow(new MoneroRpcError("No wallet file", -13, "stop_wallet", null)).when(refusedRpc).stop();
+        doAnswer(invocation -> refused.onExit().complete(refused)).when(refused).destroy();
+        Process busy = walletRpcChild();
+        MoneroWalletRpc busyRpc = walletRpc(busy);
+        doAnswer(invocation -> release.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)).when(busyRpc).stop();
+        doReturn(true).when(busy).supportsNormalTermination();
+        doAnswer(invocation -> busy.onExit().complete(busy)).when(busy).destroy();
+        Process hung = walletRpcChild();
+        MoneroWalletRpc hungRpc = walletRpc(hung);
+        doAnswer(invocation -> release.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)).when(hungRpc).stop();
+
+        Field field = MoneroWalletRpcManager.class.getDeclaredField("registeredPorts");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<Integer, MoneroWalletRpc> registeredPorts = (Map<Integer, MoneroWalletRpc>) field.get(manager);
+        registeredPorts.put(1, savedRpc);
+        registeredPorts.put(2, refusedRpc);
+        manager.stopRemainingInstances(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+        verify(saved, never()).destroy();
+        verify(saved, never()).destroyForcibly();
+        verify(refused, never()).destroyForcibly();
+        assertTrue(registeredPorts.isEmpty()); // stopped instances free their ports
+        assertDoesNotThrow(() -> manager.stopInstance(savedRpc, null, true)); // a late close can follow the sweep
+        verify(savedRpc).stopProcess(true); // clears client listeners even if the process already exited
+
+        // an instance which already exited needs no stop request
+        Process exited = walletRpcChild();
+        exited.onExit().complete(exited);
+        MoneroWalletRpc exitedRpc = walletRpc(exited);
+        registeredPorts.put(1, exitedRpc);
+        manager.stopRemainingInstances(100);
+        verify(exitedRpc, never()).stop();
+        assertTrue(registeredPorts.isEmpty());
+        assertThrows(RuntimeException.class, () -> manager.stopInstance(walletRpc(walletRpcChild()), null, true));
+
+        // nor does it keep its port from a new instance, like after an interrupted stop
+        registeredPorts.put(1, exitedRpc);
+        assertThrows(MoneroError.class, () -> manager.startInstance(List.of(new File(dir, "missing").getPath(), "--rpc-bind-port", "1")));
+        assertTrue(registeredPorts.isEmpty());
+
+        registeredPorts.put(3, busyRpc);
+        registeredPorts.put(4, hungRpc);
+        try {
+            assertTimeoutPreemptively(Duration.ofSeconds(TIMEOUT_SECONDS / 2), () -> manager.stopRemainingInstances(100)); // without waiting for the stop requests
+        } finally {
+            release.countDown();
+        }
+        verify(busy).destroy();
+        verify(busy, never()).destroyForcibly();
+        verify(hung, never()).destroy();
+        verify(hung).destroyForcibly();
+        assertTrue(registeredPorts.isEmpty());
+
+        // an instance still starting is stopped once it is registered
+        Process starting = walletRpcChild();
+        MoneroWalletRpc startingRpc = walletRpc(starting);
+        doAnswer(invocation -> starting.onExit().complete(starting)).when(startingRpc).stop();
+        registeredPorts.put(4, null);
+        Thread stopper = new Thread(() -> manager.stopRemainingInstances(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS)));
+        stopper.start();
+        while (stopper.getState() != Thread.State.TIMED_WAITING) assertTrue(stopper.isAlive()); // until it waits for the start
+        synchronized (registeredPorts) {
+            registeredPorts.put(4, startingRpc);
+        }
+        stopper.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+        assertFalse(stopper.isAlive());
+        verify(startingRpc).stop();
+        verify(starting, never()).destroyForcibly();
+        assertTrue(registeredPorts.isEmpty());
+
+        // an instance which survives being destroyed stays registered
+        Process stuck = walletRpcChild();
+        doReturn(stuck).when(stuck).destroyForcibly();
+        registeredPorts.put(5, walletRpc(stuck));
+        manager.stopRemainingInstances(100);
+        verify(stuck).destroyForcibly();
+        assertEquals(Set.of(5), registeredPorts.keySet());
+
+        // nothing to stop without remaining instances
+        new MoneroWalletRpcManager().stopRemainingInstances(500);
+    }
+
+    @Test
+    public void testRemainingWalletRpcInstancesIncludeUnfinishedStops() throws Exception {
+        for (boolean fail : List.of(false, true)) {
+            MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+            Process process = walletRpcChild();
+            MoneroWalletRpc rpc = walletRpc(process);
+            Field field = MoneroWalletRpcManager.class.getDeclaredField("registeredPorts");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<Integer, MoneroWalletRpc> registeredPorts = (Map<Integer, MoneroWalletRpc>) field.get(manager);
+            registeredPorts.put(1, rpc);
+            CountDownLatch stopping = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            doAnswer(invocation -> {
+                stopping.countDown();
+                if (fail) throw new MoneroError("stop failed");
+                assertTrue(release.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                return 0;
+            }).when(rpc).stopProcess(false);
+            CompletableFuture<Void> close = CompletableFuture.runAsync(() -> {
+                if (fail) assertThrows(MoneroError.class, () -> manager.stopInstance(rpc, null, false));
+                else manager.stopInstance(rpc, null, false);
+            });
+            try {
+                assertTrue(stopping.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                if (fail) close.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                manager.stopRemainingInstances(100);
+                assertFalse(process.isAlive());
+                assertTrue(registeredPorts.isEmpty());
+            } finally {
+                release.countDown();
+                close.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+            verify(process).destroyForcibly();
+        }
+    }
+
+    @Test
+    public void testRemainingWalletRpcInstancesPreserveGraceAfterSaveErrorAndInterrupt() throws Exception {
+        for (boolean interrupted : List.of(false, true)) {
+            MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+            Process process = walletRpcChild(); // like Windows, destroy() is not a graceful signal
+            MoneroWalletRpc rpc = walletRpc(process);
+            doThrow(new MoneroRpcError("Failed to save wallet", -1, "stop_wallet", null)).when(rpc).stop();
+            Field field = MoneroWalletRpcManager.class.getDeclaredField("registeredPorts");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            Map<Integer, MoneroWalletRpc> registeredPorts = (Map<Integer, MoneroWalletRpc>) field.get(manager);
+            registeredPorts.put(1, rpc);
+            long timeoutMs = 200;
+            long start = System.nanoTime();
+            doAnswer(invocation -> {
+                assertTrue(System.nanoTime() - start >= TimeUnit.MILLISECONDS.toNanos(timeoutMs));
+                process.onExit().complete(process);
+                return process;
+            }).when(process).destroyForcibly();
+            try {
+                if (interrupted) Thread.currentThread().interrupt();
+                manager.stopRemainingInstances(timeoutMs);
+                assertEquals(interrupted, Thread.currentThread().isInterrupted());
+            } finally {
+                Thread.interrupted();
+            }
+            verify(process, never()).destroy();
+            verify(process).destroyForcibly();
+            assertTrue(registeredPorts.isEmpty());
+        }
+    }
+
+    // a wallet rpc child process which stays alive until its exit future completes
+    private static Process walletRpcChild() {
+        Process process = mock(Process.class);
+        CompletableFuture<Process> exit = new CompletableFuture<>();
+        doReturn(exit).when(process).onExit();
+        doAnswer(invocation -> !exit.isDone()).when(process).isAlive();
+        doAnswer(invocation -> {
+            exit.complete(process);
+            return process;
+        }).when(process).destroyForcibly();
+        return process;
+    }
+
+    private static MoneroWalletRpc walletRpc(Process process) {
+        MoneroWalletRpc walletRpc = mock(MoneroWalletRpc.class);
+        doReturn(process).when(walletRpc).getProcess();
+        return walletRpc;
+    }
+
+    @Test
+    public void testRemainingWalletRpcInstancesSaveAndReleaseWalletFiles() throws Exception {
+        Path binary = Path.of("src/main/resources/bin", XmrWalletService.MONERO_WALLET_RPC_NAME).toAbsolutePath();
+        Assumptions.assumeTrue(Files.isExecutable(binary));
+        MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+        List<String> command = List.of(binary.toString(), "--offline", "--rpc-bind-ip", "127.0.0.1",
+                "--wallet-dir", walletDir.getAbsolutePath());
+        List<MoneroWalletRpc> instances = new ArrayList<>();
+        try {
+            MoneroWalletRpc saved = manager.startInstance(command);
+            instances.add(saved);
+            MoneroWalletRpc empty = manager.startInstance(command);
+            instances.add(empty);
+            saved.createWallet(new MoneroWalletConfig().setPath("remaining").setPassword("password"));
+            saved.setAttribute("shutdown-test", "saved");
+
+            manager.onShutDownStarted();
+            manager.stopRemainingInstances(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+            assertFalse(saved.getProcess().isAlive());
+            assertFalse(empty.getProcess().isAlive());
+
+            manager.onStartUp();
+            MoneroWalletRpc reopened = manager.startInstance(command);
+            instances.add(reopened);
+            reopened.openWallet("remaining", "password");
+            assertEquals("saved", reopened.getAttribute("shutdown-test"));
+            manager.onShutDownStarted();
+            manager.stopRemainingInstances(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+            assertFalse(reopened.getProcess().isAlive());
+        } finally {
+            for (MoneroWalletRpc rpc : instances) {
+                if (rpc.getProcess().isAlive()) rpc.stopProcess(true);
+            }
+        }
+    }
+
+    @Test
+    public void testBusyRemainingWalletRpcInstanceSavesWhenTerminated() throws Exception {
+        Path binary = Path.of("src/main/resources/bin", XmrWalletService.MONERO_WALLET_RPC_NAME).toAbsolutePath();
+        Assumptions.assumeTrue(Files.isExecutable(binary) && ProcessHandle.current().supportsNormalTermination());
+        MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+        List<String> command = List.of(binary.toString(), "--rpc-bind-ip", "127.0.0.1", "--wallet-dir", walletDir.getAbsolutePath());
+        List<String> offline = Stream.concat(command.stream(), Stream.of("--offline")).toList();
+        List<MoneroWalletRpc> instances = new ArrayList<>();
+        try (ServerSocket daemon = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) { // connects without answering
+            MoneroWalletRpc created = manager.startInstance(offline);
+            instances.add(created);
+            created.createWallet(new MoneroWalletConfig().setPath("busy").setPassword("password"));
+            manager.stopRemainingInstances(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+
+            // a refresh waiting for the daemon keeps the wallet from serving the stop request
+            MoneroWalletRpc busy = manager.startInstance(Stream.concat(command.stream(), Stream.of("--daemon-address", "127.0.0.1:" + daemon.getLocalPort())).toList());
+            instances.add(busy);
+            busy.stopSyncing();
+            busy.openWallet("busy", "password");
+            busy.setAttribute("shutdown-test", "saved");
+            Thread refresh = new Thread(() -> {
+                try {
+                    busy.sync();
+                } catch (MoneroError e) {
+                    // fails when the instance stops
+                }
+            });
+            refresh.setDaemon(true);
+            refresh.start();
+            daemon.setSoTimeout((int) TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+            try (Socket request = daemon.accept()) {
+                manager.stopRemainingInstances(20000); // terminated halfway through, leaving ample time to save
+            }
+            assertFalse(busy.getProcess().isAlive());
+
+            MoneroWalletRpc reopened = manager.startInstance(offline);
+            instances.add(reopened);
+            reopened.openWallet("busy", "password");
+            assertEquals("saved", reopened.getAttribute("shutdown-test"));
+        } finally {
+            for (MoneroWalletRpc rpc : instances) {
+                if (rpc.getProcess().isAlive()) rpc.stopProcess(true);
             }
         }
     }

@@ -162,6 +162,11 @@ public class XmrWalletService extends XmrWalletBase {
         return getMoneroBinsDir() + File.separator + MONERO_WALLET_RPC_NAME;
     }
 
+    /** Stop wallet RPC instances which are still running after shutdown, so they cannot lock wallet files afterwards. */
+    public static void stopRemainingWalletRpcInstances() {
+        MONERO_WALLET_RPC_MANAGER.stopRemainingInstances(MoneroWalletRpcManager.SHUTDOWN_TIMEOUT_MS);
+    }
+
     private final User user;
     private final Preferences preferences;
     private final CoreAccountService accountService;
@@ -2293,6 +2298,7 @@ public class XmrWalletService extends XmrWalletBase {
         List<String> cmd = new ArrayList<>(Arrays.asList( // modifiable list
                 getMoneroWalletRpcPath(),
                 "--rpc-bind-ip", "127.0.0.1",
+                "--no-initial-sync",
                 "--wallet-dir", walletDir.getAbsolutePath()));
 
         // omit --mainnet flag since it does not exist
