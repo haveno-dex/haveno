@@ -11,6 +11,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.skin.TextFieldSkin;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
 
@@ -18,7 +19,10 @@ import java.lang.reflect.Field;
  * Code copied and adapted from com.jfoenix.skins.JFXTextFieldSkin
  */
 
+@Slf4j
 public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatControl> extends TextFieldSkin {
+
+    private static boolean promptNodeFallbackLogged = false;
 
     private double inputLineExtension;
     private boolean invalid = true;
@@ -93,6 +97,9 @@ public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatCont
 
 
     private void updateTextPos() {
+        if (textNode == null || textRight == null || textTranslateX == null) {
+            return; // reflective access to TextFieldSkin failed, keep JavaFX's default text position
+        }
         double textWidth = textNode.getLayoutBounds().getWidth();
         final double promptWidth = promptText == null ? 0 : promptText.getLayoutBounds().getWidth();
         switch (getSkinnable().getAlignment().getHpos()) {
@@ -118,6 +125,16 @@ public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatCont
         if (promptText != null || !linesWrapper.usePromptText.get()) {
             return;
         }
+        // ReflectionHelper.getField returns null when reflective access is blocked (e.g. missing
+        // --add-opens flags). In that case keep JavaFX's own prompt text instead of adding a second one.
+        Field promptNodeField = ReflectionHelper.getField(TextFieldSkin.class, "promptNode");
+        if (promptNodeField == null) {
+            if (!promptNodeFallbackLogged) {
+                promptNodeFallbackLogged = true;
+                log.warn("Cannot access TextFieldSkin.promptNode via reflection, falling back to default JavaFX prompt text");
+            }
+            return;
+        }
         promptText = new Text();
         promptText.setManaged(false);
         promptText.getStyleClass().add("text");
@@ -135,12 +152,11 @@ public class JFXTextFieldSkinHavenoStyle<T extends TextField & IFXLabelFloatCont
         }
 
         try {
-            Field field = ReflectionHelper.getField(TextFieldSkin.class, "promptNode");
-            Object oldValue = field.get(this);
+            Object oldValue = promptNodeField.get(this);
             if (oldValue != null) {
                 textPane.getChildren().remove(oldValue);
             }
-            field.set(this, promptText);
+            promptNodeField.set(this, promptText);
         } catch (Exception e) {
             e.printStackTrace();
         }
