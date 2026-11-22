@@ -18,7 +18,9 @@
 package haveno.core.user;
 
 import com.google.protobuf.UnknownFieldSet;
+import com.sun.net.httpserver.HttpServer;
 import haveno.common.app.Version;
+import haveno.common.config.BaseCurrencyNetwork;
 import haveno.common.config.Config;
 import haveno.common.persistence.PersistenceManager;
 import haveno.core.api.CoreAccountService;
@@ -55,6 +57,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -65,7 +68,9 @@ import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -706,6 +711,36 @@ public class PreferencesTest {
             assertNull(XmrConnectionService.getLastCheckedTimestamp(polled));
         } finally {
             replaced.countDown();
+            HavenoUtils.xmrWalletService = previousWalletService;
+        }
+    }
+
+    @Test
+    public void testPollsReuseOneConnectionToTheNode() throws Exception {
+        XmrWalletService previousWalletService = HavenoUtils.xmrWalletService;
+        Set<Integer> clientPorts = ConcurrentHashMap.newKeySet();
+        CountDownLatch polled = new CountDownLatch(3);
+        String nettype = Config.baseCurrencyNetwork() == BaseCurrencyNetwork.XMR_LOCAL ? "fakechain" : "mainnet";
+        byte[] info = ("{\"id\":\"0\",\"jsonrpc\":\"2.0\",\"result\":{\"status\":\"OK\",\"height\":1000,\"target_height\":0,\"outgoing_connections_count\":1,\"nettype\":\"" + nettype + "\"}}").getBytes(StandardCharsets.US_ASCII);
+        HttpServer node = HttpServer.create(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0), 0);
+        node.createContext("/json_rpc", exchange -> {
+            clientPorts.add(exchange.getRemoteAddress().getPort()); // each connection has its own client port
+            exchange.getRequestBody().readAllBytes();
+            exchange.sendResponseHeaders(200, info.length);
+            exchange.getResponseBody().write(info);
+            exchange.close();
+            polled.countDown();
+        });
+        node.start();
+        try (NodeSettingsContext context = new NodeSettingsContext(MoneroNodesOption.CUSTOM)) {
+            HavenoUtils.xmrWalletService = null; // a syncing wallet skips the poll request
+            context.connectionList.setRefreshPeriod(50L);
+            context.service.setConnection(new MoneroRpcConnection("http://127.0.0.1:" + node.getAddress().getPort())); // starts polling
+
+            assertTrue(polled.await(10, TimeUnit.SECONDS));
+            assertEquals(1, clientPorts.size());
+        } finally {
+            node.stop(0);
             HavenoUtils.xmrWalletService = previousWalletService;
         }
     }
