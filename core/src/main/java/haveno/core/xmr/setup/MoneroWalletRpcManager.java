@@ -17,9 +17,11 @@
 
 package haveno.core.xmr.setup;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import haveno.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
 import monero.common.MoneroError;
+import monero.common.MoneroRpcError;
 import monero.wallet.MoneroWalletRpc;
 
 import java.io.File;
@@ -39,6 +41,11 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
 
 /**
@@ -47,6 +54,8 @@ import java.util.stream.Stream;
 @Slf4j
 public class MoneroWalletRpcManager {
 
+    public static final long SHUTDOWN_TIMEOUT_MS = 120000;
+    private static final long PROCESS_TIMEOUT_MS = 15000;
     private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
     private static final String RPC_USERNAME = "haveno_user";
     private static int NUM_ALLOWED_ATTEMPTS = 3; // allow this many attempts to bind to an assigned port
@@ -136,6 +145,7 @@ public class MoneroWalletRpcManager {
                 int portArgumentPosition = cmd.indexOf(RPC_BIND_PORT_ARGUMENT) + 1;
                 int port = Integer.parseInt(cmd.get(portArgumentPosition));
                 synchronized (registeredPorts) {
+                    unregisterExited(); // an interrupted stop leaves its instance registered
                     if (registeredPorts.containsKey(port)) throw new RuntimeException("Port " + port + " is already registered");
                     registeredPorts.put(port, null);
                 }
@@ -276,14 +286,101 @@ public class MoneroWalletRpcManager {
      */
     public void stopInstance(MoneroWalletRpc walletRpc, String path, boolean force) {
 
-        // unregister port
-        int port = unregisterPort(walletRpc);
-
         // stop process
-        String pid = walletRpc.getProcess() == null ? null : String.valueOf(walletRpc.getProcess().pid());
+        int port = getPort(walletRpc);
+        Process process = walletRpc.getProcess();
+        if (port == -1 && (process == null || process.isAlive())) {
+            throw new RuntimeException("MoneroWalletRpc instance not registered with a port");
+        }
+        String pid = process == null ? null : String.valueOf(process.pid());
         if (force) log.info("Stopping MoneroWalletRpc path={}, port={}, pid={}, force={}", path, port, pid, force);
         else log.debug("Stopping MoneroWalletRpc path={}, port={}, pid={}, force={}", path, port, pid, force);
-        walletRpc.stopProcess(force);
+        try {
+            walletRpc.stopProcess(force);
+        } finally {
+            unregisterExited(); // an unfinished stop stays registered so shutdown can still find and force it
+        }
+    }
+
+    /**
+     * Stop instances which are still running after shutdown, like one still opening a wallet, so they do not outlive
+     * the application or lock its wallet files. Each is asked to save and stop, then destroyed if it has not exited.
+     *
+     * @param timeoutMs the time allowed for saving and stopping before forced termination
+     */
+    public void stopRemainingInstances(long timeoutMs) {
+
+        // wait for instances still starting, since their processes cannot be stopped before they are registered
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(Math.min(timeoutMs, PROCESS_TIMEOUT_MS));
+        while (isStarting() && System.nanoTime() - deadline < 0) Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        List<MoneroWalletRpc> remaining;
+        synchronized (registeredPorts) {
+            unregisterExited();
+            remaining = registeredPorts.values().stream().filter(Objects::nonNull).filter(walletRpc -> walletRpc.getProcess() != null).toList();
+        }
+        if (remaining.isEmpty()) return;
+        log.warn("Stopping {} monero-wallet-rpc instance(s) still running after shutdown", remaining.size());
+
+        // request each instance to save and stop in parallel, since a stop request waits for a busy wallet
+        List<CompletableFuture<Process>> exits = new ArrayList<>();
+        for (MoneroWalletRpc walletRpc : remaining) {
+            Process process = walletRpc.getProcess();
+            exits.add(process.onExit());
+            Thread thread = new Thread(() -> {
+                try {
+                    walletRpc.stop();
+                } catch (MoneroRpcError e) {
+                    log.warn("monero-wallet-rpc process {} refused to save and stop: {}", process.pid(), e.getMessage());
+                    if (Integer.valueOf(-13).equals(e.getCode())) process.destroy(); // no wallet is open; other errors can mean saving failed
+                } catch (Exception e) {
+                    log.warn("Error requesting monero-wallet-rpc process {} to stop: {}", process.pid(), e.getMessage());
+                }
+            }, "StopWalletRpc-" + process.pid());
+            thread.setDaemon(true);
+            thread.start();
+        }
+
+        // halfway through the timeout, signal instances still running to terminate where the platform supports it,
+        // since a wallet too busy to serve the stop request still saves on the signal
+        CompletableFuture<Void> exited = CompletableFuture.allOf(exits.toArray(new CompletableFuture[0]));
+        if (!awaitExit(exited, timeoutMs / 2)) {
+            for (MoneroWalletRpc walletRpc : remaining) {
+                Process process = walletRpc.getProcess();
+                if (!process.isAlive() || !process.supportsNormalTermination()) continue;
+                log.info("Terminating monero-wallet-rpc process {} which has not served the stop request", process.pid());
+                process.destroy();
+            }
+        }
+
+        // wait for the instances to exit, destroying the rest
+        if (!awaitExit(exited, timeoutMs - timeoutMs / 2)) {
+            for (MoneroWalletRpc walletRpc : remaining) {
+                Process process = walletRpc.getProcess();
+                if (!process.isAlive()) continue;
+                log.warn("Forcibly stopping monero-wallet-rpc process {} which did not stop within {} ms", process.pid(), timeoutMs);
+                process.destroyForcibly();
+            }
+            awaitExit(exited, Math.min(timeoutMs, PROCESS_TIMEOUT_MS)); // a destroyed process exits asynchronously
+        }
+
+        // free the ports of the instances which exited, for a restart
+        unregisterExited();
+    }
+
+    // an interrupt must not shorten the time allowed for saving
+    private static boolean awaitExit(CompletableFuture<Void> exited, long timeoutMs) {
+        try {
+            Uninterruptibles.getUninterruptibly(exited, timeoutMs, TimeUnit.MILLISECONDS);
+            return true;
+        } catch (ExecutionException | TimeoutException e) {
+            return false;
+        }
+    }
+
+    private boolean isStarting() {
+        synchronized (registeredPorts) {
+            return registeredPorts.containsValue(null);
+        }
     }
 
     private int registerNextPort() throws IOException {
@@ -295,30 +392,24 @@ public class MoneroWalletRpcManager {
         }
     }
 
-    private int unregisterPort(MoneroWalletRpc walletRpc) {
+    private int getPort(MoneroWalletRpc walletRpc) {
         synchronized (registeredPorts) {
-            int port = -1;
-            boolean found = false;
             for (Map.Entry<Integer, MoneroWalletRpc> entry : registeredPorts.entrySet()) {
-                if (walletRpc == entry.getValue()) {
-                    found = true;
-                    try {
-                        port = entry.getKey();
-                        removePort(port);
-                    } catch (Exception e) {
-                        throw new MoneroError(e);
-                    }
-                    break;
-                }
+                if (walletRpc == entry.getValue()) return entry.getKey();
             }
-            if (!found) throw new RuntimeException("MoneroWalletRpc instance not registered with a port");
-            return port;
+            return -1;
         }
     }
 
     private void removePort(int port) {
         synchronized (registeredPorts) {
             registeredPorts.remove(port);
+        }
+    }
+
+    private void unregisterExited() {
+        synchronized (registeredPorts) {
+            registeredPorts.values().removeIf(walletRpc -> walletRpc != null && walletRpc.getProcess() != null && !walletRpc.getProcess().isAlive());
         }
     }
 }

@@ -548,6 +548,13 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 return;
             }
 
+            // stop wallet processes which outlived their services, else they lock the wallet files after an exit or restart
+            try {
+                XmrWalletService.stopRemainingWalletRpcInstances();
+            } catch (Throwable t) {
+                log.error("Failed to stop remaining wallet processes", t);
+            }
+
             isShutdownComplete = true;
             resultHandlers = List.copyOf(shutdownResultHandlers);
             shutdownResultHandlers.clear();
