@@ -23,6 +23,7 @@ import haveno.common.config.Config;
 import haveno.common.util.Utilities;
 import haveno.core.alert.Alert;
 import haveno.core.locale.Res;
+import haveno.network.Socks5ProxyProvider;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
 import haveno.desktop.components.BusyAnimation;
@@ -30,6 +31,7 @@ import haveno.desktop.main.overlays.Overlay;
 import haveno.desktop.main.overlays.popups.Popup;
 import static haveno.desktop.util.FormBuilder.addLabel;
 import static haveno.desktop.util.FormBuilder.addMultilineLabel;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -59,6 +61,8 @@ import lombok.extern.slf4j.Slf4j;
 public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWindow> {
     private final Alert alert;
     private final Config config;
+    @Nullable
+    private final Socks5ProxyProvider socks5ProxyProvider;
     private Optional<DownloadTask> downloadTaskOptional;
     private VerifyTask verifyTask;
     private ProgressBar progressBar;
@@ -69,9 +73,10 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
     // Public API
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    public DisplayUpdateDownloadWindow(Alert alert, Config config) {
+    public DisplayUpdateDownloadWindow(Alert alert, Config config, @Nullable Socks5ProxyProvider socks5ProxyProvider) {
         this.alert = alert;
         this.config = config;
+        this.socks5ProxyProvider = socks5ProxyProvider;
         this.type = Type.Attention;
     }
 
@@ -181,7 +186,7 @@ public class DisplayUpdateDownloadWindow extends Overlay<DisplayUpdateDownloadWi
                 statusLabel.setText(Res.get("displayUpdateDownloadWindow.status.downloading"));
 
                 // download installer
-                downloadTaskOptional = installer.download(alert.getVersion());
+                downloadTaskOptional = installer.download(alert.getVersion(), socks5ProxyProvider);
                 if (downloadTaskOptional.isPresent()) {
                     final DownloadTask downloadTask = downloadTaskOptional.get();
                     final ChangeListener<String> downloadedFilesListener = (observable, oldValue, newValue) -> {
