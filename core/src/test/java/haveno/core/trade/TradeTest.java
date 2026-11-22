@@ -53,6 +53,7 @@ import haveno.network.p2p.network.Connection;
 import haveno.network.p2p.network.NetworkNode;
 import javafx.beans.property.SimpleObjectProperty;
 import monero.common.MoneroError;
+import monero.common.MoneroRpcConnection;
 import monero.wallet.MoneroWallet;
 import monero.wallet.model.MoneroDestination;
 import monero.wallet.model.MoneroIncomingTransfer;
@@ -88,6 +89,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -284,21 +286,46 @@ public class TradeTest {
     public void testCancelSubmissionFailureKeepsOnlyPotentiallyPublishedHex() throws Exception {
         for (boolean previouslySigned : List.of(false, true)) {
             for (String error : List.of("Failed to parse multisig tx data.", "Not enough signers signed this transaction.", "Transaction was rejected by daemon")) {
-                try (CancelFixture fixture = new CancelFixture()) {
+                try (CancelFixture fixture = new CancelFixture(); MockedStatic<HavenoUtils> utils = mockStatic(HavenoUtils.class, CALLS_REAL_METHODS)) {
+                    utils.when(() -> HavenoUtils.waitFor(anyLong())).thenAnswer(invocation -> null); // skip the delay between attempts
                     MoneroWallet wallet = fixture.prepareCancelWallet();
                     if (previouslySigned) fixture.self.setCancelPayoutTxHex("signed-cancel");
                     when(wallet.submitMultisigTxHex("signed-cancel")).thenThrow(new MoneroError(error));
 
-                    assertThrows(IllegalArgumentException.class, () -> fixture.trade.processCancelPayoutTx("cancel-payout"));
-                    boolean mayBePublished = previouslySigned || error.contains("was rejected");
+                    boolean isRejected = error.contains("was rejected");
+                    RuntimeException e = assertThrows(RuntimeException.class, () -> fixture.trade.processCancelPayoutTx("cancel-payout"));
+                    assertEquals(!isRejected, e instanceof IllegalArgumentException);
+                    boolean mayBePublished = previouslySigned || isRejected;
                     assertEquals(mayBePublished ? "signed-cancel" : null, fixture.self.getCancelPayoutTxHex());
                     assertEquals(mayBePublished, fixture.trade.isCancelSigned()); // only an unsubmitted cancel can release the payment guard
                     InOrder order = inOrder(fixture.manager, wallet);
                     order.verify(fixture.manager).persistNowAndWait();
                     order.verify(wallet).submitMultisigTxHex("signed-cancel");
+                    verify(wallet, times(isRejected ? TradeProtocol.MAX_ATTEMPTS : 1)).submitMultisigTxHex("signed-cancel"); // a rejected cancel is submitted again
                     verify(wallet, times(previouslySigned ? 0 : 1)).signMultisigTxHex("cancel-payout");
                 }
             }
+        }
+    }
+
+    @Test
+    public void testRejectedCancelIsSubmittedAgainThroughOtherConnections() throws Exception {
+        try (CancelFixture fixture = new CancelFixture(); MockedStatic<HavenoUtils> utils = mockStatic(HavenoUtils.class, CALLS_REAL_METHODS)) {
+            utils.when(() -> HavenoUtils.waitFor(anyLong())).thenAnswer(invocation -> null); // skip the delay between attempts
+            MoneroWallet wallet = fixture.prepareCancelWallet();
+            MoneroRpcConnection connection = new MoneroRpcConnection("http://localhost:18081");
+            when(fixture.connectionService.getConnection()).thenReturn(connection);
+            when(fixture.connectionService.isConnected()).thenReturn(true);
+            when(wallet.getDaemonConnection()).thenReturn(connection);
+            MoneroError rejection = new MoneroError("Transaction was rejected by daemon");
+            when(wallet.submitMultisigTxHex("signed-cancel")).thenThrow(rejection, rejection).thenReturn(List.of("cancel-tx"));
+
+            fixture.trade.processCancelPayoutTx("cancel-payout");
+            verify(wallet, times(3)).submitMultisigTxHex("signed-cancel");
+            verify(wallet).signMultisigTxHex("cancel-payout"); // the same signed payout tx is submitted each time
+            verify(fixture.connectionService).requestConnectionSwitch(connection, fixture.trade, true);
+            verify(fixture.trade).setPayoutState(Trade.PayoutState.PAYOUT_PUBLISHED);
+            assertEquals("signed-cancel", fixture.self.getCancelPayoutTxHex());
         }
     }
 
@@ -893,6 +920,7 @@ public class TradeTest {
         private final MockedStatic<UserThread> timers = mockStatic(UserThread.class);
         private final CoreNotificationService notifications = mock(CoreNotificationService.class);
         private final CoreNotificationService originalNotifications = HavenoUtils.notificationService;
+        private final XmrConnectionService connectionService = mock(XmrConnectionService.class);
         private final List<Runnable> resends = new ArrayList<>();
         private final List<Long> resendDelayMins = new ArrayList<>();
         private final TestProtocol protocol;
@@ -944,7 +972,8 @@ public class TradeTest {
             XmrWalletService walletService = mock(XmrWalletService.class);
             setField(XmrWalletBase.class, trade, "wallet", wallet);
             setField(XmrWalletBase.class, trade, "walletLock", new Object());
-            setField(XmrWalletBase.class, trade, "xmrConnectionService", mock(XmrConnectionService.class));
+            setField(XmrWalletBase.class, trade, "xmrConnectionService", connectionService);
+            setField(Trade.class, trade, "pollLock", new Object());
             setField(Trade.class, trade, "xmrWalletService", walletService);
             setField(Trade.class, trade, "processModel", trade.getProcessModel());
             when(trade.getWallet()).thenReturn(wallet);
