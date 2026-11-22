@@ -1747,9 +1747,10 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
                 setPayoutStatePublished();
             } catch (Exception e) {
                 if (!isPayoutPublished()) {
-                    if (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isMultisigError(e)) {
-                        // clear hex recorded this call unless a cancel reached the daemon, which could still publish it
-                        if (!hadSignedPayoutTxHex && (!isCancel || !HavenoUtils.isTransactionRejected(e))) setSignedPayoutTxHex(null, isCancel);
+                    // a cancel which reached the daemon keeps its hex, since the daemon could still publish it, and is submitted again
+                    boolean isRejectedCancel = isCancel && HavenoUtils.isTransactionRejected(e);
+                    if (!isRejectedCancel && (HavenoUtils.isTransactionRejected(e) || HavenoUtils.isMultisigError(e))) {
+                        if (!hadSignedPayoutTxHex) setSignedPayoutTxHex(null, isCancel); // clear hex recorded this call
                         throw new IllegalArgumentException(e);
                     }
                     throw new RuntimeException("Failed to submit payout tx for " + getClass().getSimpleName() + " " + getId() + ", error=" + e.getMessage(), e);
