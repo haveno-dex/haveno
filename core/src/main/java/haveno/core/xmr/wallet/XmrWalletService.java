@@ -162,6 +162,11 @@ public class XmrWalletService extends XmrWalletBase {
         return getMoneroBinsDir() + File.separator + MONERO_WALLET_RPC_NAME;
     }
 
+    /** Stop wallet RPC instances which are still running at exit, so they cannot lock wallet files on the next startup. */
+    public static void stopRemainingWalletRpcInstances() {
+        MONERO_WALLET_RPC_MANAGER.stopRemainingInstances(FORCE_CLOSE_TIMEOUT_MS);
+    }
+
     private final User user;
     private final Preferences preferences;
     private final CoreAccountService accountService;

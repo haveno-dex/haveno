@@ -434,7 +434,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
 
         // repeated requests join the shutdown in progress and get notified on completion
         if (!beginGracefulShutDown(resultHandler)) {
-            if (exitCompletedShutdown) CommonSetup.exitAfter(exitStatus(EXIT_SUCCESS), 100, TimeUnit.MILLISECONDS);
+            if (exitCompletedShutdown) exitAfter(exitStatus(EXIT_SUCCESS), 100, TimeUnit.MILLISECONDS);
             return;
         }
 
@@ -569,7 +569,7 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
         try {
             notifyGracefulShutDownComplete();
         } finally {
-            CommonSetup.exitAfter(exitStatus(status), delay, timeUnit);
+            exitAfter(exitStatus(status), delay, timeUnit);
         }
     }
 
@@ -580,18 +580,29 @@ public abstract class HavenoExecutable implements GracefulShutDownHandler, Haven
                 log.info("Graceful shutdown flushed persistence. Exiting now.");
                 notifyGracefulShutDownComplete();
                 if (isSystemExitRequested())
-                    CommonSetup.exitAfter(exitStatus(exitCode), 100, TimeUnit.MILLISECONDS);
+                    exitAfter(exitStatus(exitCode), 100, TimeUnit.MILLISECONDS);
             });
         } else {
             notifyGracefulShutDownComplete();
             if (isSystemExitRequested())
-                CommonSetup.exitAfter(exitStatus(exitCode), 100, TimeUnit.MILLISECONDS);
+                exitAfter(exitStatus(exitCode), 100, TimeUnit.MILLISECONDS);
         }
     }
 
     // a refused or failed startup exits with a failure status even after a clean shutdown, so a supervisor can retry it
     private int exitStatus(int status) {
         return isStartupFailed ? EXIT_FAILURE : status;
+    }
+
+    // stop wallet processes which outlived the shutdown, since child processes keep running after exit and lock the wallet files
+    private static void exitAfter(int status, long delay, TimeUnit timeUnit) {
+        try {
+            XmrWalletService.stopRemainingWalletRpcInstances();
+        } catch (Throwable t) {
+            log.error("Failed to stop remaining wallet processes at exit", t);
+        } finally {
+            CommonSetup.exitAfter(status, delay, timeUnit);
+        }
     }
 
     // read after notifying completion so exit requests which joined the shutdown are honored

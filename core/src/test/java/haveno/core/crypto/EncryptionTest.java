@@ -57,6 +57,7 @@ import haveno.core.xmr.wallet.WalletPasswordChange;
 import haveno.core.xmr.wallet.WalletPasswordRecovery;
 import haveno.core.xmr.wallet.WalletsManager;
 import monero.common.MoneroError;
+import monero.common.MoneroRpcError;
 import monero.common.MoneroUtils;
 import monero.daemon.model.MoneroNetworkType;
 import monero.wallet.MoneroWalletFull;
@@ -2190,6 +2191,63 @@ public class EncryptionTest {
                 verify(process, never()).destroyForcibly();
             }
         }
+    }
+
+    @Test
+    public void testExitStopsRemainingWalletRpcInstances() throws Exception {
+        MoneroWalletRpcManager manager = new MoneroWalletRpcManager();
+        CountDownLatch release = new CountDownLatch(1);
+
+        // one saves and stops, one refuses to stop with no wallet open, and one hangs until destroyed
+        Process saved = walletRpcChild();
+        MoneroWalletRpc savedRpc = walletRpc(saved);
+        doAnswer(invocation -> saved.onExit().complete(saved)).when(savedRpc).stop();
+        Process refused = walletRpcChild();
+        MoneroWalletRpc refusedRpc = walletRpc(refused);
+        doThrow(new MoneroRpcError("No wallet file", -13, "stop_wallet", null)).when(refusedRpc).stop();
+        doAnswer(invocation -> refused.onExit().complete(refused)).when(refused).destroy();
+        Process hung = walletRpcChild();
+        MoneroWalletRpc hungRpc = walletRpc(hung);
+        doAnswer(invocation -> release.await(10, TimeUnit.SECONDS)).when(hungRpc).stop();
+
+        Field field = MoneroWalletRpcManager.class.getDeclaredField("registeredPorts");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<Integer, MoneroWalletRpc> registeredPorts = (Map<Integer, MoneroWalletRpc>) field.get(manager);
+        registeredPorts.put(1, savedRpc);
+        registeredPorts.put(2, refusedRpc);
+        registeredPorts.put(3, hungRpc);
+        registeredPorts.put(4, null); // a port reserved for an instance still starting
+        try {
+            manager.stopRemainingInstances(500);
+        } finally {
+            release.countDown();
+        }
+
+        verify(saved, never()).destroy();
+        verify(saved, never()).destroyForcibly();
+        verify(refused, never()).destroyForcibly();
+        verify(hung, never()).destroy();
+        verify(hung).destroyForcibly();
+
+        // nothing to stop without remaining instances
+        new MoneroWalletRpcManager().stopRemainingInstances(500);
+    }
+
+    // a wallet rpc child process which stays alive until its exit future completes
+    private static Process walletRpcChild() {
+        Process process = mock(Process.class);
+        CompletableFuture<Process> exit = new CompletableFuture<>();
+        doReturn(exit).when(process).onExit();
+        doAnswer(invocation -> !exit.isDone()).when(process).isAlive();
+        doReturn(process).when(process).destroyForcibly();
+        return process;
+    }
+
+    private static MoneroWalletRpc walletRpc(Process process) {
+        MoneroWalletRpc walletRpc = mock(MoneroWalletRpc.class);
+        doReturn(process).when(walletRpc).getProcess();
+        return walletRpc;
     }
 
     @Test
