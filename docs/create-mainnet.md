@@ -17,7 +17,7 @@ make clean && make
 
 In a new terminal window, run `make monerod` to start and sync a Monero node on mainnet.
 
-Seed nodes and arbitrators require a local, unrestricted Monero node for performance and functionality.
+Arbitrators require a local, unrestricted Monero node for performance and functionality.
 
 ## Start and register seed nodes
 

@@ -236,7 +236,6 @@ seednode-local:
 		--useDevPrivilegeKeys=true \
 		--nodePort=2002 \
 		--appName=haveno-XMR_LOCAL_Seed_2002 \
-		--xmrNode=http://localhost:28081 \
 
 seednode2-local:
 	./haveno-seednode$(APP_EXT) \
@@ -245,7 +244,6 @@ seednode2-local:
 		--useDevPrivilegeKeys=true \
 		--nodePort=2003 \
 		--appName=haveno-XMR_LOCAL_Seed_2003 \
-		--xmrNode=http://localhost:28081 \
 
 arbitrator-daemon-local:
 	# Arbitrator needs to be registered before making trades
@@ -395,7 +393,6 @@ seednode-stagenet:
 		--useDevPrivilegeKeys=false \
 		--nodePort=3002 \
 		--appName=haveno-XMR_STAGENET_Seed_3002 \
-		--xmrNode=http://127.0.0.1:38081 \
 
 seednode2-stagenet:
 	./haveno-seednode$(APP_EXT) \
@@ -404,7 +401,6 @@ seednode2-stagenet:
 		--useDevPrivilegeKeys=false \
 		--nodePort=3003 \
 		--appName=haveno-XMR_STAGENET_Seed_3003 \
-		--xmrNode=http://127.0.0.1:38081 \
 
 arbitrator-daemon-stagenet:
 	# Arbitrator needs to be registered before making trades
@@ -529,7 +525,6 @@ seednode:
 		--useDevPrivilegeKeys=false \
 		--nodePort=1002 \
 		--appName=haveno-XMR_MAINNET_Seed_1002 \
-		--xmrNode=http://127.0.0.1:18081 \
 
 seednode2:
 	./haveno-seednode$(APP_EXT) \
@@ -538,7 +533,6 @@ seednode2:
 		--useDevPrivilegeKeys=false \
 		--nodePort=1003 \
 		--appName=haveno-XMR_MAINNET_Seed_1003 \
-		--xmrNode=http://127.0.0.1:18081 \
 
 arbitrator-daemon-mainnet:
 	# Arbitrator needs to be registered before making trades

@@ -15,8 +15,7 @@ ExecStart=/bin/sh $PATH/haveno-seednode --baseCurrencyNetwork=XMR_STAGENET\
 #  --hiddenServiceAddress=example.onion\
   --hiddenServiceParams="PoWDefensesEnabled=1,PoWQueueRate=50,PoWQueueBurst=250"\
   --nodePort=2002\
-  --appName=haveno-XMR_STAGENET_Seed_2002\
-  --xmrNode=http://[::1]:38088
+  --appName=haveno-XMR_STAGENET_Seed_2002
 
 ExecStop=/bin/kill ${MAINPID} ; sleep 5
 Restart=always
