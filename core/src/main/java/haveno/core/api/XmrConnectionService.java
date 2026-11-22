@@ -205,6 +205,7 @@ public final class XmrConnectionService {
         p2PService.addP2PServiceListener(new P2PServiceListener() {
             @Override
             public void onTorNodeReady() {
+                if (HavenoUtils.isSeedNode()) return; // seed nodes relay without a Monero node
                 ThreadUtils.submitToPool(() -> {
                     try {
                         initialize();
