@@ -440,7 +440,11 @@ public class MainViewModel implements ViewModel, HavenoSetup.HavenoSetupListener
                         .onClose(privateNotificationManager::removePrivateNotification)
                         .useIUnderstandButton()
                         .show());
-        havenoSetup.setDisplaySecurityRecommendationHandler(key -> {});
+        havenoSetup.setDisplaySecurityRecommendationHandler(key ->
+                new Popup().headLine(Res.get("popup.securityRecommendation.headline"))
+                        .information(Res.get("popup.securityRecommendation.msg"))
+                        .dontShowAgainId(key)
+                        .show());
         havenoSetup.setDisplaySignedByArbitratorHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(
                 key, "popup.accountSigning.signedByArbitrator"));
         havenoSetup.setDisplaySignedByPeerHandler(key -> accountPresentation.showOneTimeAccountSigningPopup(

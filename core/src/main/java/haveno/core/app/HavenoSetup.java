@@ -78,7 +78,6 @@ import haveno.core.user.User;
 import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.xmr.setup.WalletsSetup;
-import haveno.core.xmr.wallet.WalletsManager;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.network.Socks5ProxyProvider;
 import haveno.network.p2p.NodeAddress;
@@ -123,7 +122,6 @@ public class HavenoSetup {
     private final DomainInitialisation domainInitialisation;
     private final P2PNetworkSetup p2PNetworkSetup;
     private final WalletAppSetup walletAppSetup;
-    private final WalletsManager walletsManager;
     private final WalletsSetup walletsSetup;
     private final XmrConnectionService xmrConnectionService;
     @Getter
@@ -226,7 +224,6 @@ public class HavenoSetup {
     public HavenoSetup(DomainInitialisation domainInitialisation,
                        P2PNetworkSetup p2PNetworkSetup,
                        WalletAppSetup walletAppSetup,
-                       WalletsManager walletsManager,
                        WalletsSetup walletsSetup,
                        XmrConnectionService xmrConnectionService,
                        XmrWalletService xmrWalletService,
@@ -252,7 +249,6 @@ public class HavenoSetup {
         this.domainInitialisation = domainInitialisation;
         this.p2PNetworkSetup = p2PNetworkSetup;
         this.walletAppSetup = walletAppSetup;
-        this.walletsManager = walletsManager;
         this.walletsSetup = walletsSetup;
         this.xmrConnectionService = xmrConnectionService;
         this.xmrWalletService = xmrWalletService;
@@ -635,7 +631,7 @@ public class HavenoSetup {
         if (user.getPaymentAccountsAsObservable() == null) return;
         String key = "remindPasswordAndBackup";
         user.getPaymentAccountsAsObservable().addListener((ListChangeListener<PaymentAccount>) change -> {
-            if (!walletsManager.areWalletsEncrypted() && !user.isPaymentAccountImport() && preferences.showAgain(key) && change.next() && change.wasAdded() &&
+            if (!user.isPaymentAccountImport() && preferences.showAgain(key) && change.next() && change.wasAdded() &&
                     displaySecurityRecommendationHandler != null)
                 displaySecurityRecommendationHandler.accept(key);
         });
