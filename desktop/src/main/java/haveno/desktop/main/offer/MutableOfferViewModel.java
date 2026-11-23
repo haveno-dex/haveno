@@ -63,8 +63,6 @@ import haveno.core.xmr.wallet.Restrictions;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.model.ActivatableWithDataModel;
 import haveno.desktop.main.MainView;
-import haveno.desktop.main.funds.FundsView;
-import haveno.desktop.main.funds.deposit.DepositView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
@@ -707,11 +705,10 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
         if (dataModel.getIsXmrWalletFunded().get()) {
             updateButtonDisableState();
         } else {
-            new Popup().warning(Res.get("shared.notEnoughFunds",
+            new Popup().information(Res.get("createOffer.fundsBox.sendRemaining",
+                            HavenoUtils.formatXmr(dataModel.getTotalUnallocatedBalance(), true),
                             HavenoUtils.formatXmr(dataModel.totalToPayAsProperty().get(), true),
-                            HavenoUtils.formatXmr(dataModel.getTotalUnallocatedBalance(), true)))
-                    .actionButtonTextWithGoTo("funds.tab.deposit")
-                    .onAction(() -> navigation.navigateTo(MainView.class, FundsView.class, DepositView.class))
+                            HavenoUtils.formatXmr(dataModel.getMissingCoin().get(), true)))
                     .show();
         }
 

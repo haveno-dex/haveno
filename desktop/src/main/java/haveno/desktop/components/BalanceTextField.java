@@ -18,6 +18,7 @@
 package haveno.desktop.components;
 
 import com.jfoenix.controls.JFXTextField;
+import haveno.core.locale.Res;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.util.coin.CoinFormatter;
 import javafx.scene.effect.BlurType;
@@ -81,8 +82,15 @@ public class BalanceTextField extends AnchorPane {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void updateBalance(BigInteger balance) {
-        if (formatter != null)
-            textField.setText(HavenoUtils.formatXmr(balance, true));
+        if (formatter != null) {
+            String text = HavenoUtils.formatXmr(balance, true);
+
+            // show the amount remaining if partially funded
+            if (targetAmount != null && balance != null && balance.signum() > 0 && balance.compareTo(targetAmount) < 0) {
+                text += " " + Res.get("shared.tradeWalletBalance.remaining", HavenoUtils.formatXmr(targetAmount.subtract(balance), true));
+            }
+            textField.setText(text);
+        }
 
         //TODO: replace with new validation logic
 //        if (targetAmount != null) {
