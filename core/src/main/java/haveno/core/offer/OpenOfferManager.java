@@ -1147,6 +1147,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         BigInteger unallocatedBalance = xmrWalletService.getBalance();
         for (OpenOffer openOffer : getOpenOffersWithoutClones()) {
             if (openOffer.getState() != OpenOffer.State.PENDING) continue;
+            if (openOffer.getReserveTxHash() != null) continue; // reserved funds are frozen and already excluded from balance
             if (openOffer.isReserveExactAmount()) {
                 if (!isSplitOutputFrozen(openOffer)) unallocatedBalance = unallocatedBalance.subtract(openOffer.getOffer().getAmountNeeded()); // frozen split output is already excluded from balance
             } else if (openOffer.getScheduledAmount() != null && !openOffer.getScheduledAmount().isEmpty()) {
@@ -1632,8 +1633,8 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 setSplitOutputTx(openOffers, openOffer, null);
             }
             try {
-                splitOrScheduleAux(openOffers, openOffer, amountNeeded);
-                resultHandler.handleResult(null);
+                if (splitOrScheduleAux(openOffers, openOffer, amountNeeded)) resultHandler.handleResult(null);
+                else signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler); // reserve funds directly
                 return;
             } catch (Exception e) {
                 if (openOffer.isCanceled()) {
@@ -1656,16 +1657,29 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         }
     }
 
-    private void splitOrScheduleAux(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
+    // split or schedule funds for the offer, returning false if the available balance covers it but not the fee to split
+    private boolean splitOrScheduleAux(List<OpenOffer> openOffers, OpenOffer openOffer, BigInteger offerReserveAmount) {
 
         // handle sufficient available balance to split output
         boolean sufficientAvailableBalance = xmrWalletService.getAvailableBalance().compareTo(offerReserveAmount) >= 0;
         if (sufficientAvailableBalance && openOffer.getSplitOutputTxHash() == null) {
             log.info("Splitting and scheduling outputs for offer {}", openOffer.getShortId());
-            splitAndSchedule(openOffers, openOffer);
+            try {
+                splitAndSchedule(openOffers, openOffer);
+            } catch (Exception e) {
+                if (!openOffer.isCanceled() && isFeeUnaffordable(e)) return false;
+                throw e;
+            }
         } else if (openOffer.getScheduledTxHashes() == null) {
             scheduleWithEarliestTxs(openOffers, openOffer);
         }
+        return true;
+    }
+
+    // wallet errors for funds which cannot also pay the mining fee
+    private static boolean isFeeUnaffordable(Exception e) {
+        String msg = String.valueOf(e.getMessage()).toLowerCase();
+        return msg.contains("not enough money") || msg.contains("not enough unlocked money") || HavenoUtils.isTxNotPossible(e);
     }
 
     private MoneroTxWallet splitAndSchedule(List<OpenOffer> openOffers, OpenOffer openOffer) {
