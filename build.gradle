@@ -230,8 +230,8 @@ configure(subprojects) {
     }
 
     repositories {
+        //mavenLocal()
         mavenCentral()
-        //mavenLocal();
         maven { url = uri('https://jitpack.io') }
     }
 
