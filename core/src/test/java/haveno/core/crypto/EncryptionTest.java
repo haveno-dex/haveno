@@ -289,6 +289,7 @@ public class EncryptionTest {
             @SuppressWarnings("unchecked")
             List<String> command = (List<String>) context.arguments().get(0);
             assertEquals(binary.toString(), command.get(0));
+            assertTrue((Long) context.arguments().get(1) > 0); // start timeout
             assertFalse(command.contains("--rpc-login"));
             assertEquals("127.0.0.1", command.get(command.indexOf("--rpc-bind-ip") + 1));
             assertTrue(command.contains("--no-initial-sync"));

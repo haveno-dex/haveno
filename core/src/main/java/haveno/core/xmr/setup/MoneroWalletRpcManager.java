@@ -58,6 +58,7 @@ public class MoneroWalletRpcManager {
     private static final long PROCESS_TIMEOUT_MS = 15000;
     private static final String RPC_BIND_PORT_ARGUMENT = "--rpc-bind-port";
     private static final String RPC_USERNAME = "haveno_user";
+    private static final long START_TIMEOUT_MS = 60000; // destroy an instance which does not start within this time
     private static int NUM_ALLOWED_ATTEMPTS = 3; // allow this many attempts to bind to an assigned port
     private Integer startPort;
     private volatile boolean isShutDownStarted;
@@ -151,7 +152,7 @@ public class MoneroWalletRpcManager {
                 }
                 MoneroWalletRpc walletRpc;
                 try {
-                    walletRpc = new MoneroWalletRpc(cmd); // starts monero-wallet-rpc process
+                    walletRpc = new MoneroWalletRpc(cmd, START_TIMEOUT_MS); // starts monero-wallet-rpc process
                 } catch (Exception e) {
                     removePort(port); // unregister port so retries are not blocked
                     throw e;
@@ -186,7 +187,7 @@ public class MoneroWalletRpcManager {
                         cmdCopy.add(RPC_BIND_PORT_ARGUMENT);
                         cmdCopy.add("" + port);
                         if (socket != null) socket.close(); // TODO: port can be taken by another process before monero-wallet-rpc starts. we could synchronize on a lock until monero-wallet-rpc is started, but that would interfere with stress testing
-                        MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmdCopy); // start monero-wallet-rpc process
+                        MoneroWalletRpc walletRpc = new MoneroWalletRpc(cmdCopy, START_TIMEOUT_MS); // start monero-wallet-rpc process
                         synchronized (registeredPorts) {
                             registeredPorts.put(port, walletRpc);
                         }
@@ -310,8 +311,8 @@ public class MoneroWalletRpcManager {
      */
     public void stopRemainingInstances(long timeoutMs) {
 
-        // wait for instances still starting, since their processes cannot be stopped before they are registered
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(Math.min(timeoutMs, PROCESS_TIMEOUT_MS));
+        // wait for instances still starting to register or time out, since their processes cannot be stopped before then
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(Math.min(timeoutMs, START_TIMEOUT_MS + PROCESS_TIMEOUT_MS));
         while (isStarting() && System.nanoTime() - deadline < 0) Uninterruptibles.sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         List<MoneroWalletRpc> remaining;
         synchronized (registeredPorts) {
