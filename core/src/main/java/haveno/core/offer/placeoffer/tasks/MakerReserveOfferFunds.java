@@ -110,7 +110,7 @@ public class MakerReserveOfferFunds extends Task<PlaceOfferModel> {
                                 //if (true) throw new RuntimeException("Pretend error");
                                 reserveTx = model.getXmrWalletService().createReserveTx(openOffer, penaltyFee, makerFee, sendAmount, securityDeposit, returnAddress, openOffer.isReserveExactAmount(), preferredSubaddressIndex);
                             } catch (IllegalStateException e) {
-                                log.warn("Illegal state creating reserve tx, offerId={}, error={}", openOffer.getShortId(), i + 1, e.getMessage());
+                                log.warn("Illegal state creating reserve tx, offerId={}, error={}", openOffer.getShortId(), e.getMessage());
                                 throw e;
                             } catch (Exception e) {
                                 log.warn("Error creating reserve tx, offerId={}, attempt={}/{}, error={}", openOffer.getShortId(), i + 1, TradeProtocol.MAX_ATTEMPTS, e.getMessage());

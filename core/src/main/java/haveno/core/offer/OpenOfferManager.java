@@ -1457,21 +1457,15 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                         }
                     }
 
-                    // if wallet has exact available balance, try to sign and post directly
-                    if (xmrWalletService.getAvailableBalance().equals(amountNeeded)) {
-                        signAndPostOffer(openOffer, true, resultHandler, (errorMessage) -> {
-                            splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
-                        });
-                        return;
-                    } else {
-                        splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
-                    }
+                    // reserve directly if the wallet has exactly the funds needed and no split output, since exact funds cannot pay to split
+                    if (splitOutputTx == null && xmrWalletService.getAvailableBalance().equals(amountNeeded)) reserveAndPostOffer(openOffer, resultHandler, errorMessageHandler);
+                    else splitOrSchedule(splitOutputTx, openOffers, openOffer, amountNeeded, resultHandler, errorMessageHandler);
                 } else {
 
                     // sign and post offer if enough funds
                     boolean hasSufficientBalance = xmrWalletService.getAvailableBalance().compareTo(amountNeeded) >= 0;
                     if (hasSufficientBalance) {
-                        signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
+                        reserveAndPostOffer(openOffer, resultHandler, errorMessageHandler);
                         return;
                     } else if (openOffer.getScheduledTxHashes() == null) {
                         scheduleWithEarliestTxs(openOffers, openOffer);
@@ -1634,7 +1628,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
             try {
                 if (splitOrScheduleAux(openOffers, openOffer, amountNeeded)) resultHandler.handleResult(null);
-                else signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler); // reserve funds directly
+                else reserveAndPostOffer(openOffer, resultHandler, errorMessageHandler); // reserve funds directly
                 return;
             } catch (Exception e) {
                 if (openOffer.isCanceled()) {
@@ -1649,7 +1643,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         } else if (!splitOutputTx.isLocked()) {
 
             // otherwise sign and post offer if split output available
-            signAndPostOffer(openOffer, true, resultHandler, errorMessageHandler);
+            reserveAndPostOffer(openOffer, resultHandler, errorMessageHandler);
             return;
         } else {
             resultHandler.handleResult(null);
@@ -1824,6 +1818,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             }
         }
         return false;
+    }
+
+    // reserve funds for the offer and post it, invalidating an offer whose funds cannot be spent to reserve it
+    private void reserveAndPostOffer(OpenOffer openOffer, TransactionResultHandler resultHandler, ErrorMessageHandler errorMessageHandler) {
+        signAndPostOffer(openOffer, true, resultHandler, (errorMessage) -> {
+            if (!openOffer.isCanceled() && String.valueOf(errorMessage).toLowerCase().contains("tx not possible")) openOffer.getOffer().setState(Offer.State.INVALID);
+            errorMessageHandler.handleErrorMessage(errorMessage);
+        });
     }
 
     private void signAndPostOffer(OpenOffer openOffer,

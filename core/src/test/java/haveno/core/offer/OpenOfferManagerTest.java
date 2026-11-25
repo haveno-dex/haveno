@@ -35,13 +35,16 @@ import haveno.core.trade.TradableList;
 import haveno.core.trade.Trade;
 import haveno.core.trade.TradeManager;
 import haveno.core.trade.failed.FailedTradesManager;
+import haveno.core.trade.handlers.TransactionResultHandler;
 import haveno.core.monetary.Volume;
+import haveno.core.payment.PaymentAccount;
 import haveno.core.trade.protocol.ProcessModel;
 import haveno.core.trade.protocol.ProcessModelServiceProvider;
 import haveno.core.trade.protocol.TradePeer;
 import haveno.core.trade.messages.InitTradeRequest;
 import haveno.core.trade.messages.TradeProtocolVersion;
 import haveno.core.user.User;
+import haveno.core.xmr.model.XmrAddressEntry;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.core.xmr.wallet.Restrictions;
 import haveno.network.p2p.NetworkNotReadyException;
@@ -56,7 +59,11 @@ import haveno.network.p2p.peers.Broadcaster;
 import haveno.network.p2p.storage.HashMapChangedListener;
 import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
+import monero.daemon.model.MoneroKeyImage;
 import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroOutputWallet;
+import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxWallet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,6 +83,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,12 +110,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -1011,6 +1021,140 @@ public class OpenOfferManagerTest {
         } finally {
             HavenoUtils.tradeManager = originalTradeManager;
             HavenoUtils.openOfferManager = originalOpenOfferManager;
+        }
+    }
+
+    @Test
+    public void testOfferIsCanceledWhenExactFundsCannotBeReserved() throws Exception {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        assertEquals(OpenOffer.State.CANCELED, processPendingOffer(walletService, BigInteger.ZERO, "tx not possible"));
+        verify(walletService, never()).createTx(any(MoneroTxConfig.class));
+    }
+
+    @Test
+    public void testOfferIsCanceledWhenFundsCanBeNeitherSplitNorReserved() throws Exception {
+        assertEquals(OpenOffer.State.CANCELED, processPendingOffer(mock(XmrWalletService.class), BigInteger.ONE, "tx not possible"));
+    }
+
+    @Test
+    public void testOfferStaysPendingWhenReservingFailsForAnotherReason() throws Exception {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        assertEquals(OpenOffer.State.PENDING, processPendingOffer(walletService, BigInteger.ZERO, "Failed to get height"));
+        verify(walletService, never()).createTx(any(MoneroTxConfig.class));
+    }
+
+    @Test
+    public void testOfferWithoutExactReserveIsCanceledWhenFundsCannotBeReserved() throws Exception {
+        assertEquals(OpenOffer.State.CANCELED, processPendingOffer(mock(XmrWalletService.class), BigInteger.ZERO, "tx not possible", false, null));
+    }
+
+    @Test
+    public void testFailedReservationReleasesFrozenSplitOutput() throws Exception {
+        MoneroTxWallet splitOutputTx = new MoneroTxWallet().setHash("split").setIsLocked(false);
+        assertEquals(OpenOffer.State.CANCELED, processPendingOffer(mock(XmrWalletService.class), BigInteger.ZERO, "tx not possible", true, splitOutputTx));
+        assertFalse(splitOutputTx.getOutputsWallet().get(0).isFrozen());
+    }
+
+    @Test
+    public void testRecoverableReservationFailureKeepsSplitOutputReserved() throws Exception {
+        MoneroTxWallet splitOutputTx = new MoneroTxWallet().setHash("split").setIsLocked(false);
+        assertEquals(OpenOffer.State.PENDING, processPendingOffer(mock(XmrWalletService.class), BigInteger.ZERO, "Failed to get height", true, splitOutputTx));
+        assertTrue(splitOutputTx.getOutputsWallet().get(0).isFrozen());
+    }
+
+    @Test
+    public void testLockedSplitOutputWaitsEvenWhenOtherFundsExactlyCoverOffer() throws Exception {
+        MoneroTxWallet splitOutputTx = new MoneroTxWallet().setHash("split").setIsLocked(true);
+        BigInteger amountNeeded = make(btcUsdOffer.but(with(OfferMaker.amount, 100000000000L), with(OfferMaker.minAmount, 100000000000L), with(OfferMaker.price, 20000000000L))).getAmountNeeded();
+        assertEquals(OpenOffer.State.PENDING, processPendingOffer(mock(XmrWalletService.class), amountNeeded, "tx not possible", true, splitOutputTx));
+        assertTrue(splitOutputTx.getOutputsWallet().get(0).isFrozen());
+    }
+
+    // process a pending offer funded with the given excess over the amount needed, which cannot pay to split and fails to reserve on the given error
+    private OpenOffer.State processPendingOffer(XmrWalletService walletService, BigInteger excessBalance, String reserveError) throws Exception {
+        return processPendingOffer(walletService, excessBalance, reserveError, true, null);
+    }
+
+    private OpenOffer.State processPendingOffer(XmrWalletService walletService, BigInteger excessBalance, String reserveError, boolean reserveExactAmount, MoneroTxWallet splitOutputTx) throws Exception {
+        User user = mock(User.class);
+        AccountAgeWitnessService witnessService = mock(AccountAgeWitnessService.class);
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        OpenOfferManager originalOpenOfferManager = HavenoUtils.openOfferManager;
+        XmrWalletService originalWalletService = HavenoUtils.xmrWalletService;
+        Offer offer = spy(make(btcUsdOffer.but(with(OfferMaker.amount, 100000000000L), with(OfferMaker.minAmount, 100000000000L), with(OfferMaker.price, 20000000000L))));
+        OpenOffer openOffer = new OpenOffer(offer, 0, reserveExactAmount);
+        BigInteger amountNeeded = offer.getAmountNeeded();
+        MoneroOutputWallet splitOutput = new MoneroOutputWallet().setAmount(amountNeeded).setAccountIndex(0).setIsSpent(false).setIsFrozen(true).setKeyImage(new MoneroKeyImage("split-output"));
+        List<String> splitKeyImages = splitOutputTx == null ? List.of() : List.of("split-output");
+        CompletableFuture<Void> canceled = new CompletableFuture<>();
+        if (splitOutputTx != null) {
+            openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
+            splitOutputTx.setFee(BigInteger.ZERO);
+            splitOutputTx.setOutputs(List.of(splitOutput.setTx(splitOutputTx)));
+            when(walletService.getTx(splitOutputTx.getHash())).thenReturn(splitOutputTx);
+        }
+        doReturn(amountNeeded).when(offer).getMaxTradeLimit();
+        doReturn(0.15).when(offer).getBuyerSecurityDepositPct();
+        doReturn(0.15).when(offer).getSellerSecurityDepositPct();
+        doReturn(new Date()).when(offer).getDate();
+        doReturn(mock(PubKeyRing.class)).when(offer).getPubKeyRing();
+        doReturn("1").when(offer).getVersionNr();
+        doReturn(1L).when(offer).getMaxTradePeriod();
+        when(user.getPaymentAccount(any())).thenReturn(mock(PaymentAccount.class));
+        when(witnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(Long.MAX_VALUE);
+        when(walletService.getBalance()).thenAnswer(invocation -> amountNeeded.add(excessBalance).subtract(splitOutputTx != null && splitOutput.isFrozen() ? amountNeeded : BigInteger.ZERO));
+        when(walletService.getAvailableBalance()).thenAnswer(invocation -> walletService.getBalance());
+        when(walletService.getWalletLock()).thenReturn(new Object());
+        when(walletService.getOrCreateAddressEntry(any(), any())).thenReturn(mock(XmrAddressEntry.class));
+        when(walletService.createTx(any(MoneroTxConfig.class))).thenThrow(new RuntimeException("not enough money"));
+        when(walletService.getXmrConnectionService()).thenReturn(mock(XmrConnectionService.class));
+        when(walletService.createReserveTx(eq(openOffer), any(), any(), any(), any(), any(), anyBoolean(), any()))
+                .thenThrow(new IllegalStateException(reserveError)); // exercise reserve cleanup without retry delays
+        doAnswer(invocation -> {
+            splitOutput.setIsFrozen(true);
+            return null;
+        }).when(walletService).freezeOutputs(splitKeyImages);
+        doAnswer(invocation -> {
+            if (splitKeyImages.equals(invocation.getArgument(0))) {
+                splitOutput.setIsFrozen(false);
+                if (openOffer.isCanceled()) canceled.complete(null);
+            }
+            return null;
+        }).when(walletService).thawOutputs(any());
+
+        try {
+            HavenoUtils.tradeManager = mock(TradeManager.class);
+            HavenoUtils.xmrWalletService = walletService;
+            OpenOfferManager manager = new OpenOfferManager(coreContext, null, user, mock(P2PService.class), mock(XmrConnectionService.class), null, walletService, null, mock(OfferBookService.class),
+                    mock(ClosedTradableManager.class), null, null, null, null, null, null, null, persistenceManager, signedOfferPersistenceManager, witnessService);
+            manager.getObservableList().add(openOffer);
+            var processOffer = OpenOfferManager.class.getDeclaredMethod("processOffer", List.class, OpenOffer.class, TransactionResultHandler.class, ErrorMessageHandler.class);
+            processOffer.setAccessible(true);
+            CompletableFuture<String> error = new CompletableFuture<>();
+            processOffer.invoke(manager, List.of(openOffer), openOffer, (TransactionResultHandler) transaction -> error.complete(null), (ErrorMessageHandler) error::complete);
+            String errorMessage = error.get(10, TimeUnit.SECONDS);
+            if (splitOutputTx != null && splitOutputTx.isLocked()) {
+                assertNull(errorMessage);
+                verify(walletService, never()).createReserveTx(any(), any(), any(), any(), any(), any(), anyBoolean(), any());
+            } else {
+                assertTrue(errorMessage.contains(reserveError + " (task MakerReserveOfferFunds)"));
+                verify(walletService).createReserveTx(eq(openOffer), any(), any(), any(), any(), any(), eq(reserveExactAmount), any());
+            }
+            OpenOffer.State state = openOffer.getState();
+            if (state == OpenOffer.State.CANCELED) {
+                canceled.get(5, TimeUnit.SECONDS); // wait for cancellation to release funds before restoring globals
+                assertTrue(manager.getOpenOffer(openOffer.getId()).isEmpty());
+                assertEquals(amountNeeded.add(excessBalance), manager.getUnallocatedBalance());
+                verify(walletService, times(2)).thawOutputs(splitKeyImages);
+            } else {
+                assertTrue(manager.getOpenOffer(openOffer.getId()).isPresent());
+                assertEquals(excessBalance, manager.getUnallocatedBalance());
+            }
+            return state;
+        } finally {
+            HavenoUtils.tradeManager = originalTradeManager;
+            HavenoUtils.openOfferManager = originalOpenOfferManager;
+            HavenoUtils.xmrWalletService = originalWalletService;
         }
     }
 
