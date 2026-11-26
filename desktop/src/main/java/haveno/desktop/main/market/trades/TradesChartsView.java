@@ -43,6 +43,7 @@ import haveno.desktop.components.AutoTooltipToggleButton;
 import haveno.desktop.components.AutocompleteComboBox;
 import haveno.desktop.components.ColoredDecimalPlacesWithZerosText;
 import static haveno.desktop.main.market.trades.TradesChartsViewModel.MAX_TICKS;
+import haveno.desktop.main.market.trades.charts.CandleData;
 import haveno.desktop.main.market.trades.charts.price.CandleStickChart;
 import haveno.desktop.main.market.trades.charts.volume.VolumeChart;
 import haveno.desktop.util.Accessibility;
@@ -56,7 +57,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
@@ -158,10 +163,12 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
     private Subscription currencySelectionSubscriber;
 
     private final StringProperty priceColumnLabel = new SimpleStringProperty();
-    private NumberAxis priceAxisX, priceAxisY, volumeAxisY, volumeAxisX, volumeInUsdAxisX;
+    private NumberAxis priceAxisX, priceAxisY, volumeAxisY, volumeAxisX, volumeInUsdAxisX, volumeInUsdAxisY;
     private XYChart.Series<Number, Number> priceSeries;
     private final XYChart.Series<Number, Number> volumeSeries = new XYChart.Series<>();
     private final XYChart.Series<Number, Number> volumeInUsdSeries = new XYChart.Series<>();
+    private final ObjectProperty<CandleData> hoveredCandle = new SimpleObjectProperty<>();
+    private final DoubleProperty hoverTooltipWidth = new SimpleDoubleProperty();
     private double priceAxisYWidth;
     private double volumeAxisYWidth;
 
@@ -217,10 +224,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
             priceAxisYWidth = (double) newValue;
             layoutChart();
         });
-        volumeAxisYWidthListener = (observable, oldValue, newValue) -> UserThread.execute(() -> {
-            volumeAxisYWidth = (double) newValue;
-            layoutChart();
-        });
+        volumeAxisYWidthListener = (observable, oldValue, newValue) -> UserThread.execute(this::alignWithShownVolumeChart);
         tradeStatisticsByCurrencyListener = c -> UserThread.execute(() -> {
             nrOfTradeStatisticsLabel.setText(Res.get("market.trades.nrOfTrades", model.tradeStatisticsByCurrency.size()));
             fillList();
@@ -298,6 +302,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         toggleGroup.selectedToggleProperty().addListener(timeUnitChangeListener);
         priceAxisY.widthProperty().addListener(priceAxisYWidthListener);
         volumeAxisY.widthProperty().addListener(volumeAxisYWidthListener);
+        volumeInUsdAxisY.widthProperty().addListener(volumeAxisYWidthListener);
         model.tradeStatisticsByCurrency.addListener(tradeStatisticsByCurrencyListener);
 
         priceAxisY.labelProperty().bind(priceColumnLabel);
@@ -342,6 +347,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         toggleGroup.selectedToggleProperty().removeListener(timeUnitChangeListener);
         priceAxisY.widthProperty().removeListener(priceAxisYWidthListener);
         volumeAxisY.widthProperty().removeListener(volumeAxisYWidthListener);
+        volumeInUsdAxisY.widthProperty().removeListener(volumeAxisYWidthListener);
         model.tradeStatisticsByCurrency.removeListener(tradeStatisticsByCurrencyListener);
 
         priceAxisY.labelProperty().unbind();
@@ -371,6 +377,16 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         volumeChart.setManaged(!showUsd);
         volumeInUsdChart.setVisible(showUsd);
         volumeInUsdChart.setManaged(showUsd);
+        alignWithShownVolumeChart();
+    }
+
+    // the plots align by the y axes of the price chart and the shown volume chart, once that one has its width
+    private void alignWithShownVolumeChart() {
+        double width = (volumeInUsdChart.isVisible() ? volumeInUsdAxisY : volumeAxisY).getWidth();
+        if (width > 0) {
+            volumeAxisYWidth = width;
+            layoutChart();
+        }
     }
 
     // Build a comparator from the current sort order on the user thread; the background sort uses
@@ -536,7 +552,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
             public Number fromString(String string) {
                 return null;
             }
-        });
+        }, hoveredCandle, hoverTooltipWidth);
         priceChart.setId("price-chart");
         priceChart.setMinHeight(188);
         priceChart.setPrefHeight(188);
@@ -554,14 +570,13 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         AnchorPane.setRightAnchor(priceChart, 10d);
 
         priceChartPane.getChildren().add(priceChart);
-        priceChart.setTooltipOverlayPane(root);
 
         volumeAxisX = new NumberAxis(0, MAX_TICKS + 1, 1);
         volumeAxisY = new NumberAxis();
         volumeChart = getVolumeChart(volumeAxisX, volumeAxisY, volumeSeries, "XMR");
 
         volumeInUsdAxisX = new NumberAxis(0, MAX_TICKS + 1, 1);
-        NumberAxis volumeInUsdAxisY = new NumberAxis();
+        volumeInUsdAxisY = new NumberAxis();
         volumeInUsdChart = getVolumeChart(volumeInUsdAxisX, volumeInUsdAxisY, volumeInUsdSeries, "USD");
         volumeInUsdChart.setVisible(false);
         volumeInUsdChart.setManaged(false);
@@ -580,8 +595,6 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
         volumeChartPane = new AnchorPane();
         volumeChartPane.getStyleClass().add("chart-pane");
         volumeChartPane.getChildren().add(vBox);
-        volumeChart.setTooltipOverlayPane(volumeChartPane);
-        volumeInUsdChart.setTooltipOverlayPane(volumeChartPane);
     }
 
     private VolumeChart getVolumeChart(NumberAxis axisX,
@@ -623,7 +636,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
                 return null;
             }
         };
-        VolumeChart volumeChart = new VolumeChart(axisX, axisY, xmrStringConverter);
+        VolumeChart volumeChart = new VolumeChart(axisX, axisY, xmrStringConverter, hoveredCandle, hoverTooltipWidth);
         volumeChart.setId("volume-chart");
         volumeChart.setData(FXCollections.observableArrayList(List.of(series)));
         volumeChart.setMinHeight(138);
@@ -635,6 +648,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
     }
 
     private void updateChartData() {
+        hoveredCandle.set(null);
         volumeSeries.getData().setAll(model.volumeItems);
         volumeInUsdSeries.getData().setAll(model.volumeInUsdItems);
 
@@ -656,7 +670,7 @@ public class TradesChartsView extends ActivatableViewAndModel<VBox, TradesCharts
                 priceChart.setPadding(new Insets(0, 0, 0, volumeAxisYWidth - priceAxisYWidth));
                 volumeChart.setPadding(new Insets(0, 0, 0, 0));
                 volumeInUsdChart.setPadding(new Insets(0, 0, 0, 0));
-            } else if (volumeAxisYWidth < priceAxisYWidth) {
+            } else {
                 priceChart.setPadding(new Insets(0, 0, 0, 0));
                 volumeChart.setPadding(new Insets(0, 0, 0, priceAxisYWidth - volumeAxisYWidth));
                 volumeInUsdChart.setPadding(new Insets(0, 0, 0, priceAxisYWidth - volumeAxisYWidth));

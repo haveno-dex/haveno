@@ -17,16 +17,17 @@
 
 package haveno.desktop.main.market.trades.charts.volume;
 
+import haveno.core.locale.Res;
+import haveno.core.util.VolumeUtil;
 import haveno.desktop.main.market.trades.charts.CandleData;
-import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
+import haveno.desktop.main.market.trades.charts.CandleDataChart;
 import javafx.animation.FadeTransition;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 
@@ -34,20 +35,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class VolumeChart extends XYChart<Number, Number> {
+public class VolumeChart extends CandleDataChart {
 
     private final StringConverter<Number> toolTipStringConverter;
-    private final Label volumeTooltipContent = new Label();
-    private final PlotAreaTooltip tooltip = new PlotAreaTooltip(volumeTooltipContent);
-    private Pane tooltipOverlayPane;
 
-    public VolumeChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> toolTipStringConverter) {
-        super(xAxis, yAxis);
+    public VolumeChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> toolTipStringConverter,
+                       ObjectProperty<CandleData> hoveredCandle, DoubleProperty tooltipWidth) {
+        super(xAxis, yAxis, hoveredCandle, tooltipWidth);
         this.toolTipStringConverter = toolTipStringConverter;
     }
 
     @Override
-    protected void layoutPlotChildren() {
+    protected void layoutCandles() {
         if (getData() == null) {
             return;
         }
@@ -72,8 +71,8 @@ public class VolumeChart extends XYChart<Number, Number> {
                     // So we subtract 43 form the height to get the height for the bar to the bottom.
                     // Did not find a way how to request the chart data height
                     final double height = getHeight() - 43;
-                    double upperYPos = Math.min(height - 5, y); // We want min 5px height to allow tooltips
-                    volumeBar.update(height - upperYPos, candleWidth, candleData);
+                    double upperYPos = Math.min(height - 5, y); // We want min 5px height to keep small bars visible
+                    volumeBar.update(height - upperYPos, candleWidth);
                     volumeBar.setLayoutX(x);
                     volumeBar.setLayoutY(upperYPos);
                 }
@@ -139,31 +138,18 @@ public class VolumeChart extends XYChart<Number, Number> {
         if (volumeBar instanceof VolumeBar) {
             ((VolumeBar) volumeBar).setSeriesAndDataStyleClasses("series" + seriesIndex, "data" + itemIndex);
         } else {
-            VolumeBar newVolumeBar = new VolumeBar("series" + seriesIndex, "data" + itemIndex, toolTipStringConverter);
-            registerTooltip(newVolumeBar);
+            VolumeBar newVolumeBar = new VolumeBar("series" + seriesIndex, "data" + itemIndex);
             item.setNode(newVolumeBar);
             volumeBar = newVolumeBar;
         }
         return volumeBar;
     }
 
-    private void registerTooltip(VolumeBar volumeBar) {
-        volumeBar.setOnMouseEntered(e -> showTooltip(volumeBar, e));
-        volumeBar.setOnMouseMoved(e -> showTooltip(volumeBar, e));
-        volumeBar.setOnMouseExited(e -> tooltip.hide());
-    }
-
-    private void showTooltip(VolumeBar volumeBar, MouseEvent e) {
-        volumeTooltipContent.setText(volumeBar.getTooltipText());
-        tooltip.show(volumeBar, e.getSceneY(), tooltipOverlayPane);
-    }
-
-    /**
-     * Sets the pane the hover tooltip is rendered in. It must sit above the chart and outside the
-     * plot area's clip so the tooltip is not cut off by the axes.
-     */
-    public void setTooltipOverlayPane(Pane tooltipOverlayPane) {
-        this.tooltipOverlayPane = tooltipOverlayPane;
+    @Override
+    protected List<String> getTooltipEntries(CandleData candleData) {
+        String volumeInXmr = toolTipStringConverter.toString(candleData.accumulatedAmount);
+        String volumeInUsd = VolumeUtil.formatLargeFiat(candleData.volumeInUsd, "USD");
+        return Res.get("market.trades.tooltip.volumeBar", volumeInXmr, volumeInUsd, candleData.numTrades, candleData.date).lines().toList();
     }
 
     @Override
