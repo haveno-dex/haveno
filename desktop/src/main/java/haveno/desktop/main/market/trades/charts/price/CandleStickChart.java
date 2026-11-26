@@ -49,18 +49,16 @@
 
 package haveno.desktop.main.market.trades.charts.price;
 
+import haveno.core.locale.Res;
 import haveno.desktop.main.market.trades.charts.CandleData;
-import haveno.desktop.main.market.trades.charts.PlotAreaTooltip;
+import haveno.desktop.main.market.trades.charts.CandleDataChart;
 import javafx.animation.FadeTransition;
-import javafx.geometry.Point2D;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.scene.Node;
 import javafx.scene.chart.Axis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
-import javafx.scene.shape.Line;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
@@ -78,17 +76,9 @@ import java.util.List;
  * The Data Y value is used for the opening price and then the close, high and low values are stored in the Data's
  * extra value property using a CandleStickExtraValues object.
  */
-public class CandleStickChart extends XYChart<Number, Number> {
+public class CandleStickChart extends CandleDataChart {
 
-    private static final double LEGEND_INSET = 8;
-
-    private final CandleTooltip legend;
-    private final PlotAreaTooltip legendOverlay;
-    private Pane tooltipOverlayPane;
-    private final Line crosshairVertical = new Line();
-    private final Line crosshairHorizontal = new Line();
-    private boolean crosshairAdded;
-    private boolean legendWidthInvalid = true;
+    private final StringConverter<Number> priceStringConverter;
 
     // -------------- CONSTRUCTORS ----------------------------------------------
 
@@ -98,18 +88,10 @@ public class CandleStickChart extends XYChart<Number, Number> {
      * @param xAxis The x axis to use
      * @param yAxis The y axis to use
      */
-    public CandleStickChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> priceStringConverter) {
-        super(xAxis, yAxis);
-        this.legend = new CandleTooltip(priceStringConverter);
-        this.legendOverlay = new PlotAreaTooltip(legend);
-        for (Line line : new Line[]{crosshairVertical, crosshairHorizontal}) {
-            line.getStyleClass().add("chart-crosshair");
-            line.setManaged(false);
-            line.setMouseTransparent(true);
-            line.setVisible(false);
-        }
-        setOnMouseMoved(this::trackCursor);
-        setOnMouseExited(e -> hideOverlays());
+    public CandleStickChart(Axis<Number> xAxis, Axis<Number> yAxis, StringConverter<Number> priceStringConverter,
+                            ObjectProperty<CandleData> hoveredCandle, DoubleProperty tooltipWidth) {
+        super(xAxis, yAxis, hoveredCandle, tooltipWidth);
+        this.priceStringConverter = priceStringConverter;
     }
 
     // -------------- METHODS ------------------------------------------------------------------------------------------
@@ -118,7 +100,7 @@ public class CandleStickChart extends XYChart<Number, Number> {
      * Called to update and layout the content for the plot
      */
     @Override
-    protected void layoutPlotChildren() {
+    protected void layoutCandles() {
         // we have nothing to layout if no data is present
         if (getData() == null) {
             return;
@@ -152,7 +134,6 @@ public class CandleStickChart extends XYChart<Number, Number> {
                     }
                     // update candle
                     candle.update(close - y, high - y, low - y, candleWidth);
-                    candle.setCandleData(candleData);
 
                     // position the candle
                     candle.setLayoutX(x);
@@ -175,7 +156,6 @@ public class CandleStickChart extends XYChart<Number, Number> {
 
     @Override
     protected void dataItemAdded(XYChart.Series<Number, Number> series, int itemIndex, XYChart.Data<Number, Number> item) {
-        legendWidthInvalid = true;
         Node candle = createCandle(getData().indexOf(series), item, itemIndex);
         getPlotChildren().remove(candle);
 
@@ -199,7 +179,6 @@ public class CandleStickChart extends XYChart<Number, Number> {
 
     @Override
     protected void dataItemRemoved(XYChart.Data<Number, Number> item, XYChart.Series<Number, Number> series) {
-        legendWidthInvalid = true;
         if (series.getNode() instanceof Path) {
             Path seriesPath = (Path) series.getNode();
             seriesPath.getElements().clear();
@@ -212,7 +191,6 @@ public class CandleStickChart extends XYChart<Number, Number> {
 
     @Override
     protected void seriesAdded(XYChart.Series<Number, Number> series, int seriesIndex) {
-        legendWidthInvalid = true;
         // handle any data already in series
         for (int j = 0; j < series.getData().size(); j++) {
             XYChart.Data<Number, Number> item = series.getData().get(j);
@@ -246,7 +224,6 @@ public class CandleStickChart extends XYChart<Number, Number> {
 
     @Override
     protected void seriesRemoved(XYChart.Series<Number, Number> series) {
-        legendWidthInvalid = true;
         // remove immediately; fading out would render stale candles against the new axis range
         for (XYChart.Data<Number, Number> d : series.getData()) {
             getPlotChildren().remove(d.getNode());
@@ -280,102 +257,16 @@ public class CandleStickChart extends XYChart<Number, Number> {
         return candle;
     }
 
-    // Track the cursor anywhere in the plot area and snap the overlays to the nearest candle, as is standard for
-    // financial charts, rather than only reacting to a direct hit on a candle.
-    private void trackCursor(MouseEvent e) {
-        if (!crosshairAdded) {
-            getPlotChildren().addAll(crosshairVertical, crosshairHorizontal);
-            crosshairAdded = true;
-        }
-        Point2D cursor = crosshairVertical.getParent().sceneToLocal(e.getSceneX(), e.getSceneY());
-        boolean insidePlotArea = cursor.getX() >= 0 && cursor.getX() <= getXAxis().getWidth() &&
-                cursor.getY() >= 0 && cursor.getY() <= getYAxis().getHeight();
-        Candle candle = insidePlotArea ? findNearestCandle(cursor.getX()) : null;
-        if (candle == null) {
-            hideOverlays();
-            return;
-        }
-        showOverlays(candle, cursor.getY());
-    }
-
-    private Candle findNearestCandle(double plotX) {
-        if (getData() == null) {
-            return null;
-        }
-        Candle nearest = null;
-        double nearestDistance = Double.MAX_VALUE;
-        for (XYChart.Series<Number, Number> series : getData()) {
-            for (XYChart.Data<Number, Number> item : series.getData()) {
-                if (!(item.getNode() instanceof Candle)) {
-                    continue;
-                }
-                Candle candle = (Candle) item.getNode();
-                if (candle.getCandleData() == null || candle.getParent() == null) {
-                    continue;
-                }
-                double distance = Math.abs(candle.getLayoutX() - plotX);
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearest = candle;
-                }
-            }
-        }
-        return nearest;
-    }
-
-    // Draw a crosshair at the tracked candle's center and the cursor's price level, and update the
-    // fixed legend in the top-left corner.
-    private void showOverlays(Candle candle, double cursorY) {
-        double candleX = candle.getLayoutX();
-        crosshairVertical.setStartX(candleX);
-        crosshairVertical.setEndX(candleX);
-        crosshairVertical.setEndY(getYAxis().getHeight());
-        crosshairHorizontal.setStartY(cursorY);
-        crosshairHorizontal.setEndY(cursorY);
-        crosshairHorizontal.setEndX(getXAxis().getWidth());
-        crosshairVertical.setVisible(true);
-        crosshairHorizontal.setVisible(true);
-        crosshairVertical.toFront();
-        crosshairHorizontal.toFront();
-
-        if (legendWidthInvalid && legend.getScene() != null) {
-            fixLegendWidth();
-            legendWidthInvalid = false;
-        }
-        legend.update(candle.getCandleData());
-        Point2D legendAnchor = candle.getParent().localToScene(LEGEND_INSET, LEGEND_INSET);
-        legendOverlay.show(legendAnchor.getX(), legendAnchor.getY(), tooltipOverlayPane);
-    }
-
-    // Size the legend to the widest entry in the data set. It is pinned in place, so re-fitting it to
-    // each tracked candle would make its right edge jitter as the cursor moves.
-    private void fixLegendWidth() {
-        legend.setPrefWidth(Region.USE_COMPUTED_SIZE);
-        legend.applyCss();
-        double width = 0;
-        for (XYChart.Series<Number, Number> series : getData()) {
-            for (XYChart.Data<Number, Number> item : series.getData()) {
-                if (item.getExtraValue() instanceof CandleData) {
-                    legend.update((CandleData) item.getExtraValue());
-                    width = Math.max(width, legend.prefWidth(-1));
-                }
-            }
-        }
-        legend.setPrefWidth(width);
-    }
-
-    private void hideOverlays() {
-        crosshairVertical.setVisible(false);
-        crosshairHorizontal.setVisible(false);
-        legendOverlay.hide();
-    }
-
-    /**
-     * Sets the pane the fixed legend is rendered in. It must sit above the chart and outside the
-     * plot area's clip so the legend is not cut off by the plot bounds.
-     */
-    public void setTooltipOverlayPane(Pane tooltipOverlayPane) {
-        this.tooltipOverlayPane = tooltipOverlayPane;
+    @Override
+    protected List<String> getTooltipEntries(CandleData candleData) {
+        return List.of(
+                Res.get("market.trades.tooltip.candle.open") + " " + priceStringConverter.toString(candleData.open),
+                Res.get("market.trades.tooltip.candle.high") + " " + priceStringConverter.toString(candleData.high),
+                Res.get("market.trades.tooltip.candle.low") + " " + priceStringConverter.toString(candleData.low),
+                Res.get("market.trades.tooltip.candle.close") + " " + priceStringConverter.toString(candleData.close),
+                Res.get("market.trades.tooltip.candle.average") + " " + priceStringConverter.toString(candleData.average),
+                Res.get("market.trades.tooltip.candle.median") + " " + priceStringConverter.toString(candleData.median),
+                Res.get("market.trades.tooltip.candle.date") + " " + candleData.date);
     }
 
     /**

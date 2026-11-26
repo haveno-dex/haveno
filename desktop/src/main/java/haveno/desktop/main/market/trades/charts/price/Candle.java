@@ -49,7 +49,6 @@
 
 package haveno.desktop.main.market.trades.charts.price;
 
-import haveno.desktop.main.market.trades.charts.CandleData;
 import javafx.scene.Group;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Line;
@@ -65,7 +64,6 @@ public class Candle extends Group {
 
     private boolean openAboveClose = true;
     private double closeOffset;
-    private CandleData candleData;
 
     Candle(String seriesStyleClass, String dataStyleClass) {
         this.seriesStyleClass = seriesStyleClass;
@@ -95,14 +93,6 @@ public class Candle extends Group {
         } else {
             bar.resizeRelocate(-candleWidth / 2, closeOffset, candleWidth, Math.max(5, closeOffset * -1));
         }
-    }
-
-    public void setCandleData(CandleData candleData) {
-        this.candleData = candleData;
-    }
-
-    public CandleData getCandleData() {
-        return candleData;
     }
 
     private void updateStyleClasses() {

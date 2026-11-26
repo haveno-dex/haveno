@@ -89,7 +89,7 @@ public class DisplayUtils {
     public static String formatDateTimeSpan(Date dateFrom, Date dateTo) {
         if (dateFrom != null && dateTo != null) {
             DateFormat dateFormatter = DateFormat.getDateInstance(DateFormat.DEFAULT, GlobalSettings.getLocale());
-            DateFormat timeFormatter = DateFormat.getTimeInstance(DateFormat.DEFAULT, GlobalSettings.getLocale());
+            DateFormat timeFormatter = DateFormat.getTimeInstance(DateFormat.SHORT, GlobalSettings.getLocale());
             return dateFormatter.format(dateFrom) + " " + timeFormatter.format(dateFrom) + FormattingUtils.RANGE_SEPARATOR + timeFormatter.format(dateTo);
         } else {
             return "";

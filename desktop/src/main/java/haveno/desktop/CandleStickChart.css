@@ -105,8 +105,9 @@
     -fx-border-color: -bs-color-gray-line;
     -fx-border-radius: 6px;
     -fx-border-width: 1px;
-    -fx-padding: 8 10 8 10;
-    -fx-text-fill: -bs-text-color;
+    -fx-padding: 6 10 6 10;
+    -fx-hgap: 12;
+    -fx-vgap: 1;
     -fx-font-size: 0.85em;
     -fx-effect: dropshadow(three-pass-box, -bs-text-color-transparent, 10, 0, 0, 3);
 }
@@ -115,8 +116,12 @@
     -fx-text-fill: -bs-text-color;
 }
 
-/* Crosshair snapped to the hovered candle and cursor price level. */
-.chart-crosshair {
+.chart-tooltip-box .chart-tooltip-name {
+    -fx-text-fill: -bs-rd-font-lighter;
+}
+
+/* Line through the hovered candle. */
+.chart-candle-line {
     -fx-stroke: -bs-color-gray-4;
     -fx-stroke-width: 0.5;
     -fx-stroke-dash-array: 3 3;

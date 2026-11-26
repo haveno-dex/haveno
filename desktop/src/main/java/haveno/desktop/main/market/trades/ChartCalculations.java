@@ -273,9 +273,13 @@ public class ChartCalculations {
 
         Date dateFrom = new Date(getTimeFromTickIndex(tick, itemsPerInterval));
         Date dateTo = new Date(getTimeFromTickIndex(tick + 1, itemsPerInterval));
-        String dateString = tickUnit.ordinal() > TradesChartsViewModel.TickUnit.DAY.ordinal() ?
-                DisplayUtils.formatDateTimeSpan(dateFrom, dateTo) :
-                DisplayUtils.formatDate(dateFrom) + " - " + DisplayUtils.formatDate(dateTo);
+        String dateString = switch (tickUnit) {
+            case YEAR -> DisplayUtils.formatDateAxis(dateFrom, "yyyy");
+            case MONTH -> DisplayUtils.formatDateAxis(dateFrom, "MMM yyyy");
+            case WEEK -> DisplayUtils.formatDate(dateFrom) + " - " + DisplayUtils.formatDate(dateTo);
+            case DAY -> DisplayUtils.formatDate(dateFrom);
+            default -> DisplayUtils.formatDateTimeSpan(dateFrom, dateTo);
+        };
 
         // Sum each day's volume valued at its own day's USD rate (interpolated when a day has no USD trades of
         // its own), so a late USD trade re-values only the days around it rather than the whole candle.
