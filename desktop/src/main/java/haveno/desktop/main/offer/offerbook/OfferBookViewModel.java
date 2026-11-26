@@ -84,6 +84,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -647,6 +648,13 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                         formatVolume(offer, false).toLowerCase().contains(filterText.toLowerCase());
             });
 
+            // filter deposit and price percentage, a typed number only from the start of a number so 0% matches neither 10% nor 1.00%
+            // (?U) matches the digits of any locale and \x{66B} is the Arabic decimal separator
+            Pattern numberPattern = Pattern.compile("(?U)(?<![\\d.\\x{66B}](?=\\d))" + Pattern.quote(filterText));
+            nextPredicate = nextPredicate.or(offerBookListItem ->
+                    numberPattern.matcher(getDeposit(offerBookListItem.getOffer())).find() ||
+                    numberPattern.matcher(getPriceAsPercentage(offerBookListItem)).find());
+
             // filter extra info
             nextPredicate = nextPredicate.or(offerBookListItem -> {
                 return offerBookListItem.getOffer().getCombinedExtraInfo() != null &&
@@ -729,6 +737,12 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     private static String getDirectionWithCodeDetailed(OfferDirection direction, String currencyCode) {
         return (direction == OfferDirection.BUY) ? Res.get("shared.buyingXMRWith", currencyCode) : Res.get("shared.sellingXMRFor", currencyCode);
+    }
+
+    // deposit of the taker as shown in the offer book
+    private String getDeposit(Offer offer) {
+        BigInteger deposit = offer.getDirection() == OfferDirection.SELL ? offer.getMaxBuyerSecurityDeposit() : offer.getMaxSellerSecurityDeposit();
+        return formatDepositString(deposit, offer.getAmount().longValueExact(), offer.isRange());
     }
 
     public String formatDepositString(BigInteger deposit, long amount, boolean isRange) {

@@ -51,6 +51,7 @@ import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
+import haveno.desktop.maker.OfferMaker;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -530,6 +531,34 @@ public class OfferBookViewModelTest {
         assertEquals(Arrays.asList(myItem), model.getOfferList());
     }
 
+    @Test
+    public void testFilterTextMatchesPercentages() {
+        OfferBookListItem noDepositItem = getPercentItem(0, 0.01); // 0% and (1.00%)
+        OfferBookListItem minDepositItem = getPercentItem(0.15, 0.105); // 15% and (10.50%)
+        OfferBookListItem highDepositItem = getPercentItem(0.2, -0.0015); // 20% and (-0.15%)
+        OfferBook offerBook = mock(OfferBook.class);
+        when(offerBook.getOfferBookListItems()).thenReturn(FXCollections.observableArrayList(noDepositItem, minDepositItem, highDepositItem));
+        Preferences preferences = mock(Preferences.class);
+        when(preferences.getTraditionalCurrenciesAsObservable()).thenReturn(FXCollections.observableArrayList(usd));
+        OfferBookViewModel model = new FiatOfferBookViewModel(user, mock(OpenOfferManager.class), offerBook, preferences,
+                null, null, null, null, null, null, getPriceUtil(), null, coinFormatter, null);
+        model.initWithDirection(OfferDirection.BUY);
+        model.onSetTradeCurrency(usd);
+        assertEquals(3, model.getOfferList().size());
+
+        model.onFilterKeyTyped("0%");
+        assertEquals(Arrays.asList(noDepositItem), model.getOfferList());
+
+        model.onFilterKeyTyped("15%");
+        assertEquals(Arrays.asList(minDepositItem), model.getOfferList());
+
+        model.onFilterKeyTyped("0.15%");
+        assertEquals(Arrays.asList(highDepositItem), model.getOfferList());
+
+        model.onFilterKeyTyped("%");
+        assertEquals(3, model.getOfferList().size());
+    }
+
     private OfferBookViewModel getOfferCountModel(OfferDirection direction) {
         OfferBook offerBook = mock(OfferBook.class);
         ObservableList<OfferBookListItem> items = FXCollections.observableArrayList(
@@ -561,6 +590,17 @@ public class OfferBookViewModelTest {
         OfferBookListItem item = mock(OfferBookListItem.class);
         when(item.getOffer()).thenReturn(offer);
         return item;
+    }
+
+    private OfferBookListItem getPercentItem(double buyerSecurityDepositPct, double marketPriceMarginPct) {
+        Offer offer = make(OfferMaker.xmrUsdOffer.but(
+                with(OfferMaker.direction, OfferDirection.SELL),
+                with(OfferMaker.amount, 1000000000000L),
+                with(OfferMaker.buyerSecurityDepositPct, buyerSecurityDepositPct),
+                with(OfferMaker.useMarketBasedPrice, true),
+                with(OfferMaker.marketPriceMargin, marketPriceMarginPct)));
+        offer.setPriceFeedService(mock(PriceFeedService.class));
+        return new OfferBookListItem(offer);
     }
 
     private PaymentAccount getAliPayAccount(String currencyCode) {
