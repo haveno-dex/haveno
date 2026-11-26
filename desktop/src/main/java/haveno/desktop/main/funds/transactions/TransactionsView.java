@@ -148,7 +148,7 @@ public class TransactionsView extends ActivatableView<VBox, Void> {
 
     @Override
     public void initialize() {
-        GUIUtil.applyTableStyle(tableView);
+        GUIUtil.applyTableStyle(tableView, false); // its scroll pane rounds it
         filterBox.setInputFillWidth(0);
         filterBox.initialize(filteredList, tableView);
         filterBox.setPromptText(Res.get("shared.filter"));

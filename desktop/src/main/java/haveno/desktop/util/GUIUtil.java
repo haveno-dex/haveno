@@ -1634,8 +1634,19 @@ public class GUIUtil {
     }
 
     public static void applyTableStyle(TableView<?> tableView, boolean applyRoundedArc) {
-        if (applyRoundedArc) applyRoundedArc(tableView);
+        if (applyRoundedArc) applyRoundedTable(tableView);
         applyEdgeColumnStyleClasses(tableView);
+    }
+
+    // rounds the table without clipping it, so css can draw a shadow around it: css rounds the header and a clip
+    // on the rows rounds the bottom corners
+    private static void applyRoundedTable(TableView<?> tableView) {
+        tableView.getStyleClass().add("rounded-table");
+        InvalidationListener skinListener = obs -> {
+            if (tableView.lookup(".virtual-flow") instanceof Region flow) applyRoundedBottomArc(flow);
+        };
+        tableView.skinProperty().addListener(skinListener);
+        skinListener.invalidated(null);
     }
 
     // scrolls a constrained-resize table horizontally in its wrapping scroll pane on narrow windows: the table's min
@@ -1738,6 +1749,13 @@ public class GUIUtil {
         };
         tableView.skinProperty().addListener(skinListener);
         skinListener.invalidated(null);
+
+        // round the viewport, which is the card the table sits in, so a table panned sideways keeps its corners
+        InvalidationListener viewportRounder = obs -> {
+            if (scrollPane.lookup(".viewport") instanceof Region viewport) applyRoundedArc(viewport);
+        };
+        scrollPane.skinProperty().addListener(viewportRounder);
+        viewportRounder.invalidated(null);
     }
 
     public static void applyRoundedArc(Region region) {
@@ -1754,11 +1772,9 @@ public class GUIUtil {
         clip.setArcWidth(Layout.ROUNDED_ARC);
         clip.setArcHeight(Layout.ROUNDED_ARC);
         clip.setY(-topOverhang);
+        clip.widthProperty().bind(region.widthProperty());
+        clip.heightProperty().bind(region.heightProperty().add(topOverhang));
         region.setClip(clip);
-        region.layoutBoundsProperty().addListener((obs, oldVal, newVal) -> {
-            clip.setWidth(newVal.getWidth());
-            clip.setHeight(newVal.getHeight() + topOverhang);
-        });
     }
 
     // side indentation carried by the edge columns' css padding (.first-column/.last-column)

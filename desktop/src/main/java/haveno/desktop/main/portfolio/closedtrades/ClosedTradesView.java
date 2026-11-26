@@ -189,7 +189,7 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
     @Override
     public void initialize() {
         filterBox.setInputFillWidth(0);
-        GUIUtil.applyTableStyle(tableView);
+        GUIUtil.applyTableStyle(tableView, false); // its scroll pane rounds it
 
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         tradeFeeColumn.setGraphic(new AutoTooltipLabel(ColumnNames.TRADE_FEE.toString().replace(" BTC", "")));
