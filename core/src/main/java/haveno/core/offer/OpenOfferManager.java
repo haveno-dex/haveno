@@ -1429,15 +1429,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     boolean scheduledTxsAvailable = true;
                     for (MoneroTxWallet tx : xmrWalletService.getTxs(openOffer.getScheduledTxHashes())) {
                         if (tx.getHash().equals(openOffer.getSplitOutputTxHash())) continue; // split output availability is checked separately
-                        if (!tx.isLocked() && !hasSpendableAmount(tx)) {
+                        if (Boolean.TRUE.equals(tx.isFailed()) || (!tx.isLocked() && !hasSpendableAmount(tx))) {
                             scheduledTxsAvailable = false;
                             break;
                         }
                     }
                     if (!scheduledTxsAvailable) {
                         log.warn("Scheduled txs are no longer available for offer {}, rescheduling", openOffer.getId());
-                        openOffer.setScheduledAmount(null);
-                        openOffer.setScheduledTxHashes(null);
+                        setScheduledTxs(openOffers, openOffer, null, null);
                     }
                 }
 
@@ -1518,9 +1517,9 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
             // get recorded split output tx
             MoneroTxWallet splitOutputTx = xmrWalletService.getTx(openOffer.getSplitOutputTxHash());
 
-            // check if split output tx is available for offer
+            // check if split output tx is available for offer, where a failed tx stays locked
             if (splitOutputTx != null) {
-                if (splitOutputTx.isLocked() || isSplitOutputAvailable(openOffers, openOffer, splitOutputTx)) return splitOutputTx;
+                if (!Boolean.TRUE.equals(splitOutputTx.isFailed()) && (splitOutputTx.isLocked() || isSplitOutputAvailable(openOffers, openOffer, splitOutputTx))) return splitOutputTx;
                 else log.warn("Split output tx is no longer available for offerId={}, txId={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
             } else {
                 log.warn("Split output tx no longer exists for offerId={}, txId={}", openOffer.getId(), openOffer.getSplitOutputTxHash());
@@ -1731,7 +1730,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         BigInteger offerReserveAmount = openOffer.getOffer().getAmountNeeded();
         BigInteger scheduledAmount = BigInteger.ZERO;
         Set<MoneroTxWallet> scheduledTxs = new HashSet<MoneroTxWallet>();
-        for (MoneroTxWallet tx : xmrWalletService.getTxs()) {
+        for (MoneroTxWallet tx : xmrWalletService.getTxs(false)) {
 
             // get unscheduled spendable amount
             BigInteger spendableAmount = getUnscheduledSpendableAmount(tx, openOffers);
@@ -1749,9 +1748,16 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
         if (scheduledAmount.compareTo(offerReserveAmount) < 0) throw new RuntimeException("Not enough funds to create offer " + openOffer.getId());
 
         // schedule txs
-        openOffer.setScheduledTxHashes(scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()));
-        openOffer.setScheduledAmount(scheduledAmount.toString());
+        setScheduledTxs(openOffers, openOffer, scheduledTxs.stream().map(tx -> tx.getHash()).collect(Collectors.toList()), scheduledAmount.toString());
         openOffer.setState(OpenOffer.State.PENDING);
+    }
+
+    // set scheduled txs of the offer and its clones, which share them
+    private void setScheduledTxs(List<OpenOffer> openOffers, OpenOffer openOffer, List<String> txHashes, String amount) {
+        for (OpenOffer groupOffer : getOpenOfferGroup(openOffers, openOffer.getGroupId())) {
+            groupOffer.setScheduledTxHashes(txHashes);
+            groupOffer.setScheduledAmount(amount);
+        }
     }
 
     private BigInteger getUnscheduledSpendableAmount(MoneroTxWallet tx, List<OpenOffer> openOffers) {
@@ -1808,7 +1814,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
 
     private boolean isTxScheduledByOtherOffer(List<OpenOffer> openOffers, OpenOffer openOffer, String txHash) {
         for (OpenOffer otherOffer : openOffers) {
-            if (otherOffer == openOffer) continue;
+            if (otherOffer == openOffer || (openOffer != null && openOffer.getGroupId().equals(otherOffer.getGroupId()))) continue;
             if (otherOffer.getState() != OpenOffer.State.PENDING) continue;
             if (txHash.equals(otherOffer.getSplitOutputTxHash())) return true;
             if (otherOffer.getScheduledTxHashes() != null) {
@@ -1859,6 +1865,7 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                     // set offer state
                     openOffer.setScheduledTxHashes(null);
                     openOffer.setScheduledAmount(null);
+                    setScheduledTxs(getOpenOffers(), openOffer, null, null); // clones share the reserve tx
                     requestPersistence();
 
                     if (!stopped) {
