@@ -41,6 +41,7 @@ import haveno.core.offer.OfferUtil;
 import haveno.core.offer.OpenOffer;
 import haveno.core.offer.OpenOfferManager;
 import haveno.core.payment.PaymentAccount;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.FiatVolumeValidator;
 import haveno.core.payment.validation.SecurityDepositValidator;
 import haveno.core.payment.validation.XmrValidator;
@@ -739,7 +740,7 @@ public abstract class MutableOfferViewModel<M extends MutableOfferDataModel> ext
 
                 if (minAmount.get() != null)
                     minAmountValidationResult.set(isXmrInputValid(minAmount.get()));
-            } else if (amount.get() != null && !amount.get().isEmpty() && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact()) { // TODO: tolerated small amount will only equal max trade limit for riskiest payment methods, so that logic is not relevant?
+            } else if (amount.get() != null && !amount.get().isEmpty() && xmrValidator.getMaxTradeLimit() != null && xmrValidator.getMaxTradeLimit().longValueExact() == OfferRestrictions.TOLERATED_SMALL_TRADE_AMOUNT.longValueExact() && PaymentMethod.hasChargebackRisk(dataModel.paymentAccount.getPaymentMethod(), dataModel.getTradeCurrencyCode().get())) { // TODO: tolerated small amount will only equal max trade limit for riskiest payment methods, so that logic is not relevant?
                 try {
                     if (ParsingUtils.parseNumberStringToDouble(amount.get()) < HavenoUtils.atomicUnitsToXmr(dataModel.getMinTradeLimit())) {
                         amountValidationResult.set(result);

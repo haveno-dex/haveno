@@ -49,6 +49,18 @@ class ReceiptPredicates {
         return arePaymentMethodsEqual;
     }
 
+    boolean isCustomPaymentMethod(Offer offer) {
+        return offer.isCustomPaymentMethod();
+    }
+
+    // custom payment methods share one id, so the name tells which one an offer and an account are for
+    boolean isMatchingCustomPaymentMethodAccount(Offer offer, PaymentAccount account) {
+        if (!(account instanceof CustomPaymentMethodAccount)) return false;
+        CustomPaymentMethodAccount customAccount = (CustomPaymentMethodAccount) account;
+        return CustomPaymentMethodUtil.isSameName(offer.getCustomPaymentMethodName(), customAccount.getPaymentMethodName()) &&
+                CustomPaymentMethodUtil.isValidAccountData(customAccount.getAccountData());
+    }
+
     boolean isOfferRequireSameOrSpecificBank(Offer offer, PaymentAccount account) {
         PaymentMethod paymentMethod = offer.getPaymentMethod();
         boolean isSameOrSpecificBank = paymentMethod.equals(PaymentMethod.SAME_BANK)

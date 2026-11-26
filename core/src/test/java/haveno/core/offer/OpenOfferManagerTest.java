@@ -24,6 +24,7 @@ import haveno.core.filter.FilterManager;
 import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.offer.messages.OfferAvailabilityRequest;
+import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.ArbitratorTrade;
@@ -1592,6 +1593,40 @@ public class OpenOfferManagerTest {
             ArgumentCaptor<byte[]> signature = ArgumentCaptor.forClass(byte[].class);
             verify(request.getOfferPayload()).setArbitratorSignature(signature.capture());
             assertTrue(HavenoUtils.isSignatureValid(keyRing.getPubKeyRing(), request.getOfferPayload().getSignatureHash(), signature.getValue()));
+        }
+    }
+
+    @Test
+    public void testSigningRequiresNameAndTradeLimitOfCustomPaymentMethod() throws Exception {
+        keyRing.generateKeys(null);
+        try (SigningRequestContext context = new SigningRequestContext()) {
+            SignOfferRequest request = context.request("offer", context.makerKeys);
+            OfferPayload payload = request.getOfferPayload();
+            when(payload.getPaymentMethodId()).thenReturn(PaymentMethod.CUSTOM_ID);
+            when(payload.getBaseCurrencyCode()).thenReturn("XMR");
+            when(context.walletService.verifyReserveTx(anyString(), any(), any(), any(), any(), anyString(), anyString(), anyString(), anyString(), any()))
+                    .thenReturn(new MoneroTx().setFee(BigInteger.ONE));
+
+            // refuse a missing name, a name which is not valid and an amount above the trade limit
+            long tradeLimit = PaymentMethod.getPaymentMethod(PaymentMethod.CUSTOM_ID).getMaxTradeLimit("USD").longValueExact();
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            when(payload.getExtraDataMap()).thenReturn(Map.of(OfferPayload.CUSTOM_PAYMENT_METHOD_NAME, "Orange\nMoney"));
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            when(payload.getExtraDataMap()).thenReturn(Map.of(OfferPayload.CUSTOM_PAYMENT_METHOD_NAME, "Orange Money"));
+            when(payload.getAmount()).thenReturn(tradeLimit + 1);
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            verify(payload, never()).setArbitratorSignature(any());
+            verify(context.p2p, times(3)).sendEncryptedDirectMessage(eq(context.maker), eq(context.makerKeys),
+                    argThat(envelope -> envelope instanceof AckMessage && !((AckMessage) envelope).isSuccess()), any());
+
+            // sign a named offer at the trade limit
+            when(payload.getAmount()).thenReturn(tradeLimit);
+            context.receive(request);
+            context.executor.submit(() -> {}).get(5, TimeUnit.SECONDS);
+            verify(payload).setArbitratorSignature(any());
         }
     }
 

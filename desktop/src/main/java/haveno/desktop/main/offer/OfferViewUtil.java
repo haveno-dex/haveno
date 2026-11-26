@@ -114,6 +114,11 @@ public class OfferViewUtil {
 
     public static String getPaymentMethodToolTip(Offer offer) {
         String result = Res.getWithCol("shared.paymentMethod") + " " + Res.get(offer.getPaymentMethod().getId());
+        if (offer.isCustomPaymentMethod()) {
+            String name = offer.getCustomPaymentMethodName();
+            result += "\n" + Res.get("payment.custom.offerbook.tooltip.name", name.isEmpty() ? Res.get("shared.na") : name);
+            result += "\n" + Res.get("payment.custom.offerbook.tooltip.risk");
+        }
         result += "\n" + Res.getWithCol("shared.currency") + " " + CurrencyUtil.getNameAndCode(offer.getCounterCurrencyCode());
 
         String countryCode = offer.getCountryCode();

@@ -74,7 +74,7 @@ public class PaymentConfirmationWindow extends ConfirmationWindow<PaymentConfirm
 
     @Override
     protected void addContent() {
-        String method = Res.get(trade.getOffer().getPaymentMethod().getId());
+        String method = trade.getOffer().getPaymentMethodDisplayString();
         boolean crypto = account instanceof AssetAccountPayload;
         String xmrAmount = HavenoUtils.formatXmr(trade.getAmount(), true);
         VBox header = hero(sent ? MaterialDesignIcon.SEND : MaterialDesignIcon.CHECK, "confirm-send-icon", headLine,

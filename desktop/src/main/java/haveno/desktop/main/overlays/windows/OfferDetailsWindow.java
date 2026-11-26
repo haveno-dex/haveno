@@ -296,7 +296,7 @@ public class OfferDetailsWindow extends Overlay<OfferDetailsWindow> {
         if (isMyOffer && makerPaymentAccountId != null && myPaymentAccount != null) {
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("offerDetailsWindow.myTradingAccount"), myPaymentAccount.getAccountName());
         } else {
-            final String method = Res.get(paymentMethod.getId());
+            final String method = offer.getPaymentMethodDisplayString();
             addConfirmationLabelLabel(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), method);
         }
 

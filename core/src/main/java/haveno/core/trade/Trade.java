@@ -149,6 +149,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static haveno.core.payment.CustomPaymentMethodUtil.checkPeerPaymentAccountPayload;
 
 /**
  * Holds all data which are relevant to the trade, but not those which are only needed in the trade process as shared data between tasks. Those data are
@@ -2023,6 +2024,9 @@ public abstract class Trade extends XmrWalletBase implements Tradable, Model, Xm
             byte[] decryptedPaymentAccountPayload = Encryption.decrypt(getTradePeer().getEncryptedPaymentAccountPayload(), sk);
             CoreNetworkProtoResolver resolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone()); // TODO: reuse resolver from elsewhere?
             PaymentAccountPayload paymentAccountPayload = resolver.fromProto(protobuf.PaymentAccountPayload.parseFrom(decryptedPaymentAccountPayload));
+
+            // verify payment account payload is for the offer's custom payment method, if it has one
+            checkPeerPaymentAccountPayload(paymentAccountPayload, getOffer());
 
             // verify hash of payment account payload
             byte[] peerPaymentAccountPayloadHash = this instanceof MakerTrade ? getContract().getTakerPaymentAccountPayloadHash() : getContract().getMakerPaymentAccountPayloadHash();

@@ -106,7 +106,7 @@ public abstract class TradeSubView extends VBox {
         Label title = new Label(Res.get(titleKey, model.getTradeVolume(), model.getFiatVolume()));
         title.getStyleClass().add("trade-summary-title");
         title.setWrapText(true);
-        Label detail = new Label(Res.get("portfolio.pending.tradeView.summaryDetail", Res.get(trade.getOffer().getPaymentMethod().getId()),
+        Label detail = new Label(Res.get("portfolio.pending.tradeView.summaryDetail", trade.getOffer().getPaymentMethodDisplayString(),
                 trade.getShortId(), Res.get(roleKey)) + " · " + model.getTradePrice());
         detail.getStyleClass().add("trade-secondary");
         detail.setWrapText(true);

@@ -85,6 +85,7 @@ public class OfferInfo implements Payload {
     private final List<String> acceptedCountryCodes;
     private final String acceptedCountriesString;
     private final String city;
+    private final String customPaymentMethodName;
 
     public OfferInfo(OfferInfoBuilder builder) {
         this.id = builder.getId();
@@ -125,6 +126,7 @@ public class OfferInfo implements Payload {
         this.acceptedCountryCodes = builder.getAcceptedCountryCodes();
         this.acceptedCountriesString = builder.getAcceptedCountriesString();
         this.city = builder.getCity();
+        this.customPaymentMethodName = builder.getCustomPaymentMethodName();
     }
 
     public static OfferInfo toOfferInfo(Offer offer) {
@@ -170,6 +172,7 @@ public class OfferInfo implements Payload {
         var roundedMinVolume = price == null ? "0" : formatVolume(requireNonNull(offer.getMinVolume()));
         boolean hasAcceptedCountries = offer.getAcceptedCountryCodes() != null && !offer.getAcceptedCountryCodes().isEmpty();
         String city = offer.getF2FCity();
+        String customPaymentMethodName = offer.getCustomPaymentMethodName();
         return new OfferInfoBuilder()
                 .withId(offer.getId())
                 .withDirection(offer.getDirection().name())
@@ -204,7 +207,8 @@ public class OfferInfo implements Payload {
                 .withExtraInfo(offer.getCombinedExtraInfo())
                 .withAcceptedCountryCodes(hasAcceptedCountries ? offer.getAcceptedCountryCodes() : null)
                 .withAcceptedCountriesString(hasAcceptedCountries ? CountryUtil.getCountriesString(offer.getAcceptedCountryCodes()) : null)
-                .withCity(city == null || city.isEmpty() ? null : city);
+                .withCity(city == null || city.isEmpty() ? null : city)
+                .withCustomPaymentMethodName(customPaymentMethodName.isEmpty() ? null : customPaymentMethodName);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -252,6 +256,7 @@ public class OfferInfo implements Payload {
         Optional.ofNullable(acceptedCountryCodes).ifPresent(e -> builder.addAllAcceptedCountryCodes(acceptedCountryCodes));
         Optional.ofNullable(acceptedCountriesString).ifPresent(builder::setAcceptedCountriesString);
         Optional.ofNullable(city).ifPresent(builder::setCity);
+        Optional.ofNullable(customPaymentMethodName).ifPresent(builder::setCustomPaymentMethodName);
         return builder.build();
     }
 
@@ -296,6 +301,7 @@ public class OfferInfo implements Payload {
                 .withAcceptedCountryCodes(proto.getAcceptedCountryCodesList())
                 .withAcceptedCountriesString(proto.getAcceptedCountriesString())
                 .withCity(proto.getCity())
+                .withCustomPaymentMethodName(proto.getCustomPaymentMethodName())
                 .build();
     }
 }

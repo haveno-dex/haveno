@@ -1969,6 +1969,14 @@ public class OpenOfferManager implements PeerManager.Listener, DecryptedDirectMe
                 return;
             }
 
+            // offers of the custom payment method must carry a valid name and respect its trade limit
+            if (offer.isCustomPaymentMethod() && (offer.getCustomPaymentMethodName().isEmpty() ||
+                    offer.getAmount().compareTo(offer.getPaymentMethod().getMaxTradeLimit(offer.getCounterCurrencyCode())) > 0)) {
+                errorMessage = "Custom payment method offer must have a valid name and an amount within its trade limit for offer " + request.offerId;
+                log.warn(errorMessage);
+                return;
+            }
+
             // verify the trade protocol version
             if (request.getOfferPayload().getProtocolVersion() != Version.TRADE_PROTOCOL_VERSION) {
                 errorMessage = "Unsupported protocol version: " + request.getOfferPayload().getProtocolVersion();

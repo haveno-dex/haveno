@@ -892,12 +892,18 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     }
 
     private void openPopupForMissingAccountSetup(Offer offer) {
+        // no account can match an offer of the custom payment method without a valid name
+        if (offer.isCustomPaymentMethod() && offer.getCustomPaymentMethodName().isEmpty()) {
+            new Popup().warning(Res.get("payment.custom.offerWithoutValidName")).show();
+            return;
+        }
+
         String headline = Res.get("offerbook.warning.noMatchingAccount.headline");
 
         var accountViewClass = offer.isTraditionalOffer() ? TraditionalAccountsView.class : CryptoAccountsView.class;
 
         new Popup().headLine(headline)
-                .instruction(Res.get("offerbook.warning.noMatchingAccount.msg"))
+                .instruction(Res.get(offer.isCustomPaymentMethod() ? "payment.custom.noMatchingAccount" : "offerbook.warning.noMatchingAccount.msg"))
                 .actionButtonTextWithGoTo("mainView.menu.account")
                 .onAction(() -> {
                     navigation.setReturnPath(navigation.getCurrentPath());

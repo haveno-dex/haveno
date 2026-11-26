@@ -56,6 +56,7 @@ import haveno.desktop.components.paymentmethods.PaysafeForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
+import haveno.desktop.components.paymentmethods.CustomPaymentMethodForm;
 import haveno.desktop.components.paymentmethods.ZelleForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
@@ -528,6 +529,9 @@ public class BuyerStep2View extends TradeStepView {
                 break;
             case PaymentMethod.KASPI_ID:
                 paymentAccountGridRow = KaspiForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload);
+                break;
+            case PaymentMethod.CUSTOM_ID:
+                paymentAccountGridRow = CustomPaymentMethodForm.addFormForBuyer(paymentAccountGridPane, paymentAccountGridRow, paymentAccountPayload, trade.getOffer());
                 break;
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethodId);

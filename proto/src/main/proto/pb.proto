@@ -914,6 +914,7 @@ message PaymentAccountPayload {
         DuitNowAccountPayload duitnow_account_payload = 52;
         MbWayAccountPayload mb_way_account_payload = 53;
         PayPayAccountPayload paypay_account_payload = 54;
+        CustomPaymentMethodAccountPayload custom_payment_method_account_payload = 55;
     }
 }
 
@@ -1411,6 +1412,11 @@ message UkraineCardAccountPayload {
 message KaspiAccountPayload {
     string holder_name = 1;
     string account_nr = 2;
+}
+
+message CustomPaymentMethodAccountPayload {
+    string payment_method_name = 1;
+    string account_data = 2;
 }
 
 message PersistableEnvelope {
@@ -2189,6 +2195,7 @@ message PaymentAccountForm {
         YOOMONEY = 78;
         UKRAINE_CARD = 79;
         KASPI = 80;
+        CUSTOM = 81;
     }
     FormId id = 1;
     repeated PaymentAccountFormField fields = 2;
@@ -2259,6 +2266,8 @@ message PaymentAccountFormField {
         VIRTUAL_PAYMENT_ADDRESS = 60;
         CLABE = 61;
         ACCEPTED_BANKS = 62;
+        PAYMENT_METHOD_NAME = 63;
+        ACCOUNT_DATA = 64;
     }
     enum Component {
         TEXT = 0;

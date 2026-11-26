@@ -633,6 +633,7 @@ message OfferInfo {
     string accepted_countries_string = 36;
     string city = 37;
     bool require_signed_taker = 38;
+    string custom_payment_method_name = 39;
 }
 
 message AvailabilityResultWithDescription {

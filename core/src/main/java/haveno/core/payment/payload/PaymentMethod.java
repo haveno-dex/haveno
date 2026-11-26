@@ -55,6 +55,7 @@ import haveno.core.payment.PayPalAccount;
 import haveno.core.payment.PaysafeAccount;
 import haveno.core.payment.CashDepositAccount;
 import haveno.core.payment.CelPayAccount;
+import haveno.core.payment.CustomPaymentMethodAccount;
 import haveno.core.payment.YooMoneyAccount;
 import haveno.core.payment.ZelleAccount;
 import haveno.core.payment.DomesticWireTransferAccount;
@@ -155,6 +156,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     private static final BigInteger DEFAULT_TRADE_LIMIT_MID_RISK = HavenoUtils.xmrToAtomicUnits(25);
     private static final BigInteger DEFAULT_TRADE_LIMIT_HIGH_RISK = HavenoUtils.xmrToAtomicUnits(12.5);
 
+    // The risk of a custom payment method is unknown, so its limit is that of unsigned buyers with chargeback risk
+    private static final BigInteger CUSTOM_TRADE_LIMIT = HavenoUtils.xmrToAtomicUnits(3);
+
     public static final String UPHOLD_ID = "UPHOLD";
     public static final String MONEY_BEAM_ID = "MONEY_BEAM";
     @Deprecated
@@ -243,6 +247,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static final String YOOMONEY_ID = "YOOMONEY";
     public static final String UKRAINE_CARD_ID = "UKRAINE_CARD";
     public static final String KASPI_ID = "KASPI";
+    public static final String CUSTOM_ID = "CUSTOM";
 
     public static PaymentMethod UPHOLD;
     public static PaymentMethod MONEY_BEAM;
@@ -327,6 +332,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     public static PaymentMethod YOOMONEY;
     public static PaymentMethod UKRAINE_CARD;
     public static PaymentMethod KASPI;
+    public static PaymentMethod CUSTOM;
 
     // Cannot be deleted as it would break old trade history entries
     @Deprecated
@@ -409,6 +415,7 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
             CASH_DEPOSIT = new PaymentMethod(CASH_DEPOSIT_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashDepositAccount.SUPPORTED_CURRENCIES)),
             PAY_BY_MAIL = new PaymentMethod(PAY_BY_MAIL_ID, 8 * DAY, DEFAULT_TRADE_LIMIT_LOW_RISK, getAssetCodes(PayByMailAccount.SUPPORTED_CURRENCIES)),
             CASH_AT_ATM = new PaymentMethod(CASH_AT_ATM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(CashAtAtmAccount.SUPPORTED_CURRENCIES)),
+            CUSTOM = new PaymentMethod(CUSTOM_ID, 4 * DAY, CUSTOM_TRADE_LIMIT, getAssetCodes(CustomPaymentMethodAccount.SUPPORTED_CURRENCIES)),
             MONEY_GRAM = new PaymentMethod(MONEY_GRAM_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(MoneyGramAccount.SUPPORTED_CURRENCIES)),
             WESTERN_UNION = new PaymentMethod(WESTERN_UNION_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_MID_RISK, getAssetCodes(WesternUnionAccount.SUPPORTED_CURRENCIES)),
             NATIONAL_BANK = new PaymentMethod(NATIONAL_BANK_ID, 4 * DAY, DEFAULT_TRADE_LIMIT_HIGH_RISK, getAssetCodes(NationalBankAccount.SUPPORTED_CURRENCIES)),
@@ -557,7 +564,8 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
                 MIR_ID,
                 YOOMONEY_ID,
                 UKRAINE_CARD_ID,
-                KASPI_ID);
+                KASPI_ID,
+                CUSTOM_ID);
         return paymentMethods.stream().filter(paymentMethod -> paymentMethodIds.contains(paymentMethod.getId())).collect(Collectors.toList());
     }
 
@@ -676,6 +684,9 @@ public final class PaymentMethod implements PersistablePayload, Comparable<Payme
     }
 
     public BigInteger getMaxTradeLimit(String currencyCode) {
+        // the limit of the custom payment method holds for every currency
+        if (id.equals(CUSTOM_ID))
+            return BigInteger.valueOf(maxTradeLimit);
         // Hack for SF as the smallest unit is 1 SF ;-( and price is about 3 BTC!
         if (currencyCode.equals("SF"))
             return HavenoUtils.xmrToAtomicUnits(4);
