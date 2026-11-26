@@ -65,8 +65,9 @@
     -fx-background-color: derive(-bs-color-gray-2, -10%);
 }
 
+/* left and bottom padding keep the card's shadow inside the scroll pane's viewport */
 .trade-detail-view {
-    -fx-padding: 18 16 0 0;
+    -fx-padding: 18 16 15 10;
 }
 .trade-detail-view .trade-summary {
     -fx-padding: 0 4 2 4;

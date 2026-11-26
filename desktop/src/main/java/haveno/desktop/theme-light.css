@@ -269,6 +269,10 @@
     -bs-rd-green: -bs-color-primary;
 }
 
+.trade-detail-view .trade-workspace {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 14, 0, 0, 3);
+}
+
 .list-view .list-cell:odd {
     -fx-background-color: -bs-color-background-row-odd;
 }
@@ -298,6 +302,18 @@
     /* muted selection stays visible while interacting with the selected row's details */
     -fx-selection-bar: -bs-combo-popup-selected;
     -fx-selection-bar-non-focused: -fx-selection-bar;
+}
+
+/* border and drop shadow of the market cards for tables, drawn as stacked fills behind the table:
+   an effect would blur the whole table on every repaint */
+.table-view.rounded-table,
+.scroll-pane.table-scroll-pane {
+    -fx-background-color: rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.004),
+        rgba(0, 0, 0, 0.008), rgba(0, 0, 0, 0.008), rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.008), rgba(0, 0, 0, 0.008),
+        rgba(0, 0, 0, 0.004), -bs-offer-card-border, -bs-color-background-pane;
+    -fx-background-insets: -7 -10 -13 -10, -5 -8 -11 -8, -3 -6 -9 -6, -2 -5 -8 -5, -1 -4 -7 -4, 0 -3 -6 -3,
+        1 -2 -5 -2, 2 -1 -4 -1, 3 0 -3 0, 4 1 -2 1, -1, 0;
+    -fx-background-radius: 20, 18, 16, 15, 14, 13, 12, 11, 10, 9, 11, 10;
 }
 
 .table-view .table-row-cell:filled:hover,

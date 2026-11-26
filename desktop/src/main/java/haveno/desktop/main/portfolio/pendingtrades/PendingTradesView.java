@@ -207,7 +207,7 @@ public class PendingTradesView extends ActivatableViewAndModel<VBox, PendingTrad
         tableView.getStyleClass().add("pending-trades-table");
         filterBox.setInputFillWidth(0);
         GUIUtil.setFixedColumnWidth(tradeIdColumn, TRADE_ID_COLUMN_MIN_WIDTH);
-        GUIUtil.applyTableStyle(tableView);
+        GUIUtil.applyTableStyle(tableView, false); // its scroll pane rounds it
 
         priceColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.price")));
         amountColumn.setGraphic(new AutoTooltipLabel(Res.get("shared.amountWithCur", Res.getBaseCurrencyCode())));

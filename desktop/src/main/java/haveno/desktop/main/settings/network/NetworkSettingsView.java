@@ -267,7 +267,8 @@ public class NetworkSettingsView extends ActivatableView<GridPane, Void> {
     private void setupTables() {
         GUIUtil.applyTableStyle(moneroConnectionsTableView, false);
         GUIUtil.applyRoundedArc(nodeCard); // round the card so the add row, not the last node, takes the bottom corners
-        GUIUtil.applyTableStyle(p2pPeersTableView);
+        GUIUtil.applyTableStyle(p2pPeersTableView, false);
+        GUIUtil.applyRoundedArc(p2pPeersTableView); // clipped whole: its frame draws the border and it has no shadow
         moneroConnectionsTableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         moneroConnectionsTableView.setPlaceholder(new Label(text("loadingNodes")));
         sortedNodes.comparatorProperty().bind(moneroConnectionsTableView.comparatorProperty());

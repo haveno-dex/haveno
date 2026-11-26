@@ -2271,7 +2271,29 @@ textfield */
 
 .table-view {
     -fx-control-inner-background-alt: -fx-control-inner-background;
+    /* no frame of its own, which would inset the body of an empty table from its header */
+    -fx-background-insets: 0;
     -fx-padding: 0;
+}
+
+/* rounded tables are not clipped, so a shadow can show around them: the header rounds the top corners
+   and a clip on the rows the bottom ones */
+.table-view.rounded-table {
+    -fx-background-radius: 10;
+}
+
+.table-view.rounded-table > .column-header-background {
+    -fx-background-radius: 10 10 0 0;
+}
+
+/* edge headers show the rounded header row through: their own fill would square its corners */
+.table-view.rounded-table .column-header.first-column,
+.table-view.rounded-table .column-header.last-column {
+    -fx-background-color: transparent;
+}
+
+.table-view.rounded-table > .placeholder {
+    -fx-background-radius: 0 0 10 10;
 }
 
 .table-view .column-header-background {
@@ -3104,6 +3126,14 @@ textfield */
 .table-scroll-pane > .viewport,
 .table-scroll-pane > .corner {
     -fx-background-color: transparent;
+}
+
+/* the horizontal bar is the bottom of the rounded card */
+.table-scroll-pane > .scroll-bar:horizontal,
+.table-scroll-pane > .scroll-bar:horizontal .track,
+.table-scroll-pane > .scroll-bar:horizontal .track-background {
+    -fx-background-radius: 0 0 10 10;
+    -fx-border-radius: 0 0 10 10;
 }
 
 /* opaque lane keeps horizontally scrolling cells from showing through the pinned vertical bar */

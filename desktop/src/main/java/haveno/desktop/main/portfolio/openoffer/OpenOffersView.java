@@ -159,7 +159,7 @@ public class OpenOffersView extends ActivatableViewAndModel<VBox, OpenOffersView
 
     @Override
     public void initialize() {
-        GUIUtil.applyTableStyle(tableView);
+        GUIUtil.applyTableStyle(tableView, false); // its scroll pane rounds it
 
         widthListener = (observable, oldValue, newValue) -> onWidthChange((double) newValue);
         groupIdColumn.setGraphic(new AutoTooltipLabel(ColumnNames.GROUP_ID.toString()));

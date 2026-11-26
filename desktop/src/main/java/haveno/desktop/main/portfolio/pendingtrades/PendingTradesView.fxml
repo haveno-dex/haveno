@@ -54,6 +54,11 @@
     </ScrollPane>
     <ScrollPane fx:id="scrollView" fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS"
         AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-        AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+        AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <!-- starts left of the trade card by the card's left padding, which holds its shadow -->
+        <VBox.margin>
+            <Insets left="-10.0"/>
+        </VBox.margin>
+    </ScrollPane>
 
 </VBox>
