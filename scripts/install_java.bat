@@ -25,33 +25,8 @@ cd /D "%~dp0"
 
 title Install Java
 
-set jdk_version=21.0.9
-set jdk_build=10
-set jdk_filename=OpenJDK21U-jdk_x64_windows_hotspot_%jdk_version%_%jdk_build%
-set jdk_url=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9+10/OpenJDK21U-jdk_x64_windows_hotspot_21.0.9_10.zip
-
-if exist "%PROGRAMFILES%\Java\openjdk\jdk-%jdk_version%" (
-    echo %PROGRAMFILES%\Java\openjdk\jdk-%jdk_version% already exists, skipping install
-    goto SetEnvVars
-)
-
-echo Downloading required files to %TEMP%
-powershell -Command "Invoke-WebRequest %jdk_url% -OutFile $env:temp\%jdk_filename%.zip"
-
-echo Extracting and installing JDK to %PROGRAMFILES%\Java\openjdk\jdk-%jdk_version%
-powershell -Command "Expand-Archive $env:temp\%jdk_filename%.zip -DestinationPath %TEMP%\openjdk-%jdk_version% -Force"
-md "%PROGRAMFILES%\Java\openjdk"
-move "%TEMP%\openjdk-%jdk_version%\jdk-%jdk_version%" "%PROGRAMFILES%\Java\openjdk"
-
-echo Removing downloaded files
-rmdir /S /Q %TEMP%\openjdk-%jdk_version%
-del /Q %TEMP%\%jdk_filename%.zip
-
-:SetEnvVars
-echo Setting environment variables
-powershell -Command "[Environment]::SetEnvironmentVariable('JAVA_HOME', '%PROGRAMFILES%\Java\openjdk\jdk-%jdk_version%', 'Machine')"
-set java_bin=%%JAVA_HOME%%\bin
-echo %PATH%|find /i "%java_bin%">nul || powershell -Command "[Environment]::SetEnvironmentVariable('PATH', '%PATH%;%java_bin%', 'Machine')"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install_java_windows.ps1" -ConfigureMachine
+if errorlevel 1 ( pause & exit /b %errorlevel% )
 
 echo Done!
 pause
