@@ -131,6 +131,8 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
     private Map<String, Integer> currencyOfferCounts;
     private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
     private HBox headerControls;
+    private HBox offerToolsBox;
+    private List<Node> filters;
     private AutoTooltipButton createOfferButton;
     private FilterTextField filterInputField;
     private ToggleButton matchingOffersToggleButton;
@@ -183,7 +185,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
     public void initialize() {
         root.setPadding(new Insets(15, 15, 5, 15));
 
-        HBox offerToolsBox = new HBox();
+        offerToolsBox = new HBox();
         offerToolsBox.setAlignment(Pos.CENTER_LEFT);
         offerToolsBox.setFillHeight(false); // the filters stay shorter than the create offer button
         offerToolsBox.setMinHeight(Region.USE_PREF_SIZE); // a short window never squeezes the row
@@ -206,6 +208,7 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
         headerControls = new HBox(10, currencyComboBox, paymentMethodComboBox);
         headerControls.setAlignment(Pos.CENTER_LEFT);
+        headerControls.widthProperty().addListener(observable -> updateFiltersInHeader());
 
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
         noDepositOffersToggleButton.setMinWidth(Region.USE_PREF_SIZE); // never ellipsize
@@ -259,8 +262,9 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
         HBox.setHgrow(filterInputField, Priority.ALWAYS); // shares spare width with the create offer button and gives it up before the filters shrink
 
         HBox.setHgrow(createOfferVBox, Priority.ALWAYS); // widens the button along with the search field, then keeps it at the right
-        offerToolsBox.getChildren().addAll(matchingOffersToggleButton, privateOffersToggleButton, noDepositOffersToggleButton,
-                filterInputField, createOfferVBox);
+        filters = List.of(matchingOffersToggleButton, privateOffersToggleButton, noDepositOffersToggleButton, filterInputField);
+        offerToolsBox.getChildren().addAll(filters);
+        offerToolsBox.getChildren().add(createOfferVBox);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
@@ -716,6 +720,18 @@ public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookVi
 
     public Region getHeaderControls() {
         return headerControls;
+    }
+
+    // The filters join the selectors when the heading line holds them all at their widest, so a selection never moves them.
+    // Hidden filters count too, so both sides switch at about the same window width.
+    private void updateFiltersInHeader() {
+        double selectorWidth = paymentMethodComboBox.getMaxWidth();
+        double width = Math.max(currencyComboBox.prefWidth(-1), selectorWidth) + selectorWidth + headerControls.getSpacing();
+        for (Node filter : filters) {
+            width += headerControls.getSpacing() + (filter == filterInputField ? filterInputField.getMaxWidth() : filter.prefWidth(-1));
+        }
+        HBox box = headerControls.getWidth() >= width ? headerControls : offerToolsBox;
+        if (filters.get(0).getParent() != box) box.getChildren().addAll(box == headerControls ? 2 : 0, filters);
     }
 
     // Selects the offer and scrolls to it, relaxing the filters which hide it. Leaves the book as it is if the offer is gone.

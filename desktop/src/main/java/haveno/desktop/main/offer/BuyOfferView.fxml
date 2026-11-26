@@ -30,7 +30,7 @@
     <HBox fx:id="header" alignment="CENTER_LEFT">
         <!-- a lost focus moves to the first focusable node, and a selector would open on it -->
         <Label fx:id="offerLabel" focusTraversable="true" minWidth="-Infinity" styleClass="titled-group-bg-label, offer-view-label, a11y-focusable"/>
-        <StackPane fx:id="headerControls"/>
+        <StackPane fx:id="headerControls" HBox.hgrow="ALWAYS"/>
         <Region fx:id="navigationSpacer" minWidth="-Infinity" maxWidth="-Infinity"/>
     </HBox>
     <StackPane fx:id="content" VBox.vgrow="ALWAYS" minHeight="0"/>
