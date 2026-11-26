@@ -15,9 +15,9 @@ set -e
 unameOut="$(uname -s)"
 case "${unameOut}" in
     Linux*)
-        JAVA_HOME=/usr/lib/jvm/openjdk-21.0.9
-        JDK_FILENAME=OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz
-        JDK_URL=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.9+10/OpenJDK21U-jdk_x64_linux_hotspot_21.0.9_10.tar.gz
+        JAVA_HOME=/usr/lib/jvm/openjdk-21.0.13.1
+        JDK_URL=https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.13.1%2B2/OpenJDK21U-jdk_x64_linux_hotspot_21.0.13.1_2.tar.gz
+        JDK_SHA256=bb8a93f9ae6e7a693b2b721e85dbeff26ae1a77447985a8d7afcdd9c7cf6222e
 
         # Determine which package manager to use depending on the distribution
         declare -A osInfo;
@@ -39,10 +39,17 @@ case "${unameOut}" in
             # Ensure curl is installed since it may not be
             $PACKAGE_MANAGER -y install curl
 
-            curl -L -O $JDK_URL
-            mkdir -p $JAVA_HOME
-            tar -zxf $JDK_FILENAME -C $JAVA_HOME --strip 1
-            rm $JDK_FILENAME
+            mkdir -p "$(dirname "$JAVA_HOME")"
+            jdk_stage=$(mktemp -d "${JAVA_HOME}.tmp.XXXXXX")
+            trap 'rm -rf -- "$jdk_stage"' EXIT
+            jdk_archive="$jdk_stage/jdk.tar.gz"
+            curl --fail --location --output "$jdk_archive" "$JDK_URL"
+            printf '%s  %s\n' "$JDK_SHA256" "$jdk_archive" | sha256sum --check
+            tar -zxf "$jdk_archive" -C "$jdk_stage" --strip 1
+            rm -- "$jdk_archive"
+            test -x "$jdk_stage/bin/java" && test -x "$jdk_stage/bin/javac" || exit 1
+            chmod 755 "$jdk_stage"
+            mv -T -- "$jdk_stage" "$JAVA_HOME"
 
             update-alternatives --install /usr/bin/java java $JAVA_HOME/bin/java 2000
             update-alternatives --install /usr/bin/javac javac $JAVA_HOME/bin/javac 2000
