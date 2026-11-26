@@ -173,9 +173,18 @@
     -jfx-unselected-color: -bs-color-gray-6;
 }
 
-/* limit the lighter gray to buttons, preserving offer-form glyphs */
+/* limit the lighter gray to buttons */
 .jfx-button, .toggle-button-no-slider {
     -bs-color-gray-bbb: #e2e6eb;
+}
+
+/* keep trailing zeros and offer form glyphs legible on light surfaces */
+.zero-decimals {
+    -bs-color-gray-3: #8b96a8;
+}
+
+.opaque-icon, .opaque-icon-character {
+    -bs-color-gray-bbb: #8b96a8;
 }
 
 .pill-toggle-button {
