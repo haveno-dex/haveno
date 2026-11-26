@@ -12,7 +12,7 @@
     -fx-mid-text-color: -bs-text-color;
     -bs-background-color: #ffffff;
     -bs-background-gray: #d5dae1;
-    -bs-content-background-gray: #f5f6f8;
+    -bs-content-background-gray: #eceef1;
     -fx-background: -bs-content-background-gray;
     -bs-color-gray-13: #202e45;
     -bs-color-gray-11: #202e45;
@@ -67,7 +67,7 @@
     -bs-rd-nav-hover-text: white;
     -bs-rd-tab-border: transparent;
     -bs-tab-content-area: #ffffff;
-    -bs-color-gray-background: #f5f6f8;
+    -bs-color-gray-background: #eceef1;
     -bs-content-pane-bg-top: -bs-color-gray-background;
     -bs-content-pane-bg-bottom: -bs-color-gray-background;
     -bs-wizard-backdrop: -bs-color-gray-background;
@@ -76,7 +76,7 @@
     -bs-scroll-pane-background: transparent;
     -bs-tab-content-area: transparent;
     -bs-viewport-background: transparent;
-    -bs-footer-pane-background: #eceef1;
+    -bs-footer-pane-background: -bs-color-gray-1;
     -bs-footer-pane-text: -bs-color-gray-6;
     -bs-footer-pane-line: -bs-color-gray-2;
     -bs-rd-font-balance: white;
@@ -97,8 +97,8 @@
     -bs-rd-error-red: #dd0000;
     -bs-rd-message-bubble: -bs-color-primary;
     -bs-rd-message-bubble-other: #ffffff;
-    -bs-rd-chat-background: #edf0f5;
-    -bs-rd-message-bubble-system: -bs-color-gray-1;
+    -bs-rd-chat-background: -bs-content-background-gray;
+    -bs-rd-message-bubble-system: #dbdfe6;
     -bs-rd-message-bubble-system-border: -bs-color-gray-2;
     -bs-toggle-selected: #7b7b7b;
     -bs-rd-tooltip-truncated: -bs-text-color;
@@ -174,8 +174,13 @@
 }
 
 /* limit the lighter gray to buttons */
-.jfx-button, .toggle-button-no-slider {
+.jfx-button {
     -bs-color-gray-bbb: #e2e6eb;
+}
+
+/* the offer book filter toggles sit on the page, so they are a step darker to stand out from it */
+.toggle-button-no-slider {
+    -bs-color-gray-bbb: -bs-color-gray-2;
 }
 
 /* keep trailing zeros and offer form glyphs legible on light surfaces */
