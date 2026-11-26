@@ -17,14 +17,21 @@
   ~ along with Haveno. If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<?import com.jfoenix.controls.JFXTabPane?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
-<StackPane fx:id="root" fx:controller="haveno.desktop.main.offer.SellOfferView" alignment="TOP_LEFT"
-           AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-           AnchorPane.topAnchor="0.0"
-           xmlns:fx="http://javafx.com/fxml">
-    <JFXTabPane fx:id="tabPane"/>
-    <Label fx:id="offerLabel" styleClass="titled-group-bg-label, offer-view-label"/>
-</StackPane>
+<?import javafx.scene.layout.VBox?>
+<VBox fx:id="root" fx:controller="haveno.desktop.main.offer.SellOfferView"
+      AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+      AnchorPane.topAnchor="0.0"
+      xmlns:fx="http://javafx.com/fxml">
+    <HBox fx:id="header" alignment="CENTER_LEFT">
+        <!-- a lost focus moves to the first focusable node, and a selector would open on it -->
+        <Label fx:id="offerLabel" focusTraversable="true" minWidth="-Infinity" styleClass="titled-group-bg-label, offer-view-label, a11y-focusable"/>
+        <StackPane fx:id="headerControls"/>
+        <Region fx:id="navigationSpacer" minWidth="-Infinity" maxWidth="-Infinity"/>
+    </HBox>
+    <StackPane fx:id="content" VBox.vgrow="ALWAYS" minHeight="0"/>
+</VBox>

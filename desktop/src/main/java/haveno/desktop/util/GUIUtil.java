@@ -184,6 +184,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -195,6 +196,7 @@ public class GUIUtil {
     public final static String SHOW_ALL_FLAG = "list.currency.showAll"; // Used for accessing the i18n resource
     public final static String SHOW_FIAT_FLAG = "list.currency.showFiat";
     public final static String SHOW_CRYPTO_FLAG = "list.currency.showCrypto";
+    public final static List<String> SHOW_ALL_FLAGS = List.of(SHOW_ALL_FLAG, SHOW_FIAT_FLAG, SHOW_CRYPTO_FLAG);
     public final static String EDIT_FLAG = "list.currency.editList"; // Used for accessing the i18n resource
 
     public final static String OPEN_WEB_PAGE_KEY = "warnOpenURLWhenTorEnabled";
@@ -571,6 +573,16 @@ public class GUIUtil {
                             label1.setText(Res.get("shared.all"));
                             label2.setText(Res.get("offerbook.anyCurrency"));
                             announced = Res.get("offerbook.anyCurrency");
+                            break;
+                        case GUIUtil.SHOW_FIAT_FLAG:
+                            label1.setText(Res.get("shared.fiat"));
+                            label2.setText(Res.get("offerbook.anyFiat"));
+                            announced = Res.get("offerbook.anyFiat");
+                            break;
+                        case GUIUtil.SHOW_CRYPTO_FLAG:
+                            label1.setText(Res.get("shared.crypto"));
+                            label2.setText(Res.get("offerbook.anyCrypto"));
+                            announced = Res.get("offerbook.anyCrypto");
                             break;
                         case GUIUtil.EDIT_FLAG:
                             label1.setText(Res.get("shared.edit"));
@@ -2019,6 +2031,13 @@ public class GUIUtil {
     // the show all entries: every trade currency, or every currency of one asset class
     public static boolean isShowAllFlag(String code) {
         return SHOW_ALL_FLAG.equals(code) || SHOW_FIAT_FLAG.equals(code) || SHOW_CRYPTO_FLAG.equals(code);
+    }
+
+    // currencies a show all entry covers
+    public static Predicate<String> getShowAllFilter(String flag) {
+        if (flag.equals(SHOW_FIAT_FLAG)) return CurrencyUtil::isFiatCurrency;
+        if (flag.equals(SHOW_CRYPTO_FLAG)) return CurrencyUtil::isCryptoCurrency;
+        return code -> true;
     }
 
     // logo for the currency a collapsed field shows; none for the show all and edit list entries

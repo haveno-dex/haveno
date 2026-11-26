@@ -17,6 +17,8 @@
 
 package haveno.desktop.main.offer.offerbook;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.common.Timer;
 import haveno.common.UserThread;
 import haveno.common.handlers.ErrorMessageHandler;
@@ -25,6 +27,7 @@ import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.api.CoreApi;
 import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
 import haveno.core.monetary.Price;
@@ -79,6 +82,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -89,7 +93,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 @Slf4j
-abstract class OfferBookViewModel extends ActivatableViewModel {
+public class OfferBookViewModel extends ActivatableViewModel {
     private final OpenOfferManager openOfferManager;
     private final User user;
     final OfferBook offerBook;
@@ -133,6 +137,8 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     String filterText = "";
     final BooleanProperty filtersHideOffers = new SimpleBooleanProperty();
     final BooleanProperty showAllTradeCurrenciesProperty = new SimpleBooleanProperty(true);
+    @Getter
+    private String showAllCode = GUIUtil.SHOW_ALL_FLAG; // the show all entry selected, or last selected
     final BooleanProperty disableMatchToggle = new SimpleBooleanProperty();
     final IntegerProperty maxPlacesForAmount = new SimpleIntegerProperty();
     final IntegerProperty maxPlacesForVolume = new SimpleIntegerProperty();
@@ -151,6 +157,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     // Constructor, lifecycle
     ///////////////////////////////////////////////////////////////////////////////////////////
 
+    @Inject
     public OfferBookViewModel(User user,
                               OpenOfferManager openOfferManager,
                               OfferBook offerBook,
@@ -163,7 +170,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
                               Navigation navigation,
                               PriceUtil priceUtil,
                               OfferFilterService offerFilterService,
-                              CoinFormatter btcFormatter,
+                              @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter btcFormatter,
                               CoreApi coreApi) {
         super();
 
@@ -300,12 +307,21 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             else if (!showAllEntry) {
                 this.selectedTradeCurrency = tradeCurrency;
                 tradeCurrencyCode.set(code);
+            } else {
+                showAllCode = code;
+
+                // an offer is created with a currency the entry covers, preferably one with a payment account
+                if (!GUIUtil.getShowAllFilter(code).test(selectedTradeCurrency.getCode()) || !hasPaymentAccountForCurrency(selectedTradeCurrency)) {
+                    selectedTradeCurrency = getDefaultTradeCurrency();
+                    tradeCurrencyCode.set(selectedTradeCurrency.getCode());
+                }
             }
 
             setMarketPriceFeedCurrency();
             filterOffers();
 
-            saveSelectedCurrencyCodeInPreferences(direction, code);
+            if (direction == OfferDirection.BUY) preferences.setBuyScreenCurrencyCode(code);
+            else preferences.setSellScreenCurrencyCode(code);
         }
     }
 
@@ -313,8 +329,6 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         this.filterText = filterText;
         filterOffers();
     }
-
-    abstract void saveSelectedCurrencyCodeInPreferences(OfferDirection direction, String code);
 
     protected void onSetPaymentMethod(PaymentMethod paymentMethod) {
         if (paymentMethod == null)
@@ -333,16 +347,13 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
             this.selectedPaymentMethod = getShowAllEntryForPaymentMethod();
         }
 
-        savePaymentMethodInPreferences(direction, selectedPaymentMethod.getId());
+        if (direction == OfferDirection.BUY) preferences.setBuyScreenPaymentMethodId(selectedPaymentMethod.getId());
+        else preferences.setSellScreenPaymentMethodId(selectedPaymentMethod.getId());
         filterOffers();
     }
 
-    abstract void savePaymentMethodInPreferences(OfferDirection direction, String paymentMethodId);
-
-    abstract String getPaymentMethodIdFromPreferences(OfferDirection direction);
-
     private void restoreSelectedPaymentMethod() {
-        String paymentMethodId = getPaymentMethodIdFromPreferences(direction);
+        String paymentMethodId = direction == OfferDirection.BUY ? preferences.getBuyScreenPaymentMethodId() : preferences.getSellScreenPaymentMethodId();
 
         PaymentMethod restored = paymentMethodId == null || isShowAllEntry(paymentMethodId) ? null :
                 getPaymentMethods().stream()
@@ -460,8 +471,19 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return list;
     }
 
-    protected abstract ObservableList<PaymentMethod> filterPaymentMethods(ObservableList<PaymentMethod> list,
-                                                                          TradeCurrency selectedTradeCurrency);
+    private ObservableList<PaymentMethod> filterPaymentMethods(ObservableList<PaymentMethod> list,
+                                                               TradeCurrency selectedTradeCurrency) {
+        return FXCollections.observableArrayList(list.stream()
+                .filter(paymentMethod -> {
+                    if (showAllTradeCurrenciesProperty.get()) {
+                        if (showAllCode.equals(GUIUtil.SHOW_FIAT_FLAG)) return paymentMethod.isTraditional();
+                        return !showAllCode.equals(GUIUtil.SHOW_CRYPTO_FLAG) || paymentMethod.isBlockchain();
+                    }
+                    if (CurrencyUtil.isCryptoCurrency(selectedTradeCurrency.getCode())) return paymentMethod.isBlockchain();
+                    return paymentMethod.isTraditional() && PaymentAccountUtil.supportsCurrency(paymentMethod, selectedTradeCurrency);
+                })
+                .collect(Collectors.toList()));
+    }
 
     String getAmount(OfferBookListItem item) {
         return formatAmount(item.getOffer(), true);
@@ -567,11 +589,28 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         tradeCurrencies.clear();
         allCurrencies.clear();
 
-        fillCurrencies(tradeCurrencies, allCurrencies);
-    }
+        // the user's currencies, then the non fiat traditional ones
+        List<TradeCurrency> currencies = new ArrayList<>(preferences.getTradeCurrenciesAsObservable());
+        CurrencyUtil.getTraditionalNonFiatCurrencies().stream()
+                .filter(currency -> !currencies.contains(currency))
+                .forEach(currencies::add);
+        if (SORT_CURRENCIES_BY_OFFER_COUNT) {
+            Map<String, Integer> offerCounts = getOfferCounts();
+            currencies.sort(Comparator.comparingInt((TradeCurrency currency) -> offerCounts.getOrDefault(currency.getCode(), 0)).reversed());
+        }
 
-    abstract void fillCurrencies(ObservableList<TradeCurrency> tradeCurrencies,
-                                 ObservableList<TradeCurrency> allCurrencies);
+        List<CryptoCurrency> showAllEntries = GUIUtil.SHOW_ALL_FLAGS.stream()
+                .map(flag -> new CryptoCurrency(flag, ""))
+                .collect(Collectors.toList());
+        tradeCurrencies.addAll(showAllEntries);
+        tradeCurrencies.addAll(currencies);
+        tradeCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
+
+        allCurrencies.addAll(showAllEntries);
+        allCurrencies.addAll(CurrencyUtil.getAllSortedTraditionalCurrencies());
+        allCurrencies.addAll(CurrencyUtil.getAllSortedCryptoCurrencies());
+        allCurrencies.add(new CryptoCurrency(GUIUtil.EDIT_FLAG, ""));
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Checks
@@ -579,13 +618,9 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
 
     boolean hasPaymentAccountForCurrency() {
         if (showAllTradeCurrenciesProperty.get()) {
-            if (this instanceof CryptoOfferBookViewModel) {
-                return user.hasCryptoPaymentAccount();
-            } else if (this instanceof FiatOfferBookViewModel) {
-                return user.hasFiatPaymentAccount();
-            } else if (this instanceof OtherOfferBookViewModel) {
-                return user.hasTraditionalNonFiatAccount();
-            }
+            if (showAllCode.equals(GUIUtil.SHOW_FIAT_FLAG)) return user.hasFiatPaymentAccount();
+            if (showAllCode.equals(GUIUtil.SHOW_CRYPTO_FLAG)) return user.hasCryptoPaymentAccount();
+            return user.hasFiatPaymentAccount() || user.hasCryptoPaymentAccount() || user.hasTraditionalNonFiatAccount();
         }
         return hasPaymentAccountForCurrency(selectedTradeCurrency);
     }
@@ -676,9 +711,21 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
         return !offer.isPrivateOffer();
     }
 
-    abstract Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,
-                                                                        TradeCurrency selectedTradeCurrency,
-                                                                        boolean applyPaymentMethodFilter);
+    Predicate<OfferBookListItem> getCurrencyAndMethodPredicate(OfferDirection direction,
+                                                               TradeCurrency selectedTradeCurrency,
+                                                               boolean applyPaymentMethodFilter) {
+        return offerBookListItem -> {
+            Offer offer = offerBookListItem.getOffer();
+            boolean directionResult = offer.getDirection() != direction; // offer to buy xmr appears as offer to sell in peer's offer book and vice versa
+            boolean currencyResult = showAllTradeCurrenciesProperty.get() ?
+                    GUIUtil.getShowAllFilter(showAllCode).test(offer.getCounterCurrencyCode()) :
+                    offer.getCounterCurrencyCode().equals(selectedTradeCurrency.getCode());
+            boolean paymentMethodResult = !applyPaymentMethodFilter || showAllPaymentMethods ||
+                    offer.getPaymentMethod().equals(selectedPaymentMethod);
+            boolean notMyOfferOrShowMyOffersActivated = !isMyOffer(offerBookListItem.getOffer()) || preferences.isShowOwnOffersInOfferBook();
+            return directionResult && currencyResult && paymentMethodResult && notMyOfferOrShowMyOffersActivated;
+        };
+    }
 
     private Predicate<OfferBookListItem> getOffersMatchingMyAccountsPredicate() {
         // This code duplicates code in the view at the button column. We need there the different results for
@@ -693,7 +740,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     private boolean isShowAllEntry(String id) {
-        return id.equals(GUIUtil.SHOW_ALL_FLAG);
+        return GUIUtil.isShowAllFlag(id);
     }
 
     private boolean isEditEntry(String id) {
@@ -715,7 +762,7 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     public boolean hasSelectionAccountSigning() {
         if (showAllTradeCurrenciesProperty.get()) {
             if (isShowAllEntry(selectedPaymentMethod.getId()))
-                return !(this instanceof CryptoOfferBookViewModel);
+                return !showAllCode.equals(GUIUtil.SHOW_CRYPTO_FLAG);
             else
                 return PaymentMethod.hasChargebackRisk(selectedPaymentMethod);
         } else {
@@ -761,26 +808,35 @@ abstract class OfferBookViewModel extends ActivatableViewModel {
     }
 
     private void updateSelectedTradeCurrency() {
-        String code = getCurrencyCodeFromPreferences(direction);
+        String code = direction == OfferDirection.BUY ? preferences.getBuyScreenCurrencyCode() : preferences.getSellScreenCurrencyCode();
         if (code != null && !code.isEmpty() && !isShowAllEntry(code) &&
                 CurrencyUtil.getTradeCurrency(code).isPresent()) {
             showAllTradeCurrenciesProperty.set(false);
             selectedTradeCurrency = CurrencyUtil.getTradeCurrency(code).get();
         } else {
+            if (isShowAllEntry(code)) showAllCode = code;
             showAllTradeCurrenciesProperty.set(true);
             selectedTradeCurrency = getDefaultTradeCurrency();
         }
         tradeCurrencyCode.set(selectedTradeCurrency.getCode());
     }
 
-    abstract TradeCurrency getDefaultTradeCurrency();
+    // a currency the selected show all entry covers, preferably one with a payment account
+    private TradeCurrency getDefaultTradeCurrency() {
+        Predicate<String> filter = GUIUtil.getShowAllFilter(showAllCode);
+        List<TradeCurrency> currencies = new ArrayList<>(List.of(GlobalSettings.getDefaultTradeCurrency()));
+        currencies.addAll(preferences.getTradeCurrenciesAsObservable());
+        if (user.getPaymentAccounts() != null) user.getPaymentAccounts().forEach(account -> currencies.addAll(account.getTradeCurrencies()));
+        currencies.addAll(CurrencyUtil.getMainTraditionalCurrencies());
+        currencies.addAll(CurrencyUtil.getMainCryptoCurrencies());
+        currencies.removeIf(currency -> !filter.test(currency.getCode()));
+        return currencies.stream().filter(this::hasPaymentAccountForCurrency).findFirst().orElse(currencies.get(0));
+    }
 
     public void updateSelectedPaymentMethod() {
         showAllPaymentMethods = getPaymentMethods().stream().noneMatch(paymentMethod ->
                 paymentMethod.equals(selectedPaymentMethod));
     }
-
-    abstract String getCurrencyCodeFromPreferences(OfferDirection direction);
 
     public boolean hasClonedOffer(Offer offer) {
         return openOfferManager.hasClonedOffer(offer.getId());

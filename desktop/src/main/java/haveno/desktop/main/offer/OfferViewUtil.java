@@ -21,7 +21,6 @@ import com.google.common.base.Joiner;
 import haveno.common.UserThread;
 import haveno.core.locale.BankUtil;
 import haveno.core.locale.CountryUtil;
-import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -31,10 +30,6 @@ import haveno.core.offer.OfferDirection;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.xmr.wallet.XmrWalletService;
 import haveno.desktop.components.AutoTooltipLabel;
-import haveno.desktop.main.offer.offerbook.FiatOfferBookView;
-import haveno.desktop.main.offer.offerbook.OfferBookView;
-import haveno.desktop.main.offer.offerbook.CryptoOfferBookView;
-import haveno.desktop.main.offer.offerbook.OtherOfferBookView;
 import haveno.desktop.main.overlays.popups.Popup;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -90,18 +85,6 @@ public class OfferViewUtil {
         GridPane.setConstraints(label, 0, row, 1, 1, HPos.RIGHT, VPos.CENTER);
         GridPane.setConstraints(textField, 1, row);
         infoGridPane.getChildren().addAll(label, textField);
-    }
-
-    public static Class<? extends OfferBookView<?, ?>> getOfferBookViewClass(String currencyCode) {
-        Class<? extends OfferBookView<?, ?>> offerBookViewClazz;
-        if (CurrencyUtil.isFiatCurrency(currencyCode)) {
-            offerBookViewClazz = FiatOfferBookView.class;
-        } else if (CurrencyUtil.isCryptoCurrency(currencyCode)) {
-            offerBookViewClazz = CryptoOfferBookView.class;
-        } else {
-            offerBookViewClazz = OtherOfferBookView.class;
-        }
-        return offerBookViewClazz;
     }
 
     public static String getPaymentMethod(Offer offer) {
@@ -179,17 +162,8 @@ public class OfferViewUtil {
         return !isShownAsSellOffer(tradeCurrency.getCode(), direction);
     }
 
-    public static TradeCurrency getAnyOfMainCryptoCurrencies() {
-        return getMainCryptoCurrencies().findAny().get();
-    }
-
     public static TradeCurrency getAnyOfOtherCurrencies() {
         return getOtherCurrencies().findAny().get();
-    }
-
-    @NotNull
-    public static Stream<CryptoCurrency> getMainCryptoCurrencies() {
-        return CurrencyUtil.getMainCryptoCurrencies().stream();
     }
 
     @NotNull

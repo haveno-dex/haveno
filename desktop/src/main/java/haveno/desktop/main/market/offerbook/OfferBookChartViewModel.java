@@ -43,10 +43,10 @@ import haveno.desktop.common.model.ActivatableViewModel;
 import haveno.desktop.main.MainView;
 import haveno.desktop.main.offer.BuyOfferView;
 import haveno.desktop.main.offer.OfferView;
-import haveno.desktop.main.offer.OfferViewUtil;
 import haveno.desktop.main.offer.SellOfferView;
 import haveno.desktop.main.offer.offerbook.OfferBook;
 import haveno.desktop.main.offer.offerbook.OfferBookListItem;
+import haveno.desktop.main.offer.offerbook.OfferBookView;
 import haveno.desktop.main.settings.SettingsView;
 import haveno.desktop.main.settings.preferences.PreferencesView;
 import haveno.desktop.util.CurrencyList;
@@ -284,7 +284,7 @@ class OfferBookChartViewModel extends ActivatableViewModel {
     private void goToOfferView(OfferDirection direction, @Nullable Offer offer) {
         updateScreenCurrencyInPreferences(direction);
         Class<? extends OfferView> offerView = isSellOffer(direction) ? BuyOfferView.class : SellOfferView.class;
-        navigation.navigateToWithData(offer, MainView.class, offerView, OfferViewUtil.getOfferBookViewClass(getCurrencyCode()));
+        navigation.navigateToWithData(offer, MainView.class, offerView, OfferBookView.class);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -504,21 +504,9 @@ class OfferBookChartViewModel extends ActivatableViewModel {
 
     private void updateScreenCurrencyInPreferences(OfferDirection direction) {
         if (isSellOffer(direction)) {
-            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
-                preferences.setBuyScreenFiatCurrencyCode(getCurrencyCode());
-            } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
-                preferences.setBuyScreenCryptoCurrencyCode(getCurrencyCode());
-            } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
-                preferences.setBuyScreenOtherCurrencyCode(getCurrencyCode());
-            }
+            preferences.setBuyScreenCurrencyCode(getCurrencyCode());
         } else {
-            if (CurrencyUtil.isFiatCurrency(getCurrencyCode())) {
-                preferences.setSellScreenFiatCurrencyCode(getCurrencyCode());
-            } else if (CurrencyUtil.isCryptoCurrency(getCurrencyCode())) {
-                preferences.setSellScreenCryptoCurrencyCode(getCurrencyCode());
-            } else if (CurrencyUtil.isTraditionalCurrency(getCurrencyCode())) {
-                preferences.setSellScreenOtherCurrencyCode(getCurrencyCode());
-            }
+            preferences.setSellScreenCurrencyCode(getCurrencyCode());
         }
     }
 }

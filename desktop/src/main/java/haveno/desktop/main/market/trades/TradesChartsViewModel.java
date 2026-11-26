@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 class TradesChartsViewModel extends ActivatableViewModel {
     static final int MAX_TICKS = 90;
     private static final int TAB_INDEX = 2;
-    private static final List<String> SHOW_ALL_FLAGS = List.of(GUIUtil.SHOW_ALL_FLAG, GUIUtil.SHOW_FIAT_FLAG, GUIUtil.SHOW_CRYPTO_FLAG);
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Enum
@@ -392,14 +391,14 @@ class TradesChartsViewModel extends ActivatableViewModel {
             tradeCurrencyList = tradeStatistics.stream()
                     .flatMap(e -> CurrencyUtil.getTradeCurrency(e.getCurrency()).stream())
                     .collect(Collectors.toList());
-            showAllItems = SHOW_ALL_FLAGS.stream().map(flag -> getShowAllItem(flag, tradeStatistics)).collect(Collectors.toList());
+            showAllItems = GUIUtil.SHOW_ALL_FLAGS.stream().map(flag -> getShowAllItem(flag, tradeStatistics)).collect(Collectors.toList());
         }
         currencyListItems.updateWithCurrencies(tradeCurrencyList, showAllItems);
     }
 
     // a show all entry carrying the count of the trades it covers
     private static CurrencyListItem getShowAllItem(String flag, List<TradeStatistics3> tradeStatistics) {
-        Predicate<String> filter = getShowAllFilter(flag);
+        Predicate<String> filter = GUIUtil.getShowAllFilter(flag);
         int numTrades = (int) tradeStatistics.stream().filter(e -> filter.test(e.getCurrency())).count();
         return new CurrencyListItem(new CryptoCurrency(flag, ""), numTrades);
     }
@@ -420,14 +419,7 @@ class TradesChartsViewModel extends ActivatableViewModel {
 
     // trades to show: those of the selected currency, or of every currency the show all entry covers
     private Predicate<String> getCurrencyFilter() {
-        return showAllTradeCurrenciesProperty.get() ? getShowAllFilter(showAllCode) : Predicate.isEqual(getCurrencyCode());
-    }
-
-    // currencies a show all entry covers
-    private static Predicate<String> getShowAllFilter(String flag) {
-        if (flag.equals(GUIUtil.SHOW_FIAT_FLAG)) return CurrencyUtil::isFiatCurrency;
-        if (flag.equals(GUIUtil.SHOW_CRYPTO_FLAG)) return CurrencyUtil::isCryptoCurrency;
-        return code -> true;
+        return showAllTradeCurrenciesProperty.get() ? GUIUtil.getShowAllFilter(showAllCode) : Predicate.isEqual(getCurrencyCode());
     }
 
     private boolean isShowAllEntry(@Nullable String id) {

@@ -293,8 +293,8 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         prefPayload.setOfferBookChartScreenCurrencyCode(preferredTradeCurrency.getCode());
         prefPayload.setTradeChartsScreenCurrencyCode(preferredTradeCurrency.getCode());
-        prefPayload.setBuyScreenFiatCurrencyCode(preferredTradeCurrency.getCode());
-        prefPayload.setSellScreenFiatCurrencyCode(preferredTradeCurrency.getCode());
+        prefPayload.setBuyScreenCurrencyCode(preferredTradeCurrency.getCode());
+        prefPayload.setSellScreenCurrencyCode(preferredTradeCurrency.getCode());
         GlobalSettings.setDefaultTradeCurrency(preferredTradeCurrency);
         setupPreferences();
     }
@@ -727,73 +727,23 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
         requestPersistence();
     }
 
-    public void setBuyScreenFiatCurrencyCode(String buyScreenFiatCurrencyCode) {
-        prefPayload.setBuyScreenFiatCurrencyCode(buyScreenFiatCurrencyCode);
+    public void setBuyScreenCurrencyCode(String buyScreenCurrencyCode) {
+        prefPayload.setBuyScreenCurrencyCode(buyScreenCurrencyCode);
         requestPersistence();
     }
 
-    public void setSellScreenFiatCurrencyCode(String sellScreenFiatCurrencyCode) {
-        prefPayload.setSellScreenFiatCurrencyCode(sellScreenFiatCurrencyCode);
+    public void setSellScreenCurrencyCode(String sellScreenCurrencyCode) {
+        prefPayload.setSellScreenCurrencyCode(sellScreenCurrencyCode);
         requestPersistence();
     }
 
-    public void setBuyScreenCryptoCurrencyCode(String buyScreenCryptoCurrencyCode) {
-        prefPayload.setBuyScreenCryptoCurrencyCode(buyScreenCryptoCurrencyCode);
+    public void setBuyScreenPaymentMethodId(String buyScreenPaymentMethodId) {
+        prefPayload.setBuyScreenPaymentMethodId(buyScreenPaymentMethodId);
         requestPersistence();
     }
 
-    public void setSellScreenCryptoCurrencyCode(String sellScreenCryptoCurrencyCode) {
-        prefPayload.setSellScreenCryptoCurrencyCode(sellScreenCryptoCurrencyCode);
-        requestPersistence();
-    }
-
-    public void setBuyScreenOtherCurrencyCode(String buyScreenOtherCurrencyCode) {
-        prefPayload.setBuyScreenOtherCurrencyCode(buyScreenOtherCurrencyCode);
-        requestPersistence();
-    }
-
-    public void setSellScreenOtherCurrencyCode(String sellScreenOtherCurrencyCode) {
-        prefPayload.setSellScreenOtherCurrencyCode(sellScreenOtherCurrencyCode);
-        requestPersistence();
-    }
-
-    public void setBuyScreenFiatPaymentMethodId(String buyScreenFiatPaymentMethodId) {
-        prefPayload.setBuyScreenFiatPaymentMethodId(buyScreenFiatPaymentMethodId);
-        requestPersistence();
-    }
-
-    public void setSellScreenFiatPaymentMethodId(String sellScreenFiatPaymentMethodId) {
-        prefPayload.setSellScreenFiatPaymentMethodId(sellScreenFiatPaymentMethodId);
-        requestPersistence();
-    }
-
-    public void setBuyScreenCryptoPaymentMethodId(String buyScreenCryptoPaymentMethodId) {
-        prefPayload.setBuyScreenCryptoPaymentMethodId(buyScreenCryptoPaymentMethodId);
-        requestPersistence();
-    }
-
-    public void setSellScreenCryptoPaymentMethodId(String sellScreenCryptoPaymentMethodId) {
-        prefPayload.setSellScreenCryptoPaymentMethodId(sellScreenCryptoPaymentMethodId);
-        requestPersistence();
-    }
-
-    public void setBuyScreenOtherPaymentMethodId(String buyScreenOtherPaymentMethodId) {
-        prefPayload.setBuyScreenOtherPaymentMethodId(buyScreenOtherPaymentMethodId);
-        requestPersistence();
-    }
-
-    public void setSellScreenOtherPaymentMethodId(String sellScreenOtherPaymentMethodId) {
-        prefPayload.setSellScreenOtherPaymentMethodId(sellScreenOtherPaymentMethodId);
-        requestPersistence();
-    }
-
-    public void setBuyScreenOfferBookSubTabIndex(int buyScreenOfferBookSubTabIndex) {
-        prefPayload.setBuyScreenOfferBookSubTabIndex(buyScreenOfferBookSubTabIndex);
-        requestPersistence();
-    }
-
-    public void setSellScreenOfferBookSubTabIndex(int sellScreenOfferBookSubTabIndex) {
-        prefPayload.setSellScreenOfferBookSubTabIndex(sellScreenOfferBookSubTabIndex);
+    public void setSellScreenPaymentMethodId(String sellScreenPaymentMethodId) {
+        prefPayload.setSellScreenPaymentMethodId(sellScreenPaymentMethodId);
         requestPersistence();
     }
 
@@ -1181,9 +1131,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setOfferBookChartScreenCurrencyCode(String offerBookChartScreenCurrencyCode);
 
-        void setBuyScreenFiatCurrencyCode(String buyScreenFiatCurrencyCode);
+        void setBuyScreenCurrencyCode(String buyScreenCurrencyCode);
 
-        void setSellScreenFiatCurrencyCode(String sellScreenFiatCurrencyCode);
+        void setSellScreenCurrencyCode(String sellScreenCurrencyCode);
 
         void setIgnoreTradersList(List<String> ignoreTradersList);
 
@@ -1191,21 +1141,9 @@ public final class Preferences implements PersistedDataHost, BridgeAddressProvid
 
         void setTradeChartsScreenCurrencyCode(String tradeChartsScreenCurrencyCode);
 
-        void setBuyScreenFiatPaymentMethodId(String buyScreenFiatPaymentMethodId);
+        void setBuyScreenPaymentMethodId(String buyScreenPaymentMethodId);
 
-        void setSellScreenFiatPaymentMethodId(String sellScreenFiatPaymentMethodId);
-
-        void setBuyScreenCryptoPaymentMethodId(String buyScreenCryptoPaymentMethodId);
-
-        void setSellScreenCryptoPaymentMethodId(String sellScreenCryptoPaymentMethodId);
-
-        void setBuyScreenOtherPaymentMethodId(String buyScreenOtherPaymentMethodId);
-
-        void setSellScreenOtherPaymentMethodId(String sellScreenOtherPaymentMethodId);
-
-        void setBuyScreenOfferBookSubTabIndex(int buyScreenOfferBookSubTabIndex);
-
-        void setSellScreenOfferBookSubTabIndex(int sellScreenOfferBookSubTabIndex);
+        void setSellScreenPaymentMethodId(String sellScreenPaymentMethodId);
 
         void setMarketSelectedTabIndex(int marketSelectedTabIndex);
 

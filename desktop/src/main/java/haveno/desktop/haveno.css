@@ -3449,10 +3449,10 @@ textfield */
     -fx-translate-y: -2;
 }
 
-/* offer view heading on the tab header: starts at the content's left inset and shares the tabs' bottom and side pad */
+/* offer view heading: starts at the content's left inset */
 .offer-view-label {
     -fx-font-size: 1.235em;
-    -fx-padding: 0 14 8 15;
+    -fx-padding: 0 14 0 15;
 }
 
 /* FundWalletInfoWindow */

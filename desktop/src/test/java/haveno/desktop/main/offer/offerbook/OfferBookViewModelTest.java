@@ -21,9 +21,11 @@ import com.natpryce.makeiteasy.Maker;
 import haveno.common.config.Config;
 import haveno.core.locale.Country;
 import haveno.core.locale.CryptoCurrency;
+import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.TraditionalCurrency;
 import haveno.core.locale.GlobalSettings;
 import haveno.core.locale.Res;
+import haveno.core.locale.TradeCurrency;
 import haveno.core.offer.Offer;
 import haveno.core.offer.OfferDirection;
 import haveno.core.offer.OfferFilterService;
@@ -51,6 +53,7 @@ import haveno.core.user.User;
 import haveno.core.util.PriceUtil;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.core.util.coin.ImmutableCoinFormatter;
+import haveno.desktop.util.GUIUtil;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -246,7 +249,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForAmount.intValue());
     }
@@ -260,7 +263,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -278,7 +281,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -297,7 +300,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForVolume.intValue());
     }
@@ -311,7 +314,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -329,7 +332,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -347,7 +350,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForPrice.intValue());
     }
@@ -361,7 +364,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -379,7 +382,7 @@ public class OfferBookViewModelTest {
 
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(null, null, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(null, null, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         assertEquals(0, model.maxPlacesForMarketPriceMargin.intValue());
     }
@@ -414,7 +417,7 @@ public class OfferBookViewModelTest {
         item4.getOffer().setPriceFeedService(priceFeedService);
         offerBookListItems.addAll(item1, item2);
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, priceFeedService,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.activate();
 
@@ -435,7 +438,7 @@ public class OfferBookViewModelTest {
         when(offerBook.getOfferBookListItems()).thenReturn(offerBookListItems);
         when(priceFeedService.getMarketPrice(anyString())).thenReturn(new MarketPrice("USD", 12684.0450, Instant.now().toEpochMilli(), true));
 
-        final OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
+        final OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, empty, null, null, null,
                 null, null, null, getPriceUtil(), null, coinFormatter, null);
 
         final OfferBookListItem item = make(xmrBuyItem.but(
@@ -484,11 +487,11 @@ public class OfferBookViewModelTest {
         model.onShowNoDepositOffers(false);
         assertEquals(Map.of("USD", 1, "EUR", 3), model.getOfferCounts());
         assertEquals(Map.of(PaymentMethod.SEPA_ID, 1), model.getPaymentMethodOfferCounts());
-        assertEquals("EUR", model.getTradeCurrencies().get(1).getCode());
+        assertEquals("EUR", model.getTradeCurrencies().get(3).getCode());
 
         model.onShowPrivateOffers(false);
         assertEquals(Map.of("USD", 2, "EUR", 1), model.getOfferCounts());
-        assertEquals("USD", model.getTradeCurrencies().get(1).getCode());
+        assertEquals("USD", model.getTradeCurrencies().get(3).getCode());
     }
 
     @Test
@@ -516,11 +519,11 @@ public class OfferBookViewModelTest {
         OpenOfferManager openOfferManager = mock(OpenOfferManager.class);
         when(openOfferManager.isMyOffer(myItem.getOffer())).thenReturn(true);
         Preferences preferences = mock(Preferences.class);
-        when(preferences.getTraditionalCurrenciesAsObservable()).thenReturn(FXCollections.observableArrayList(usd));
+        when(preferences.getTradeCurrenciesAsObservable()).thenReturn(FXCollections.observableArrayList(usd));
         when(preferences.isShowOwnOffersInOfferBook()).thenReturn(true);
         OfferFilterService offerFilterService = mock(OfferFilterService.class);
         when(offerFilterService.canTakeOffer(any(), anyBoolean())).thenReturn(OfferFilterService.Result.HAS_NO_SIGNED_PAYMENT_ACCOUNT);
-        OfferBookViewModel model = new FiatOfferBookViewModel(user, openOfferManager, offerBook, preferences,
+        OfferBookViewModel model = new OfferBookViewModel(user, openOfferManager, offerBook, preferences,
                 null, null, null, null, null, null, getPriceUtil(), offerFilterService, coinFormatter, null);
         model.initWithDirection(OfferDirection.BUY);
         model.onSetTradeCurrency(usd);
@@ -528,6 +531,43 @@ public class OfferBookViewModelTest {
 
         model.onShowOffersMatchingMyAccounts(true);
         assertEquals(Arrays.asList(myItem), model.getOfferList());
+    }
+
+    @Test
+    public void testShowAllEntriesCoverTheirAssetClass() {
+        OfferBook offerBook = mock(OfferBook.class);
+        ObservableList<OfferBookListItem> items = FXCollections.observableArrayList(
+                getOfferCountItem("USD", OfferDirection.SELL, false, false),
+                getOfferCountItem("EUR", OfferDirection.SELL, false, false),
+                getOfferCountItem("BTC", OfferDirection.SELL, false, false),
+                getOfferCountItem("XAU", OfferDirection.SELL, false, false));
+        when(offerBook.getOfferBookListItems()).thenReturn(items);
+        Preferences preferences = mock(Preferences.class);
+        when(preferences.getTradeCurrenciesAsObservable()).thenReturn(FXCollections.observableArrayList(usd));
+        OfferBookViewModel model = new OfferBookViewModel(user, mock(OpenOfferManager.class), offerBook, preferences,
+                null, null, null, null, null, null, getPriceUtil(), null, coinFormatter, null);
+        model.initWithDirection(OfferDirection.BUY);
+        model.onSetTradeCurrency(usd);
+        assertEquals(1, model.getOfferList().size());
+
+        model.onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
+        assertEquals(4, model.getOfferList().size());
+
+        model.onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_FIAT_FLAG, ""));
+        assertEquals(2, model.getOfferList().size());
+        assertEquals("USD", model.getSelectedTradeCurrency().getCode());
+
+        // an offer is created with a currency the entry covers
+        model.onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_CRYPTO_FLAG, ""));
+        assertEquals(1, model.getOfferList().size());
+        assertTrue(CurrencyUtil.isCryptoCurrency(model.getSelectedTradeCurrency().getCode()));
+        assertTrue(model.getPaymentMethods().stream().skip(1).allMatch(PaymentMethod::isBlockchain));
+
+        // preferably one with a payment account
+        when(user.hasPaymentAccountForCurrency(any())).thenAnswer(invocation -> "BTC".equals(((TradeCurrency) invocation.getArgument(0)).getCode()));
+        model.onSetTradeCurrency(usd);
+        model.onSetTradeCurrency(new CryptoCurrency(GUIUtil.SHOW_ALL_FLAG, ""));
+        assertEquals("BTC", model.getSelectedTradeCurrency().getCode());
     }
 
     private OfferBookViewModel getOfferCountModel(OfferDirection direction) {
@@ -543,9 +583,9 @@ public class OfferBookViewModelTest {
                 getOfferCountItem("USD", OfferDirection.BUY, false, false));
         when(offerBook.getOfferBookListItems()).thenReturn(items);
         Preferences preferences = mock(Preferences.class);
-        when(preferences.getTraditionalCurrenciesAsObservable()).thenReturn(
+        when(preferences.getTradeCurrenciesAsObservable()).thenReturn(
                 FXCollections.observableArrayList(usd, new TraditionalCurrency("EUR")));
-        OfferBookViewModel model = new FiatOfferBookViewModel(user, mock(OpenOfferManager.class), offerBook,
+        OfferBookViewModel model = new OfferBookViewModel(user, mock(OpenOfferManager.class), offerBook,
                 preferences, null, null, null, null, null, null, getPriceUtil(), null, coinFormatter, null);
         model.initWithDirection(direction);
         return model;

@@ -17,15 +17,19 @@
 
 package haveno.desktop.main.offer.offerbook;
 
+import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import haveno.desktop.util.Accessibility;
 import haveno.desktop.util.GlyphsDude;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import haveno.common.UserThread;
 import haveno.common.app.DevEnv;
+import haveno.common.config.Config;
 import haveno.core.account.sign.SignedWitnessService;
 import haveno.core.account.witness.AccountAgeWitnessService;
 import haveno.core.alert.PrivateNotificationManager;
+import haveno.core.locale.CryptoCurrency;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
 import haveno.core.locale.TradeCurrency;
@@ -39,9 +43,11 @@ import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.trade.HavenoUtils;
 import haveno.core.user.DontShowAgainLookup;
+import haveno.core.util.FormattingUtils;
 import haveno.core.util.coin.CoinFormatter;
 import haveno.desktop.Navigation;
 import haveno.desktop.common.view.ActivatableViewAndModel;
+import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.AccountStatusTooltipLabel;
 import haveno.desktop.components.AutoTooltipButton;
 import haveno.desktop.components.AutoTooltipLabel;
@@ -110,7 +116,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewModel> extends ActivatableViewAndModel<R, M> {
+@FxmlView
+public class OfferBookView extends ActivatableViewAndModel<GridPane, OfferBookViewModel> {
 
     private final Navigation navigation;
     private final OfferDetailsWindow offerDetailsWindow;
@@ -123,6 +130,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     protected AutocompleteComboBox<TradeCurrency> currencyComboBox;
     private Map<String, Integer> currencyOfferCounts;
     private AutocompleteComboBox<PaymentMethod> paymentMethodComboBox;
+    private HBox headerControls;
     private AutoTooltipButton createOfferButton;
     private FilterTextField filterInputField;
     private ToggleButton matchingOffersToggleButton;
@@ -151,12 +159,13 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     // Constructor, lifecycle
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    OfferBookView(M model,
+    @Inject
+    OfferBookView(OfferBookViewModel model,
                   Navigation navigation,
                   OfferDetailsWindow offerDetailsWindow,
-                  CoinFormatter formatter,
+                  @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                   PrivateNotificationManager privateNotificationManager,
-                  boolean useDevPrivilegeKeys,
+                  @Named(Config.USE_DEV_PRIVILEGE_KEYS) boolean useDevPrivilegeKeys,
                   AccountAgeWitnessService accountAgeWitnessService,
                   SignedWitnessService signedWitnessService) {
         super(model);
@@ -194,6 +203,9 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         paymentMethodComboBox.setMaxWidth(250);
         paymentMethodComboBox.getStyleClass().addAll("input-with-border", "filter-pill");
         Accessibility.setHelp(paymentMethodComboBox, Res.get("offerbook.filterByPaymentMethod"));
+
+        headerControls = new HBox(10, currencyComboBox, paymentMethodComboBox);
+        headerControls.setAlignment(Pos.CENTER_LEFT);
 
         noDepositOffersToggleButton = new ToggleButton(Res.get("offerbook.filterNoDeposit"));
         noDepositOffersToggleButton.setMinWidth(Region.USE_PREF_SIZE); // never ellipsize
@@ -247,8 +259,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         HBox.setHgrow(filterInputField, Priority.ALWAYS); // shares spare width with the create offer button and gives it up before the filters shrink
 
         HBox.setHgrow(createOfferVBox, Priority.ALWAYS); // widens the button along with the search field, then keeps it at the right
-        offerToolsBox.getChildren().addAll(currencyComboBox, paymentMethodComboBox,
-                matchingOffersToggleButton, privateOffersToggleButton, noDepositOffersToggleButton, filterInputField, createOfferVBox);
+        offerToolsBox.getChildren().addAll(matchingOffersToggleButton, privateOffersToggleButton, noDepositOffersToggleButton,
+                filterInputField, createOfferVBox);
 
         GridPane.setHgrow(offerToolsBox, Priority.ALWAYS);
         GridPane.setRowIndex(offerToolsBox, gridRow);
@@ -388,8 +400,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         priceFeedUpdateCounterListener = (observable, oldValue, newValue) -> tableView.sort();
     }
 
-    abstract protected String getMarketTitle();
-
     @Override
     protected void activate() {
 
@@ -413,6 +423,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
             model.updateSelectedPaymentMethod();
             updatePaymentMethodComboBoxEditor();
             model.onSetPaymentMethod(paymentMethodComboBox.getSelectionModel().getSelectedItem());
+            updateSigningStateColumn();
             updateCreateOfferButton();
         });
         updateCurrencyComboBoxFromModel();
@@ -552,7 +563,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
 
     protected void updateCurrencyComboBoxFromModel() {
         if (model.showAllTradeCurrenciesProperty.get()) {
-            currencyComboBox.getSelectionModel().select(SHOW_ALL);
+            currencyComboBox.getSelectionModel().select(new CryptoCurrency(model.getShowAllCode(), ""));
         } else {
             currencyComboBox.getSelectionModel().select(model.getSelectedTradeCurrency());
         }
@@ -603,6 +614,8 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         @Override
         public String toString(TradeCurrency item) {
             if (item == null) return "";
+            if (item.getCode().equals(GUIUtil.SHOW_FIAT_FLAG)) return Res.get("offerbook.anyFiat");
+            if (item.getCode().equals(GUIUtil.SHOW_CRYPTO_FLAG)) return Res.get("offerbook.anyCrypto");
             if (isSpecialShowAllItem(item)) return Res.get("offerbook.anyCurrency");
             return isSpecialEditItem(item) ? Res.get(GUIUtil.EDIT_FLAG) : item.getCode();
         }
@@ -624,7 +637,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         }
 
         private boolean isSpecialShowAllItem(TradeCurrency item) {
-            return item.getCode().equals(GUIUtil.SHOW_ALL_FLAG);
+            return GUIUtil.isShowAllFlag(item.getCode());
         }
 
         private boolean isSpecialEditItem(TradeCurrency item) {
@@ -701,6 +714,10 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         model.setOfferActionHandler(offerActionHandler);
     }
 
+    public Region getHeaderControls() {
+        return headerControls;
+    }
+
     // Selects the offer and scrolls to it, relaxing the filters which hide it. Leaves the book as it is if the offer is gone.
     public void showOffer(Offer offer) {
         pendingOffer = offer;
@@ -708,7 +725,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     }
 
     private void showPendingOffer() {
-        // the first navigation can arrive before the tab's skin attaches and activates the book
+        // the first navigation can arrive before the book is attached and activated
         if (pendingOffer == null || root.getScene() == null || tableView.getItems() != model.getOfferList()) return;
         Offer offer = pendingOffer;
         pendingOffer = null;
@@ -1412,8 +1429,6 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
     private void updateCreateOfferButton() {
         createOfferButton.setText(Res.get("offerbook.createNewOffer",
                 model.getDirection() == OfferDirection.BUY ? Res.get("shared.buy") : Res.get("shared.sell"),
-                getTradeCurrencyCode()));
+                Res.getBaseCurrencyCode()));
     }
-
-    abstract String getTradeCurrencyCode();
 }

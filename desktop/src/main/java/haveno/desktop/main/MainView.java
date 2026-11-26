@@ -49,6 +49,7 @@ import haveno.desktop.main.funds.transactions.TransactionsView;
 import haveno.desktop.main.market.MarketView;
 import haveno.desktop.main.market.offerbook.OfferBookChartView;
 import haveno.desktop.main.offer.BuyOfferView;
+import haveno.desktop.main.offer.OfferView;
 import haveno.desktop.main.offer.SellOfferView;
 import haveno.desktop.main.overlays.popups.Popup;
 import haveno.desktop.main.overlays.windows.TorNetworkSettingsWindow;
@@ -338,6 +339,8 @@ public class MainView extends InitializableView<StackPane, MainViewModel>  {
                     fundsView.reserveNavigationWidth(secondaryNav.widthProperty());
                 else if (view instanceof SupportView supportView)
                     supportView.reserveNavigationWidth(secondaryNav.widthProperty());
+                else if (view instanceof OfferView offerView)
+                    offerView.reserveNavigationWidth(secondaryNav.widthProperty());
                 contentContainer.getChildren().setAll(view.getRoot());
 
                 try {
