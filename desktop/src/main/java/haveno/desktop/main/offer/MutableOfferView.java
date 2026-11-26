@@ -166,7 +166,7 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
             priceAsPercentageValueCurrencyBox, volumeValueCurrencyBox, priceValueCurrencyBox,
             minAmountValueCurrencyBox, securityDepositAndFeeBox, triggerPriceHBox;
 
-    private Subscription isWaitingForFundsSubscription, balanceSubscription;
+    private Subscription isWaitingForFundsSubscription, balanceSubscription, remainingSubscription;
     private ChangeListener<Boolean> amountFocusedListener, minAmountFocusedListener, volumeFocusedListener,
             securityDepositFocusedListener, priceFocusedListener, placeOfferCompletedListener,
             priceAsPercentageFocusedListener, getShowWalletFundedNotificationListener,
@@ -793,11 +793,13 @@ public abstract class MutableOfferView<M extends MutableOfferViewModel<?>> exten
         });
 
         balanceSubscription = EasyBind.subscribe(model.getDataModel().getUnallocatedBalance(), balanceTextField::setBalance);
+        remainingSubscription = EasyBind.subscribe(model.getDataModel().getMissingCoin(), balanceTextField::setRemainingAmount);
     }
 
     private void removeSubscriptions() {
         isWaitingForFundsSubscription.unsubscribe();
         balanceSubscription.unsubscribe();
+        remainingSubscription.unsubscribe();
     }
 
     private void createListeners() {

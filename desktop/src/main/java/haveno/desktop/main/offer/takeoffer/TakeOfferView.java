@@ -163,7 +163,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
     private Notification walletFundedNotification;
     private Popup fundingAddressPopup;
     private OfferView.CloseHandler closeHandler;
-    private Subscription balanceSubscription,
+    private Subscription balanceSubscription, remainingSubscription,
             showTransactionPublishedScreenSubscription, showWarningInvalidXmrDecimalPlacesSubscription,
             isWaitingForFundsSubscription, offerWarningSubscription, errorMessageSubscription,
             isOfferAvailableSubscription;
@@ -770,6 +770,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         });
 
         balanceSubscription = EasyBind.subscribe(model.dataModel.getAvailableBalance(), balanceTextField::setBalance);
+        remainingSubscription = EasyBind.subscribe(model.dataModel.getMissingCoin(), balanceTextField::setRemainingAmount);
     }
 
     private void removeSubscriptions() {
@@ -781,6 +782,7 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
         showTransactionPublishedScreenSubscription.unsubscribe();
         // noSufficientFeeSubscription.unsubscribe();
         balanceSubscription.unsubscribe();
+        remainingSubscription.unsubscribe();
     }
 
     private void createListeners() {

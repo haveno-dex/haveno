@@ -33,6 +33,7 @@ import java.math.BigInteger;
 public class BalanceTextField extends AnchorPane {
 
     private BigInteger targetAmount;
+    private BigInteger remainingAmount;
     private final JFXTextField textField;
     private final Effect fundedEffect = new DropShadow(BlurType.THREE_PASS_BOX, Color.GREEN, 4, 0.0, 0, 0);
     private final Effect notFundedEffect = new DropShadow(BlurType.THREE_PASS_BOX, Color.ORANGERED, 4, 0.0, 0, 0);
@@ -77,6 +78,13 @@ public class BalanceTextField extends AnchorPane {
             updateBalance(balance);
     }
 
+    public void setRemainingAmount(BigInteger remainingAmount) {
+        this.remainingAmount = remainingAmount;
+
+        if (this.balance != null)
+            updateBalance(balance);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////
     // Private methods
     ///////////////////////////////////////////////////////////////////////////////////////////
@@ -86,8 +94,8 @@ public class BalanceTextField extends AnchorPane {
             String text = HavenoUtils.formatXmr(balance, true);
 
             // show the amount remaining if partially funded
-            if (targetAmount != null && balance != null && balance.signum() > 0 && balance.compareTo(targetAmount) < 0) {
-                text += " " + Res.get("shared.tradeWalletBalance.remaining", HavenoUtils.formatXmr(targetAmount.subtract(balance), true));
+            if (targetAmount != null && balance != null && balance.compareTo(targetAmount) < 0 && remainingAmount != null && remainingAmount.signum() > 0 && remainingAmount.compareTo(targetAmount) < 0) {
+                text += " " + Res.get("shared.tradeWalletBalance.remaining", HavenoUtils.formatXmr(remainingAmount, true));
             }
             textField.setText(text);
         }
