@@ -121,7 +121,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
     private AutocompleteComboBox<TradeCurrency> preferredTradeCurrencyComboBox;
 
     private ToggleButton showOwnOffersInOfferBook, useAnimations, useDarkMode, useSoftwareRendering, sortMarketCurrenciesNumerically,
-            avoidStandbyMode, useSoundForNotifications, useNativeXmrWallet, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
+            avoidStandbyMode, autoCompleteTrades, useSoundForNotifications, useNativeXmrWallet, useCustomFee, autoConfirmXmrToggle, hideNonAccountPaymentMethodsToggle, denyApiTakerToggle,
             notifyOnPreReleaseToggle;
     private int gridRow = 0;
     private int displayCurrenciesGridRowIndex = 0;
@@ -257,7 +257,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         GridPane.setValignment(optionsGridPane, VPos.TOP);
         root.add(optionsGridPane, 0, 0);
 
-        int titledGroupBgRowSpan = displayStandbyModeFeature ? 10 : 9;
+        int titledGroupBgRowSpan = displayStandbyModeFeature ? 11 : 10;
         TitledGroupBg titledGroupBg = addTitledGroupBg(optionsGridPane, gridRow, titledGroupBgRowSpan, Res.get("setting.preferences.general"));
         GridPane.setColumnSpan(titledGroupBg, 1);
 
@@ -318,6 +318,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             avoidStandbyMode = addSlideToggleButton(optionsGridPane, ++gridRow,
                     Res.get("setting.preferences.avoidStandbyMode"), 8);
         }
+
+        autoCompleteTrades = addSlideToggleButtonWithInfo(optionsGridPane, ++gridRow,
+                Res.get("setting.preferences.autoCompleteTrades"), Res.get("setting.preferences.autoCompleteTrades.info"));
 
         useNativeXmrWallet = addSlideToggleButtonWithInfo(optionsGridPane, ++gridRow,
                 Res.get("setting.preferences.useNativeXmrWallet"), Res.get("setting.preferences.useNativeXmrWallet.info"));
@@ -936,6 +939,9 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
             preferences.setUseStandbyMode(false);
         }
 
+        autoCompleteTrades.setSelected(preferences.isAutoCompleteTrades());
+        autoCompleteTrades.setOnAction(e -> preferences.setAutoCompleteTrades(autoCompleteTrades.isSelected()));
+
         useSoundForNotifications.setSelected(preferences.isUseSoundForNotifications());
         useSoundForNotifications.setOnAction(e -> preferences.setUseSoundForNotifications(useSoundForNotifications.isSelected()));
 
@@ -1011,6 +1017,7 @@ public class PreferencesView extends ActivatableViewAndModel<GridPane, Preferenc
         if (displayStandbyModeFeature) {
             avoidStandbyMode.setOnAction(null);
         }
+        autoCompleteTrades.setOnAction(null);
         useSoundForNotifications.setOnAction(null);
         repeatNotificationSoundComboBox.setOnAction(null);
         useNativeXmrWallet.setOnAction(null);
