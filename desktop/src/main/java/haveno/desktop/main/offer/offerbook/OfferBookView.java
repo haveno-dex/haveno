@@ -247,6 +247,7 @@ abstract public class OfferBookView<R extends GridPane, M extends OfferBookViewM
         HBox.setHgrow(filterInputField, Priority.ALWAYS); // shares spare width with the create offer button and gives it up before the filters shrink
 
         HBox.setHgrow(createOfferVBox, Priority.ALWAYS); // widens the button along with the search field, then keeps it at the right
+        HBox.setMargin(createOfferVBox, new Insets(-2, 0, -2, 0)); // the taller button overhangs the row evenly, so the filters set its height and sit as high as the market view selectors
         offerToolsBox.getChildren().addAll(currencyComboBox, paymentMethodComboBox,
                 matchingOffersToggleButton, privateOffersToggleButton, noDepositOffersToggleButton, filterInputField, createOfferVBox);
 

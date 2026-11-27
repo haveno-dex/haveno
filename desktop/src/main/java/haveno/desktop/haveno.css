@@ -348,6 +348,17 @@
     -fx-padding: 5 14 5 36; /* room for the search icon */
 }
 
+/* bordered filter pills paint their full height like the filter toggles */
+.filter-pill.input-with-border {
+    -fx-padding: 6 14 6 14;
+    -fx-border-insets: 0;
+    -fx-background-insets: 0;
+}
+
+.filter-pill.input-with-border.jfx-text-field {
+    -fx-padding: 6 14 6 36;
+}
+
 .filter-pill > .filter-icon {
     -fx-fill: -bs-rd-font-lighter;
 }
