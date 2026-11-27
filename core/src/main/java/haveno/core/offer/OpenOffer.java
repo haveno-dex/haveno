@@ -179,6 +179,7 @@ public final class OpenOffer implements Tradable {
         this.state = state;
         this.triggerPrice = triggerPrice;
         this.reserveExactAmount = reserveExactAmount;
+        this.scheduledAmount = scheduledAmount;
         this.scheduledTxHashes = scheduledTxHashes;
         this.splitOutputTxHash = splitOutputTxHash;
         this.splitOutputTxFee = splitOutputTxFee;
@@ -222,7 +223,7 @@ public final class OpenOffer implements Tradable {
                 proto.getTriggerPrice(),
                 proto.getReserveExactAmount(),
                 proto.getScheduledAmount(),
-                proto.getScheduledTxHashesList(),
+                proto.getScheduledTxHashesCount() == 0 ? null : proto.getScheduledTxHashesList(),
                 ProtoUtil.stringOrNullFromProto(proto.getSplitOutputTxHash()),
                 proto.getSplitOutputTxFee(),
                 ProtoUtil.stringOrNullFromProto(proto.getReserveTxHash()),

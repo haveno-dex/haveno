@@ -24,6 +24,7 @@ import haveno.core.filter.FilterManager;
 import haveno.core.offer.messages.SignOfferRequest;
 import haveno.core.offer.messages.SignOfferResponse;
 import haveno.core.offer.messages.OfferAvailabilityRequest;
+import haveno.core.offer.placeoffer.PlaceOfferProtocol;
 import haveno.core.support.dispute.arbitration.arbitrator.ArbitratorManager;
 import haveno.core.support.dispute.arbitration.arbitrator.Arbitrator;
 import haveno.core.trade.ArbitratorTrade;
@@ -61,8 +62,10 @@ import haveno.network.p2p.storage.P2PDataStorage;
 import haveno.network.p2p.storage.payload.ProtectedStorageEntry;
 import monero.daemon.model.MoneroKeyImage;
 import monero.daemon.model.MoneroTx;
+import monero.wallet.model.MoneroOutgoingTransfer;
 import monero.wallet.model.MoneroOutputWallet;
 import monero.wallet.model.MoneroTxConfig;
+import monero.wallet.model.MoneroTxQuery;
 import monero.wallet.model.MoneroTxWallet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,8 +74,10 @@ import org.junit.jupiter.api.io.TempDir;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -120,6 +125,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -1070,6 +1076,183 @@ public class OpenOfferManagerTest {
         assertTrue(splitOutputTx.getOutputsWallet().get(0).isFrozen());
     }
 
+    @Test
+    public void testFailedSplitOutputTxIsReplaced() throws Exception {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        MoneroTxWallet splitOutputTx = new MoneroTxWallet().setHash("split").setIsLocked(true).setIsFailed(true); // a failed tx stays locked
+        assertEquals(OpenOffer.State.PENDING, processPendingOffer(walletService, BigInteger.ONE, "Failed to get height", true, splitOutputTx));
+        verify(walletService).createTx(any(MoneroTxConfig.class));
+    }
+
+    @Test
+    public void testFailedTxIsNotScheduledToFundOffer() throws Exception {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        OpenOffer openOffer = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.amount, 100000000000L), with(OfferMaker.minAmount, 100000000000L), with(OfferMaker.price, 20000000000L))), 0, false);
+        MoneroTxWallet failedTx = new MoneroTxWallet().setHash("failed").setIsConfirmed(false).setIsFailed(true);
+        when(walletService.getTxs()).thenReturn(List.of(failedTx));
+        when(walletService.getTxs(false)).thenCallRealMethod();
+        when(walletService.getAmountSentToSelf(failedTx)).thenReturn(openOffer.getOffer().getAmountNeeded()); // a failed tx keeps its destinations
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        try {
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class), mock(XmrConnectionService.class), walletService);
+            var schedule = OpenOfferManager.class.getDeclaredMethod("scheduleWithEarliestTxs", List.class, OpenOffer.class);
+            schedule.setAccessible(true);
+            InvocationTargetException e = assertThrows(InvocationTargetException.class, () -> schedule.invoke(manager, List.of(openOffer), openOffer));
+            assertTrue(e.getCause().getMessage().contains("Not enough funds"));
+            assertNull(openOffer.getScheduledTxHashes());
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testScheduledSelfTransferCanFundItsCloneGroupWhenConfirmed() throws Exception {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        OpenOffer openOffer = new OpenOffer(make(btcUsdOffer), 0, true);
+        OpenOffer clone = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.id, "clone"))), 0, true, openOffer.getGroupId());
+        List<OpenOffer> offers = List.of(openOffer, clone);
+        BigInteger amountNeeded = openOffer.getOffer().getAmountNeeded();
+        MoneroTxWallet tx = new MoneroTxWallet().setHash("self").setIsConfirmed(false).setIsLocked(true).setIsFailed(false).setNumConfirmations(0L);
+        tx.setOutgoingTransfer(new MoneroOutgoingTransfer().setTx(tx).setAccountIndex(0).setAmount(amountNeeded));
+        when(walletService.getTxs(false)).thenReturn(List.of(tx));
+        when(walletService.getTxs(any(MoneroTxQuery.class))).thenAnswer(invocation -> new ArrayList<>(List.of(tx)));
+        when(walletService.getAmountSentToSelf(tx)).thenReturn(amountNeeded);
+
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        try {
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class), mock(XmrConnectionService.class), walletService);
+            var findFunding = OpenOfferManager.class.getDeclaredMethod("getSplitOutputFundingTx", List.class, OpenOffer.class, BigInteger.class, Integer.class);
+            findFunding.setAccessible(true);
+            assertNull(findFunding.invoke(manager, offers, openOffer, amountNeeded, null)); // self transfers have no incoming transfer or outputs before confirmation
+
+            var schedule = OpenOfferManager.class.getDeclaredMethod("scheduleWithEarliestTxs", List.class, OpenOffer.class);
+            schedule.setAccessible(true);
+            schedule.invoke(manager, offers, openOffer);
+            assertEquals(List.of(tx.getHash()), clone.getScheduledTxHashes());
+
+            tx.setIsConfirmed(true).setNumConfirmations(1L);
+            tx.setOutputs(List.of(new MoneroOutputWallet().setTx(tx).setAmount(amountNeeded).setAccountIndex(0).setIsSpent(false).setIsFrozen(false)));
+            assertSame(tx, findFunding.invoke(manager, offers, openOffer, amountNeeded, null));
+
+            clone.setGroupId("unrelated");
+            assertNull(findFunding.invoke(manager, offers, openOffer, amountNeeded, null)); // another group's scheduled funds remain unavailable
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testPostedOfferClearsScheduledTxsOfItsCloneGroup() throws Exception {
+        OpenOffer openOffer = new OpenOffer(make(btcUsdOffer), 0, false);
+        OpenOffer clone = new OpenOffer(make(btcUsdOffer.but(with(OfferMaker.id, "clone"))), 0, false, openOffer.getGroupId());
+        for (OpenOffer offer : List.of(openOffer, clone)) {
+            offer.setScheduledTxHashes(List.of("scheduled"));
+            offer.setScheduledAmount("1");
+        }
+        List<TransactionResultHandler> postHandlers = new ArrayList<>();
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        try (MockedStatic<UserThread> userThread = mockStatic(UserThread.class);
+             MockedConstruction<PlaceOfferProtocol> protocols = mockConstruction(PlaceOfferProtocol.class, (protocol, context) -> postHandlers.add((TransactionResultHandler) context.arguments().get(1)))) {
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class), mock(XmrConnectionService.class));
+            manager.getObservableList().addAll(openOffer, clone);
+            var signAndPostOffer = OpenOfferManager.class.getDeclaredMethod("signAndPostOffer", OpenOffer.class, boolean.class, TransactionResultHandler.class, ErrorMessageHandler.class);
+            signAndPostOffer.setAccessible(true);
+            signAndPostOffer.invoke(manager, openOffer, false, (TransactionResultHandler) transaction -> {}, (ErrorMessageHandler) errorMessage -> {});
+            postHandlers.get(0).handleResult(null);
+            for (OpenOffer offer : List.of(openOffer, clone)) { // clones share the reserve tx
+                assertNull(offer.getScheduledTxHashes());
+                assertNull(offer.getScheduledAmount());
+            }
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testScheduledFundsRemainAllocatedAfterRestart() {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        when(walletService.getBalance()).thenReturn(BigInteger.TEN);
+        PubKeyRing keys = new PubKeyRing(Sig.generateKeyPair().getPublic(), Encryption.generateKeyPair().getPublic());
+        OpenOfferManager originalManager = HavenoUtils.openOfferManager;
+        try {
+            OpenOfferManager manager = createOfferManager(mock(P2PService.class), mock(OfferBookService.class), mock(XmrConnectionService.class), walletService);
+            for (boolean scheduled : List.of(true, false)) {
+                OpenOffer openOffer = new OpenOffer(make(btcUsdOffer.but(with(pubKeyRing, keys))));
+                if (scheduled) {
+                    openOffer.setScheduledAmount("6");
+                    openOffer.setScheduledTxHashes(List.of("scheduled"));
+                }
+                manager.getObservableList().setAll(openOffer);
+                BigInteger unallocatedBalance = manager.getUnallocatedBalance();
+                assertEquals(scheduled ? BigInteger.valueOf(4) : BigInteger.TEN, unallocatedBalance);
+
+                OpenOffer restored = (OpenOffer) OpenOffer.fromProto(openOffer.toProtoMessage().getOpenOffer());
+                assertEquals(openOffer.getScheduledTxHashes(), restored.getScheduledTxHashes());
+                manager.getObservableList().setAll(restored);
+                assertEquals(unallocatedBalance, manager.getUnallocatedBalance());
+            }
+        } finally {
+            HavenoUtils.openOfferManager = originalManager;
+        }
+    }
+
+    @Test
+    public void testScheduledTxIsDroppedIfItFails() throws Exception {
+        XmrWalletService walletService = mock(XmrWalletService.class);
+        User user = mock(User.class);
+        AccountAgeWitnessService witnessService = mock(AccountAgeWitnessService.class);
+        TradeManager originalTradeManager = HavenoUtils.tradeManager;
+        OpenOfferManager originalOpenOfferManager = HavenoUtils.openOfferManager;
+        Offer offer = spy(make(btcUsdOffer.but(with(OfferMaker.amount, 100000000000L), with(OfferMaker.minAmount, 100000000000L), with(OfferMaker.price, 20000000000L))));
+        OpenOffer openOffer = new OpenOffer(offer, 0, false);
+        OpenOffer clone = new OpenOffer(offer, 0, false, openOffer.getGroupId());
+        BigInteger amountNeeded = offer.getAmountNeeded();
+        BigInteger scheduledAmount = amountNeeded.multiply(BigInteger.TWO);
+        MoneroTxWallet scheduledTx = new MoneroTxWallet().setHash("scheduled").setIsConfirmed(false).setIsLocked(true).setIsFailed(false);
+        MoneroTxWallet remainingTx = new MoneroTxWallet().setHash("remaining").setIsConfirmed(false).setIsLocked(true).setIsFailed(false);
+        openOffer.setScheduledTxHashes(List.of(scheduledTx.getHash(), remainingTx.getHash()));
+        openOffer.setScheduledAmount(scheduledAmount.toString());
+        clone.setScheduledTxHashes(openOffer.getScheduledTxHashes()); // clones share scheduled txs
+        doReturn(amountNeeded).when(offer).getMaxTradeLimit();
+        doReturn(0.15).when(offer).getBuyerSecurityDepositPct();
+        doReturn(0.15).when(offer).getSellerSecurityDepositPct();
+        doReturn(new Date()).when(offer).getDate();
+        doReturn(mock(PubKeyRing.class)).when(offer).getPubKeyRing();
+        doReturn("1").when(offer).getVersionNr();
+        doReturn(1L).when(offer).getMaxTradePeriod();
+        when(user.getPaymentAccount(any())).thenReturn(mock(PaymentAccount.class));
+        when(witnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(Long.MAX_VALUE);
+        when(walletService.getAvailableBalance()).thenReturn(BigInteger.ZERO); // returned inputs have been spent elsewhere
+        when(walletService.getBalance()).thenReturn(scheduledAmount);
+        when(walletService.getTxs(openOffer.getScheduledTxHashes())).thenReturn(List.of(scheduledTx, remainingTx));
+        when(walletService.getTxs()).thenReturn(List.of(scheduledTx, remainingTx));
+        when(walletService.getTxs(false)).thenCallRealMethod();
+        when(walletService.getAmountSentToSelf(any())).thenReturn(amountNeeded);
+
+        try {
+            HavenoUtils.tradeManager = mock(TradeManager.class);
+            OpenOfferManager manager = new OpenOfferManager(coreContext, null, user, mock(P2PService.class), mock(XmrConnectionService.class), null, walletService, null, mock(OfferBookService.class),
+                    mock(ClosedTradableManager.class), null, null, null, null, null, null, null, persistenceManager, signedOfferPersistenceManager, witnessService);
+            manager.getObservableList().add(openOffer);
+            var processOffer = OpenOfferManager.class.getDeclaredMethod("processOffer", List.class, OpenOffer.class, TransactionResultHandler.class, ErrorMessageHandler.class);
+            processOffer.setAccessible(true);
+            for (boolean failed : List.of(false, true)) {
+                scheduledTx.setIsFailed(failed);
+                CompletableFuture<String> error = new CompletableFuture<>();
+                processOffer.invoke(manager, List.of(openOffer, clone), openOffer, (TransactionResultHandler) transaction -> error.complete(null), (ErrorMessageHandler) error::complete);
+                assertNull(error.get(10, TimeUnit.SECONDS));
+                assertEquals(failed ? List.of(remainingTx.getHash()) : List.of(scheduledTx.getHash(), remainingTx.getHash()), openOffer.getScheduledTxHashes());
+                assertEquals(openOffer.getScheduledTxHashes(), clone.getScheduledTxHashes());
+                assertEquals((failed ? amountNeeded : scheduledAmount).toString(), openOffer.getScheduledAmount());
+                assertEquals(failed ? amountNeeded : BigInteger.ZERO, manager.getUnallocatedBalance());
+                assertEquals(OpenOffer.State.PENDING, openOffer.getState());
+            }
+        } finally {
+            HavenoUtils.tradeManager = originalTradeManager;
+            HavenoUtils.openOfferManager = originalOpenOfferManager;
+        }
+    }
+
     // process a pending offer funded with the given excess over the amount needed, which cannot pay to split and fails to reserve on the given error
     private OpenOffer.State processPendingOffer(XmrWalletService walletService, BigInteger excessBalance, String reserveError) throws Exception {
         return processPendingOffer(walletService, excessBalance, reserveError, true, null);
@@ -1085,12 +1268,13 @@ public class OpenOfferManagerTest {
         OpenOffer openOffer = new OpenOffer(offer, 0, reserveExactAmount);
         BigInteger amountNeeded = offer.getAmountNeeded();
         MoneroOutputWallet splitOutput = new MoneroOutputWallet().setAmount(amountNeeded).setAccountIndex(0).setIsSpent(false).setIsFrozen(true).setKeyImage(new MoneroKeyImage("split-output"));
-        List<String> splitKeyImages = splitOutputTx == null ? List.of() : List.of("split-output");
+        boolean hasSplitOutput = splitOutputTx != null && !Boolean.TRUE.equals(splitOutputTx.isFailed()); // a failed tx has no outputs
+        List<String> splitKeyImages = hasSplitOutput ? List.of("split-output") : List.of();
         CompletableFuture<Void> canceled = new CompletableFuture<>();
         if (splitOutputTx != null) {
             openOffer.setSplitOutputTxHash(splitOutputTx.getHash());
             splitOutputTx.setFee(BigInteger.ZERO);
-            splitOutputTx.setOutputs(List.of(splitOutput.setTx(splitOutputTx)));
+            if (hasSplitOutput) splitOutputTx.setOutputs(List.of(splitOutput.setTx(splitOutputTx)));
             when(walletService.getTx(splitOutputTx.getHash())).thenReturn(splitOutputTx);
         }
         doReturn(amountNeeded).when(offer).getMaxTradeLimit();
@@ -1102,7 +1286,7 @@ public class OpenOfferManagerTest {
         doReturn(1L).when(offer).getMaxTradePeriod();
         when(user.getPaymentAccount(any())).thenReturn(mock(PaymentAccount.class));
         when(witnessService.getMyTradeLimit(any(), any(), any(), anyBoolean())).thenReturn(Long.MAX_VALUE);
-        when(walletService.getBalance()).thenAnswer(invocation -> amountNeeded.add(excessBalance).subtract(splitOutputTx != null && splitOutput.isFrozen() ? amountNeeded : BigInteger.ZERO));
+        when(walletService.getBalance()).thenAnswer(invocation -> amountNeeded.add(excessBalance).subtract(hasSplitOutput && splitOutput.isFrozen() ? amountNeeded : BigInteger.ZERO));
         when(walletService.getAvailableBalance()).thenAnswer(invocation -> walletService.getBalance());
         when(walletService.getWalletLock()).thenReturn(new Object());
         when(walletService.getOrCreateAddressEntry(any(), any())).thenReturn(mock(XmrAddressEntry.class));
@@ -1133,7 +1317,7 @@ public class OpenOfferManagerTest {
             CompletableFuture<String> error = new CompletableFuture<>();
             processOffer.invoke(manager, List.of(openOffer), openOffer, (TransactionResultHandler) transaction -> error.complete(null), (ErrorMessageHandler) error::complete);
             String errorMessage = error.get(10, TimeUnit.SECONDS);
-            if (splitOutputTx != null && splitOutputTx.isLocked()) {
+            if (hasSplitOutput && splitOutputTx.isLocked()) {
                 assertNull(errorMessage);
                 verify(walletService, never()).createReserveTx(any(), any(), any(), any(), any(), any(), anyBoolean(), any());
             } else {
