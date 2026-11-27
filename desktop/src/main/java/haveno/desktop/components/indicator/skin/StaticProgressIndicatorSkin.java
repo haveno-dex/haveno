@@ -63,6 +63,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.control.SkinBase;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -205,6 +206,10 @@ public class StaticProgressIndicatorSkin extends SkinBase<TxConfidenceIndicator>
     @SuppressWarnings("deprecation")
     public StaticProgressIndicatorSkin(TxConfidenceIndicator control) {
         super(control);
+
+        // pass clicks on to the parent, e.g. a table row, and keep hover for the indicator's tooltip
+        consumeMouseEvents(false);
+        control.addEventHandler(MouseEvent.MOUSE_MOVED, MouseEvent::consume);
 
         InvalidationListener indeterminateListener = valueModel -> initialize();
         control.indeterminateProperty().addListener(indeterminateListener);
