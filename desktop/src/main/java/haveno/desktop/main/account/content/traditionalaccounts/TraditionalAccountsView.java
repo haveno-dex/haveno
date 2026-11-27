@@ -34,6 +34,7 @@ import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
 import haveno.core.payment.CashDepositAccount;
+import haveno.core.payment.CustomPaymentMethodAccount;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.HalCashAccount;
 import haveno.core.payment.MoneyGramAccount;
@@ -95,6 +96,7 @@ import haveno.desktop.components.paymentmethods.CashAtAtmForm;
 import haveno.desktop.components.paymentmethods.CashDepositForm;
 import haveno.desktop.components.paymentmethods.CelPayForm;
 import haveno.desktop.components.paymentmethods.ChaseQuickPayForm;
+import haveno.desktop.components.paymentmethods.CustomPaymentMethodForm;
 import haveno.desktop.components.paymentmethods.DomesticWireTransferForm;
 import haveno.desktop.components.paymentmethods.F2FForm;
 import haveno.desktop.components.paymentmethods.FasterPaymentsForm;
@@ -351,6 +353,14 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
             // HalCash has no chargeback risk so we don't show the text from payment.limits.info.
             new Popup().information(Res.get("payment.halCash.info"))
                     .width(700)
+                    .closeButtonText(Res.get("shared.cancel"))
+                    .actionButtonText(Res.get("shared.iUnderstand"))
+                    .onAction(() -> doSaveNewAccount(paymentAccount))
+                    .show();
+        } else if (paymentAccount instanceof CustomPaymentMethodAccount) {
+            // The limit of a custom payment method does not depend on the account age, so its own warning is shown.
+            new Popup().warning(Res.get("payment.custom.info", HavenoUtils.formatXmr(maxTradeLimit, true)))
+                    .width(900)
                     .closeButtonText(Res.get("shared.cancel"))
                     .actionButtonText(Res.get("shared.iUnderstand"))
                     .onAction(() -> doSaveNewAccount(paymentAccount))
@@ -822,6 +832,8 @@ public class TraditionalAccountsView extends PaymentAccountsView<GridPane, Tradi
                 return new UkraineCardForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             case PaymentMethod.KASPI_ID:
                 return new KaspiForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
+            case PaymentMethod.CUSTOM_ID:
+                return new CustomPaymentMethodForm(paymentAccount, accountAgeWitnessService, inputValidator, root, gridRow, formatter);
             default:
                 log.error("Not supported PaymentMethod: " + paymentMethod);
                 return null;

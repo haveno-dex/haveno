@@ -51,6 +51,7 @@ import haveno.core.payment.payload.PaymentAccountPayload;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.payment.validation.BICValidator;
 import haveno.core.payment.validation.BranchIdValidator;
+import haveno.core.payment.validation.CustomPaymentMethodNameValidator;
 import haveno.core.payment.validation.EmailOrMobileNrValidator;
 import haveno.core.payment.validation.EmailValidator;
 import haveno.core.payment.validation.IBANValidator;
@@ -480,6 +481,9 @@ public abstract class PaymentAccount implements PersistablePayload {
             // comma-delimited list of accepted bank names; require at least one
             if (commaDelimitedValuesToList.apply(value).isEmpty()) throw new IllegalArgumentException(Res.get("payment.accepted.banks") + ": " + value);
             break;
+        case ACCOUNT_DATA:
+            if (!CustomPaymentMethodUtil.isValidAccountData(CustomPaymentMethodUtil.cleanAccountData(value))) throw new IllegalArgumentException("Account data must have a letter or number and at most " + CustomPaymentMethodUtil.MAX_ACCOUNT_DATA_LENGTH + " characters");
+            break;
         case ACCOUNT_ID:
             processValidationResult(new InputValidator().validate(value));
             break;
@@ -615,6 +619,9 @@ public abstract class PaymentAccount implements PersistablePayload {
         case PAYID:
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
+        case PAYMENT_METHOD_NAME:
+            processValidationResult(new CustomPaymentMethodNameValidator().validate(value));
+            break;
         case PIX_KEY:
             processValidationResult(new LengthValidator(2, 100).validate(value));
             break;
@@ -680,6 +687,11 @@ public abstract class PaymentAccount implements PersistablePayload {
             // comma-delimited list of accepted bank names
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.accepted.banks"));
+            break;
+        case ACCOUNT_DATA:
+            field.setComponent(PaymentAccountFormField.Component.TEXTAREA);
+            field.setLabel(Res.get("payment.custom.accountData"));
+            field.setMaxLength(CustomPaymentMethodUtil.MAX_ACCOUNT_DATA_LENGTH);
             break;
         case ACCOUNT_ID:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
@@ -864,6 +876,11 @@ public abstract class PaymentAccount implements PersistablePayload {
         case PAYID:
             field.setComponent(PaymentAccountFormField.Component.TEXT);
             field.setLabel(Res.get("payment.email.mobile"));
+            break;
+        case PAYMENT_METHOD_NAME:
+            field.setComponent(PaymentAccountFormField.Component.TEXT);
+            field.setLabel(Res.get("payment.custom.name"));
+            field.setMaxLength(CustomPaymentMethodUtil.MAX_NAME_LENGTH);
             break;
         case PIX_KEY:
             field.setComponent(PaymentAccountFormField.Component.TEXT);

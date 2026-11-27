@@ -24,6 +24,7 @@ import haveno.core.payment.payload.AmazonGiftCardAccountPayload;
 import haveno.core.payment.payload.AssetAccountPayload;
 import haveno.core.payment.payload.BlikAccountPayload;
 import haveno.core.payment.payload.CashDepositAccountPayload;
+import haveno.core.payment.payload.CustomPaymentMethodAccountPayload;
 import haveno.core.payment.payload.F2FAccountPayload;
 import haveno.core.payment.payload.FasterPaymentsAccountPayload;
 import haveno.core.payment.payload.HalCashAccountPayload;
@@ -80,7 +81,7 @@ public class PaymentInstructionsWindow extends ReviewInfoWindow<PaymentInstructi
         String amount = HeroWindowComponents.volume(trade.getVolume()) + " " + trade.getOffer().getCounterCurrencyCode();
         String currency = CurrencyUtil.getNameByCode(trade.getOffer().getCounterCurrencyCode());
         boolean crypto = account instanceof AssetAccountPayload;
-        String method = crypto ? currency : Res.get(trade.getOffer().getPaymentMethod().getId());
+        String method = crypto ? currency : trade.getOffer().getPaymentMethodDisplayString();
         if (sending) addSendingRows(amount, currency);
         else addReceivingRows(amount, currency, method);
         boolean periodStarted = trade.isDepositsFinalized();
@@ -140,6 +141,7 @@ public class PaymentInstructionsWindow extends ReviewInfoWindow<PaymentInstructi
             if (account instanceof FasterPaymentsAccountPayload) row(MaterialDesignIcon.ACCOUNT_CHECK, ACCENT_AMBER, text("fasterPayments.title"), text("fasterPayments.body"));
             if (account instanceof HalCashAccountPayload halCash) row(MaterialDesignIcon.MESSAGE_TEXT, ACCENT_AMBER,
                     text("halCash.title"), text("halCash.body", trade.getShortId(), halCash.getMobileNr()));
+            if (account instanceof CustomPaymentMethodAccountPayload) row(MaterialDesignIcon.RECEIPT, ACCENT_AMBER, text("custom.title"), text("custom.body"));
         }
         if (shouldShowReferenceWarning(account)) row(MaterialDesignIcon.MESSAGE_ALERT, ACCENT_AMBER, text("reference.title"), text("reference.body"));
         boolean fees = !(account instanceof AssetAccountPayload || account instanceof WesternUnionAccountPayload ||
@@ -176,6 +178,8 @@ public class PaymentInstructionsWindow extends ReviewInfoWindow<PaymentInstructi
                 row(MaterialDesignIcon.EMAIL, ACCENT_PRIMARY, text("received.gift.title"), text("received.gift.body"));
             } else if (account instanceof F2FAccountPayload) {
                 row(MaterialDesignIcon.ACCOUNT_MULTIPLE, ACCENT_PRIMARY, text("received.inPerson.title"), text("received.inPerson.body", amount));
+            } else if (account instanceof CustomPaymentMethodAccountPayload) {
+                row(MaterialDesignIcon.ALERT, ACCENT_AMBER, text("received.custom.title", amount), text("received.custom.body"));
             } else {
                 row(methodBody == null ? MaterialDesignIcon.BANK : MaterialDesignIcon.EMAIL, ACCENT_PRIMARY,
                         methodBody == null ? text("received.bank.title", amount) : text("received.method.title", method),

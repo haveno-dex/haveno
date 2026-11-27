@@ -72,6 +72,7 @@ public final class OfferInfoBuilder {
     private List<String> acceptedCountryCodes;
     private String acceptedCountriesString;
     private String city;
+    private String customPaymentMethodName;
 
     public OfferInfoBuilder withId(String id) {
         this.id = id;
@@ -275,6 +276,11 @@ public final class OfferInfoBuilder {
 
     public OfferInfoBuilder withCity(String city) {
         this.city = city;
+        return this;
+    }
+
+    public OfferInfoBuilder withCustomPaymentMethodName(String customPaymentMethodName) {
+        this.customPaymentMethodName = customPaymentMethodName;
         return this;
     }
 

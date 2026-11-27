@@ -29,12 +29,14 @@ import haveno.common.util.MathUtils;
 import haveno.common.util.Utilities;
 import haveno.core.exceptions.TradePriceOutOfToleranceException;
 import haveno.core.locale.CurrencyUtil;
+import haveno.core.locale.Res;
 import haveno.core.monetary.CryptoMoney;
 import haveno.core.monetary.Price;
 import haveno.core.monetary.TraditionalMoney;
 import haveno.core.monetary.Volume;
 import haveno.core.offer.availability.OfferAvailabilityModel;
 import haveno.core.offer.availability.OfferAvailabilityProtocol;
+import haveno.core.payment.CustomPaymentMethodUtil;
 import haveno.core.payment.payload.PaymentMethod;
 import haveno.core.provider.price.MarketPrice;
 import haveno.core.provider.price.PriceFeedService;
@@ -485,9 +487,31 @@ public class Offer implements NetworkPayload, PersistablePayload {
             return "";
     }
 
+    // a custom payment method is not a supported one, the maker names it with a free text
+    public boolean isCustomPaymentMethod() {
+        return PaymentMethod.CUSTOM_ID.equals(offerPayload.getPaymentMethodId());
+    }
+
+    // the maker's name of the custom payment method, or empty if the offer has none or one which is not valid
+    public String getCustomPaymentMethodName() {
+        String name = getExtraDataMap() == null ? null : getExtraDataMap().get(OfferPayload.CUSTOM_PAYMENT_METHOD_NAME);
+        return isCustomPaymentMethod() && CustomPaymentMethodUtil.isValidName(name) ? name : "";
+    }
+
+    public String getPaymentMethodDisplayString() {
+        return withCustomPaymentMethodName(Res.get(getPaymentMethod().getId()));
+    }
+
+    // a custom name is shown after the method, as "Custom: Orange Money", so it cannot pass for a supported method
+    private String withCustomPaymentMethodName(String paymentMethodName) {
+        if (!isCustomPaymentMethod()) return paymentMethodName;
+        String customName = getCustomPaymentMethodName();
+        return paymentMethodName + ": " + (customName.isEmpty() ? Res.get("shared.na") : customName);
+    }
+
     public String getPaymentMethodNameWithCountryCode() {
         // resolve from the stored id so retired payment methods keep their name in history
-        String method = PaymentMethod.getDummyPaymentMethod(offerPayload.getPaymentMethodId()).getShortName();
+        String method = withCustomPaymentMethodName(PaymentMethod.getDummyPaymentMethod(offerPayload.getPaymentMethodId()).getShortName());
         String methodCountryCode = this.getCountryCode();
         if (methodCountryCode != null) {
             String countrySuffix = " (" + methodCountryCode + ")";

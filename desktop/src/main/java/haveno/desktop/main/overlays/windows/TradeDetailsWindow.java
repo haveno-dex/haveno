@@ -166,7 +166,7 @@ public class TradeDetailsWindow extends Overlay<TradeDetailsWindow> {
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.deviation"),
                 closedTradableFormatter.getPriceDeviationAsString(trade));
-        String paymentMethodText = Res.get(offer.getPaymentMethod().getId());
+        String paymentMethodText = offer.getPaymentMethodDisplayString();
         addSeparator(gridPane, ++rowIndex);
         addConfirmationLabelTextField(gridPane, ++rowIndex, Res.get("shared.paymentMethod"), paymentMethodText);
 

@@ -190,6 +190,8 @@ public class PaymentAccountFactory {
                 return new UkraineCardAccount();
             case PaymentMethod.KASPI_ID:
                 return new KaspiAccount();
+            case PaymentMethod.CUSTOM_ID:
+                return new CustomPaymentMethodAccount();
             default:
                 throw new RuntimeException("Not supported PaymentMethod: " + paymentMethod);
         }

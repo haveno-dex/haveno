@@ -104,6 +104,8 @@ public final class OfferPayload implements ProtectedStoragePayload, ExpirablePay
     public static final String PAYPAL_EXTRA_INFO = "payPalExtraInfo";
     public static final String CASH_AT_ATM_EXTRA_INFO = "cashAtAtmExtraInfo";
     public static final String BLIK_EXTRA_INFO = "blikExtraInfo";
+    // Name of the maker's custom payment method, a free text
+    public static final String CUSTOM_PAYMENT_METHOD_NAME = "customPaymentMethodName";
 
     // Comma separated list of ordinal of a haveno.common.app.Capability. E.g. ordinal of
     // Capability.SIGNED_ACCOUNT_AGE_WITNESS is 11 and Capability.MEDIATION is 12 so if we want to signal that maker

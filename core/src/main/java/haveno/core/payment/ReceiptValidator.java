@@ -53,6 +53,10 @@ class ReceiptValidator {
 
         boolean isEqualPaymentMethods = predicates.isEqualPaymentMethods(offer, account);
 
+        if (predicates.isCustomPaymentMethod(offer)) {
+            return isEqualPaymentMethods && predicates.isMatchingCustomPaymentMethodAccount(offer, account);
+        }
+
         // All non-CountryBasedPaymentAccount need to have same payment methods
         if (!(account instanceof CountryBasedPaymentAccount)) {
             return isEqualPaymentMethods;

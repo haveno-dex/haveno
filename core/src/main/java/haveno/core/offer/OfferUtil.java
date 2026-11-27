@@ -38,6 +38,7 @@ import static haveno.core.offer.OfferPayload.AUSTRALIA_PAYID_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.CAPABILITIES;
 import static haveno.core.offer.OfferPayload.CASH_AT_ATM_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.CASHAPP_EXTRA_INFO;
+import static haveno.core.offer.OfferPayload.CUSTOM_PAYMENT_METHOD_NAME;
 import static haveno.core.offer.OfferPayload.F2F_CITY;
 import static haveno.core.offer.OfferPayload.F2F_EXTRA_INFO;
 import static haveno.core.offer.OfferPayload.PAY_BY_MAIL_EXTRA_INFO;
@@ -53,6 +54,8 @@ import haveno.core.payment.AustraliaPayidAccount;
 import haveno.core.payment.BlikAccount;
 import haveno.core.payment.CashAppAccount;
 import haveno.core.payment.CashAtAtmAccount;
+import haveno.core.payment.CustomPaymentMethodAccount;
+import haveno.core.payment.CustomPaymentMethodUtil;
 import haveno.core.payment.F2FAccount;
 import haveno.core.payment.PayByMailAccount;
 import haveno.core.payment.PayPalAccount;
@@ -224,6 +227,10 @@ public class OfferUtil {
             extraDataMap.put(BLIK_EXTRA_INFO, ((BlikAccount) paymentAccount).getExtraInfo());
         }
 
+        if (paymentAccount instanceof CustomPaymentMethodAccount) {
+            extraDataMap.put(CUSTOM_PAYMENT_METHOD_NAME, ((CustomPaymentMethodAccount) paymentAccount).getPaymentMethodName());
+        }
+
         extraDataMap.put(CAPABILITIES, Capabilities.app.toStringList());
 
         if (currencyCode.equals("XMR") && direction == OfferDirection.SELL) {
@@ -254,6 +261,15 @@ public class OfferUtil {
                 Res.get("offerbook.warning.currencyBanned"));
         checkArgument(!filterManager.isPaymentMethodBanned(paymentAccount.getPaymentMethod()),
                 Res.get("offerbook.warning.paymentMethodBanned"));
+
+        // an imported custom account has not passed the account form, and peers refuse texts which are not valid
+        if (paymentAccount instanceof CustomPaymentMethodAccount) {
+            CustomPaymentMethodAccount customAccount = (CustomPaymentMethodAccount) paymentAccount;
+            checkArgument(CustomPaymentMethodUtil.isValidName(customAccount.getPaymentMethodName()),
+                    "The name of the account's custom payment method is not valid");
+            checkArgument(CustomPaymentMethodUtil.isValidAccountData(customAccount.getAccountData()),
+                    "The account data of the custom payment method account is not valid");
+        }
     }
 
     private Optional<Volume> getFeeInUserFiatCurrency(BigInteger makerFee, String userCurrencyCode, CoinFormatter formatter) {
