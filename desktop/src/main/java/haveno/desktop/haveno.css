@@ -2296,6 +2296,12 @@ textfield */
     -fx-background-radius: 0 0 10 10;
 }
 
+/* wrapper drawing the card of a table that is clipped whole */
+.table-card {
+    -fx-background-color: -bs-color-background-row-even;
+    -fx-background-radius: 10;
+}
+
 .table-view .column-header-background {
     -fx-background-color: -bs-color-table-header-background;
     -fx-border-color: -bs-color-hairline;

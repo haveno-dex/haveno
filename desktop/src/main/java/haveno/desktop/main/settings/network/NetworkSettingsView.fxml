@@ -67,7 +67,7 @@
                     <Hyperlink fx:id="remoteNodeLink" styleClass="network-link"/>
                 </TextFlow>
             </VBox>
-            <StackPane styleClass="network-table-frame">
+            <StackPane styleClass="table-card">
                 <VBox fx:id="nodeCard">
                     <TableView fx:id="moneroConnectionsTableView" styleClass="network-table,network-nodes">
                         <columns>
@@ -132,7 +132,7 @@
                 </VBox>
             </HBox>
             <Label fx:id="peersLabel" styleClass="network-table-label"/>
-            <StackPane styleClass="network-table-frame">
+            <StackPane styleClass="table-card">
                 <TableView fx:id="p2pPeersTableView" styleClass="network-table" fixedCellSize="40">
                     <columns>
                         <TableColumn fx:id="peerAddressColumn" minWidth="100"/>

@@ -1,7 +1,4 @@
-.network-settings {
-    -fx-padding: 15;
-    -fx-background-color: -bs-background-color;
-}
+.network-settings { -fx-padding: 15; }
 .network-settings .label { -fx-text-fill: -network-text; }
 .network-settings .network-title { -fx-font-size: 17; -fx-font-family: "IBM Plex Sans Medium"; }
 .network-settings .network-heading { -fx-padding: 0 0 16 0; }
@@ -78,12 +75,7 @@
 .network-settings .network-icon-button .glyph-icon { -fx-fill: -network-dim; }
 .network-settings .network-status-note { -fx-padding: 12 14; -fx-background-color: -network-active; -fx-background-radius: 8; }
 .network-settings .network-status-note:warning { -fx-background-color: -network-warning-background; -fx-border-color: -network-amber; -fx-border-width: 0 0 0 2; }
-/* rounded card like the app's other tables: header bar, zebra rows, 1px frame where -fx-box-border shows;
-   the frame sits on a wrapper so the rounded clip keeps header and rows off the corners */
-.network-settings .network-table-frame {
-    -fx-background-color: -fx-box-border, -bs-color-background-row-even; -fx-background-insets: 0, 1;
-    -fx-background-radius: 11, 10; -fx-padding: 1;
-}
+/* rounded card like the app's other tables: header bar and zebra rows, clipped whole inside a .table-card wrapper */
 .network-settings .network-table { -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; -fx-padding: 0; }
 .network-settings .network-table .column-header-background,
 .network-settings .network-table .column-header, .network-settings .network-table .filler {

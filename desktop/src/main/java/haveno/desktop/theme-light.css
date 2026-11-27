@@ -307,7 +307,8 @@
 /* border and drop shadow of the market cards for tables, drawn as stacked fills behind the table:
    an effect would blur the whole table on every repaint */
 .table-view.rounded-table,
-.scroll-pane.table-scroll-pane {
+.scroll-pane.table-scroll-pane,
+.table-card {
     -fx-background-color: rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.004),
         rgba(0, 0, 0, 0.008), rgba(0, 0, 0, 0.008), rgba(0, 0, 0, 0.004), rgba(0, 0, 0, 0.008), rgba(0, 0, 0, 0.008),
         rgba(0, 0, 0, 0.004), -bs-offer-card-border, -bs-color-background-pane;
@@ -410,14 +411,14 @@
     -network-text: #202e45;
     -network-dim: #53657f;
     -network-faint: #8a97aa;
-    -network-line: #e3e6eb;
+    -network-line: -bs-color-hairline;
     -network-blue: #235cbc;
-    -network-active: rgba(35,92,188,0.06);
+    -network-active: #f2f5fb;
     -network-selected: rgba(35,92,188,0.12);
     -network-hover: rgba(35,92,188,0.035);
     -network-green: #397944;
     -network-green-background: rgba(57,121,68,0.10);
     -network-amber: #886020;
     -network-red: #c0392b;
-    -network-warning-background: rgba(136,96,32,0.07);
+    -network-warning-background: #f7f4f0;
 }
