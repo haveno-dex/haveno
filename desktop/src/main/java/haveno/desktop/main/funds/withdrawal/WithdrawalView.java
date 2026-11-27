@@ -449,27 +449,34 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     }
 
     private void relayTx(MoneroTxWallet tx, String withdrawToAddress, BigInteger receiverAmount, BigInteger fee, String note) {
-        try {
-            synchronized (xmrWalletService.getWalletLock()) {
-                xmrWalletService.getWallet().relayTx(tx);
-                try {
-                    xmrWalletService.getWallet().setTxNote(tx.getHash(), note); // TODO (monero-java): tx note does not persist when tx created then relayed
-                } catch (Exception e) {
-                    log.warn("Error setting note after relaying withdraw tx: {}", e.getMessage());
+        showLoadingIndicator();
+        new Thread(() -> { // the wallet calls would otherwise block the user thread
+            try {
+                synchronized (xmrWalletService.getWalletLock()) {
+                    xmrWalletService.getWallet().relayTx(tx);
+                    try {
+                        xmrWalletService.getWallet().setTxNote(tx.getHash(), note); // TODO (monero-java): tx note does not persist when tx created then relayed
+                    } catch (Exception e) {
+                        log.warn("Error setting note after relaying withdraw tx: {}", e.getMessage());
+                    }
+                    try {
+                        xmrWalletService.saveWallet(); // a force close would otherwise discard the tx key, destination and note
+                    } catch (Exception e) {
+                        log.warn("Error saving wallet after relaying withdraw tx: {}", e.getMessage());
+                    }
                 }
-                try {
-                    xmrWalletService.saveWallet(); // a force close would otherwise discard the tx key, destination and note
-                } catch (Exception e) {
-                    log.warn("Error saving wallet after relaying withdraw tx: {}", e.getMessage());
-                }
-                new TxWithdrawWindow(tx.getHash(), withdrawToAddress, receiverAmount, fee, note, this::getFiatText, xmrWalletService, preferences).show();
-                log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
-                reset(); // the draft is kept across navigation, so clear it once the send completes
+                UserThread.execute(() -> {
+                    new TxWithdrawWindow(tx.getHash(), withdrawToAddress, receiverAmount, fee, note, this::getFiatText, xmrWalletService, preferences).show();
+                    log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
+                    reset(); // the draft is kept across navigation, so clear it once the send completes
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                UserThread.execute(() -> new Popup().warning(e.getMessage()).show());
+            } finally {
+                UserThread.execute(this::hideLoadingIndicator);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            new Popup().warning(e.getMessage()).show();
-        }
+        }).start();
     }
 
 
