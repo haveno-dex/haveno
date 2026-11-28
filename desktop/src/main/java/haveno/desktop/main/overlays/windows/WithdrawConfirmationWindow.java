@@ -39,12 +39,14 @@ public class WithdrawConfirmationWindow extends TxHeroWindow<WithdrawConfirmatio
     private final BigInteger amount;
     private final BigInteger fee;
     private final String address;
+    private final int numTxs;
     private final Function<BigInteger, String> fiatText; // approximate fiat for an amount, or null while no price
 
-    public WithdrawConfirmationWindow(BigInteger amount, BigInteger fee, String address, Function<BigInteger, String> fiatText) {
+    public WithdrawConfirmationWindow(BigInteger amount, BigInteger fee, String address, int numTxs, Function<BigInteger, String> fiatText) {
         this.amount = amount;
         this.fee = fee;
         this.address = address;
+        this.numTxs = numTxs;
         this.fiatText = fiatText;
     }
 
@@ -72,9 +74,12 @@ public class WithdrawConfirmationWindow extends TxHeroWindow<WithdrawConfirmatio
         }
         HBox totalRow = detailRow(Res.get("funds.withdrawal.confirm.total"), totalBox);
 
+        // the recipient receives the amount over this many txs
+        HBox txsRow = detailRow(Res.get("funds.tab.transactions"), selectableValue(String.valueOf(numTxs)));
+
         addHeroContent(
                 hero(MaterialDesignIcon.SEND, "confirm-send-icon", Res.get("funds.withdrawal.confirm.headline"), amount, fiatText.apply(amount)),
-                sheet(toGroup, feeRow, totalRow));
+                numTxs > 1 ? sheet(toGroup, txsRow, feeRow, totalRow) : sheet(toGroup, feeRow, totalRow));
     }
 
     @Override

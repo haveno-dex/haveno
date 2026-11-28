@@ -29,10 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-/** Success dialog after a withdrawal, showing the sent amount, destination, fee and tx id. */
+/** Success dialog after a withdrawal, showing the sent amount, destination, fee and tx ids. */
 public class TxWithdrawWindow extends TxHeroWindow<TxWithdrawWindow> {
 
-    private final String txId;
+    private final List<String> txIds;
     private final String address;
     private final BigInteger amount;
     private final BigInteger fee;
@@ -41,9 +41,9 @@ public class TxWithdrawWindow extends TxHeroWindow<TxWithdrawWindow> {
     private final XmrWalletService xmrWalletService;
     private final Preferences preferences;
 
-    public TxWithdrawWindow(String txId, String address, BigInteger amount, BigInteger fee, String memo,
+    public TxWithdrawWindow(List<String> txIds, String address, BigInteger amount, BigInteger fee, String memo,
                             Function<BigInteger, String> fiatText, XmrWalletService xmrWalletService, Preferences preferences) {
-        this.txId = txId;
+        this.txIds = txIds;
         this.address = address;
         this.amount = amount;
         this.fee = fee;
@@ -61,10 +61,10 @@ public class TxWithdrawWindow extends TxHeroWindow<TxWithdrawWindow> {
     @Override
     protected void addContent() {
         List<Node> groups = new ArrayList<>();
-        groups.add(txStatusRow(txId, xmrWalletService));
+        if (txIds.size() == 1) groups.add(txStatusRow(txIds.get(0), xmrWalletService)); // the status row follows one tx
         groups.add(sheetGroup(Res.get("funds.withdrawal.confirm.to"), selectableLabel(address, "confirm-send-address"), copyIcon(address)));
         groups.add(detailRow(Res.get("funds.withdrawal.confirm.networkFee"), selectableValue(HavenoUtils.formatXmr(fee, true))));
-        groups.add(txIdGroup(txId, preferences));
+        for (String txId : txIds) groups.add(txIdGroup(txId, preferences));
         if (memo != null && !memo.isEmpty()) groups.add(sheetGroup(Res.get("funds.withdrawal.sent.note"), selectableLabel(memo, "confirm-send-row-value"), copyIcon(memo)));
 
         addHeroContent(

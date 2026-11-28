@@ -86,7 +86,9 @@ import monero.wallet.model.MoneroTxConfig;
 import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @FxmlView
 public class WithdrawalView extends ActivatableView<StackPane, Void> {
@@ -291,6 +293,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
             updateSendButtonState();
         };
         amountFocusListener = (observable, oldValue, newValue) -> {
+            if (newValue && sendMax) UserThread.execute(amountField::selectAll); // typing an amount replaces the max
             // on focus out reformat a valid amount, or flag an invalid one (leaving the input visible), unless sending max
             if (oldValue && !newValue && !sendMax) {
                 BigInteger parsed = amountOrNull();
@@ -337,9 +340,8 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onMax() {
-        if (amountInFiat && marketPrice() == null) setAmountCurrency(false); // the max cannot be shown in fiat without a price
-        BigInteger available = xmrWalletService.getAvailableBalance();
-        amountField.setText(amountInFiat ? formatXmrToFiat(available) : HavenoUtils.formatXmr(available));
+        amountField.setText(Res.get("funds.withdrawal.max")); // the amount is known once the wallet creates the txs
+        amountField.selectAll();
         sendMax = true; // after setText, so the text listener can't clear it while the field has focus
         updateAmountFeedback(false);
         updateSendButtonState();
@@ -389,25 +391,21 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
                     throw new IllegalArgumentException(Res.get("validation.xmr.invalidAddress"));
                 }
 
-                // set max amount if requested
-                if (sendMax) amount = xmrWalletService.getAvailableBalance();
-
                 // check sufficient available balance
-                if (amount.compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
+                if ((sendMax ? xmrWalletService.getAvailableBalance() : amount).compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
 
-                // create tx
-                MoneroTxWallet tx = null;
+                // create txs, which can be several, where max sweeps every output worth its fee
+                List<MoneroTxWallet> txs = null;
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrWalletService.getXmrConnectionService().getConnection();
                     synchronized (xmrWalletService.getWalletLock()) { // hold through recovery so it cannot interrupt another wallet operation
                         try {
                             log.info("Creating withdraw tx");
                             long startTime = System.currentTimeMillis();
-                            tx = xmrWalletService.createTx(new MoneroTxConfig()
+                            txs = sendMax ? xmrWalletService.createSweepTxs(withdrawToAddress) : xmrWalletService.createTxs(new MoneroTxConfig()
                                     .setAccountIndex(0)
                                     .setAmount(amount)
-                                    .setAddress(withdrawToAddress)
-                                    .setSubtractFeeFrom(sendMax ? Arrays.asList(0) : null));
+                                    .setAddress(withdrawToAddress));
                             log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
                             break;
                         } catch (Exception e) {
@@ -421,7 +419,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
                 }
 
                 // popup confirmation message
-                popupConfirmationMessage(tx, note);
+                popupConfirmationMessage(txs, note);
             } catch (Throwable e) {
                 log.warn("Error creating withdraw tx", e);
                 if (HavenoUtils.isNotEnoughMoney(e)) new Popup().warning(Res.get("funds.withdrawal.notEnoughFunds")).show();
@@ -431,52 +429,71 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
     }
 
 
-    private void popupConfirmationMessage(MoneroTxWallet tx, String note) {
-        String withdrawToAddress = tx.getOutgoingTransfer().getDestinations().get(0).getAddress();
-        BigInteger receiverAmount = tx.getOutgoingTransfer().getDestinations().get(0).getAmount();
-        BigInteger fee = tx.getFee();
-        new WithdrawConfirmationWindow(receiverAmount, fee, withdrawToAddress, this::getFiatText)
+    private void popupConfirmationMessage(List<MoneroTxWallet> txs, String note) {
+        String withdrawToAddress = txs.get(0).getOutgoingTransfer().getDestinations().get(0).getAddress();
+        new WithdrawConfirmationWindow(getReceiverAmount(txs), getFee(txs), withdrawToAddress, txs.size(), this::getFiatText)
                 .onAction(() -> {
                     if (xmrWalletService.isWalletEncrypted()) {
                         walletPasswordWindow.headLine(Res.get("walletPasswordWindow.headline")).onSuccess(() -> {
-                            relayTx(tx, withdrawToAddress, receiverAmount, fee, note);
+                            relayTxs(txs, withdrawToAddress, note);
                         }).hideForgotPasswordButton().show();
                     } else {
-                        relayTx(tx, withdrawToAddress, receiverAmount, fee, note);
+                        relayTxs(txs, withdrawToAddress, note);
                     }
                 })
                 .show();
     }
 
-    private void relayTx(MoneroTxWallet tx, String withdrawToAddress, BigInteger receiverAmount, BigInteger fee, String note) {
+    private void relayTxs(List<MoneroTxWallet> txs, String withdrawToAddress, String note) {
         showLoadingIndicator();
         new Thread(() -> { // the wallet calls would otherwise block the user thread
+            List<MoneroTxWallet> relayedTxs = new ArrayList<>(); // a tx can fail to relay after others were relayed
             try {
                 synchronized (xmrWalletService.getWalletLock()) {
-                    xmrWalletService.getWallet().relayTx(tx);
                     try {
-                        xmrWalletService.getWallet().setTxNote(tx.getHash(), note); // TODO (monero-java): tx note does not persist when tx created then relayed
-                    } catch (Exception e) {
-                        log.warn("Error setting note after relaying withdraw tx: {}", e.getMessage());
-                    }
-                    try {
-                        xmrWalletService.saveWallet(); // a force close would otherwise discard the tx key, destination and note
-                    } catch (Exception e) {
-                        log.warn("Error saving wallet after relaying withdraw tx: {}", e.getMessage());
+                        for (MoneroTxWallet tx : txs) {
+                            xmrWalletService.getWallet().relayTx(tx);
+                            relayedTxs.add(tx);
+                            try {
+                                xmrWalletService.getWallet().setTxNote(tx.getHash(), note); // TODO (monero-java): tx note does not persist when tx created then relayed
+                            } catch (Exception e) {
+                                log.warn("Error setting note after relaying withdraw tx: {}", e.getMessage());
+                            }
+                        }
+                    } finally {
+                        try {
+                            if (!relayedTxs.isEmpty()) xmrWalletService.saveWallet(); // a force close would otherwise discard the tx key, destination and note
+                        } catch (Exception e) {
+                            log.warn("Error saving wallet after relaying withdraw tx: {}", e.getMessage());
+                        }
                     }
                 }
-                UserThread.execute(() -> {
-                    new TxWithdrawWindow(tx.getHash(), withdrawToAddress, receiverAmount, fee, note, this::getFiatText, xmrWalletService, preferences).show();
-                    log.debug("onWithdraw onSuccess tx ID:{}", tx.getHash());
-                    reset(); // the draft is kept across navigation, so clear it once the send completes
-                });
+                UserThread.execute(() -> showSentWindow(txs, withdrawToAddress, note));
             } catch (Exception e) {
                 e.printStackTrace();
-                UserThread.execute(() -> new Popup().warning(e.getMessage()).show());
+                UserThread.execute(() -> {
+                    if (!relayedTxs.isEmpty()) showSentWindow(relayedTxs, withdrawToAddress, note); // the warning opens above it
+                    new Popup().warning(e.getMessage()).show();
+                });
             } finally {
                 UserThread.execute(this::hideLoadingIndicator);
             }
         }).start();
+    }
+
+    private void showSentWindow(List<MoneroTxWallet> txs, String withdrawToAddress, String note) {
+        List<String> txIds = txs.stream().map(MoneroTxWallet::getHash).collect(Collectors.toList());
+        new TxWithdrawWindow(txIds, withdrawToAddress, getReceiverAmount(txs), getFee(txs), note, this::getFiatText, xmrWalletService, preferences).show();
+        log.debug("onWithdraw onSuccess tx IDs:{}", txIds);
+        reset(); // the draft is kept across navigation, so clear it once txs are sent
+    }
+
+    private static BigInteger getReceiverAmount(List<MoneroTxWallet> txs) {
+        return txs.stream().map(tx -> tx.getOutgoingTransfer().getDestinations().get(0).getAmount()).reduce(BigInteger.ZERO, BigInteger::add);
+    }
+
+    private static BigInteger getFee(List<MoneroTxWallet> txs) {
+        return txs.stream().map(MoneroTxWallet::getFee).reduce(BigInteger.ZERO, BigInteger::add);
     }
 
 
@@ -538,7 +555,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         amountErrorFlagged = invalid && (flagInvalid || amountErrorFlagged || priceUnavailable);
         boolean error = amountErrorFlagged || overBalance;
         String content = amountErrorFlagged ? Res.get(priceUnavailable ? "funds.withdrawal.priceUnavailable" : "validation.NaN")
-                : invalid ? null
+                : invalid || sendMax ? null
                 : overBalance ? Res.get("funds.withdrawal.notEnoughFunds")
                 : (amountInFiat ? getXmrText(parsed) : getFiatText(parsed));
 

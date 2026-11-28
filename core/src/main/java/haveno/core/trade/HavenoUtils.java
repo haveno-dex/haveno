@@ -714,8 +714,13 @@ public class HavenoUtils {
         return isNotEnoughMoney(t) || isTxNotPossible(t) || isMultisigError(t);
     }
 
+    // a sweep reports no unlocked balance if no output is worth its fee
     public static boolean isNotEnoughMoney(Throwable t) {
-        return t.getMessage() != null && t.getMessage().toLowerCase().contains("not enough");
+        if (t.getMessage() == null) return false;
+        String message = t.getMessage().toLowerCase();
+        return message.contains("not enough") || message.contains("no unlocked balance")
+                || message.contains("transaction cannot pay for itself")
+                || message.contains("empty list given for subaddresses indices to sweep");
     }
 
     public static boolean isTxNotPossible(Throwable t) {
