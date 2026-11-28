@@ -87,7 +87,6 @@ import monero.wallet.model.MoneroTxWallet;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -395,7 +394,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
                 // check sufficient available balance
                 if ((sendMax ? xmrWalletService.getAvailableBalance() : amount).compareTo(BigInteger.ZERO) <= 0) throw new RuntimeException(Res.get("portfolio.pending.step5_buyer.amountTooLow"));
 
-                // create txs, where max sweeps every output worth its fee, which can take several txs
+                // create txs, which can be several, where max sweeps every output worth its fee
                 List<MoneroTxWallet> txs = null;
                 for (int i = 0; i < TradeProtocol.MAX_ATTEMPTS; i++) {
                     MoneroRpcConnection sourceConnection = xmrWalletService.getXmrConnectionService().getConnection();
@@ -403,10 +402,10 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
                         try {
                             log.info("Creating withdraw tx");
                             long startTime = System.currentTimeMillis();
-                            txs = sendMax ? xmrWalletService.createSweepTxs(withdrawToAddress) : Arrays.asList(xmrWalletService.createTx(new MoneroTxConfig()
+                            txs = sendMax ? xmrWalletService.createSweepTxs(withdrawToAddress) : xmrWalletService.createTxs(new MoneroTxConfig()
                                     .setAccountIndex(0)
                                     .setAmount(amount)
-                                    .setAddress(withdrawToAddress)));
+                                    .setAddress(withdrawToAddress));
                             log.info("Done creating withdraw tx in {} ms", System.currentTimeMillis() - startTime);
                             break;
                         } catch (Exception e) {
@@ -469,10 +468,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
                         }
                     }
                 }
-                UserThread.execute(() -> {
-                    showSentWindow(txs, withdrawToAddress, note);
-                    reset(); // the draft is kept across navigation, so clear it once the send completes
-                });
+                UserThread.execute(() -> showSentWindow(txs, withdrawToAddress, note));
             } catch (Exception e) {
                 e.printStackTrace();
                 UserThread.execute(() -> {
@@ -489,6 +485,7 @@ public class WithdrawalView extends ActivatableView<StackPane, Void> {
         List<String> txIds = txs.stream().map(MoneroTxWallet::getHash).collect(Collectors.toList());
         new TxWithdrawWindow(txIds, withdrawToAddress, getReceiverAmount(txs), getFee(txs), note, this::getFiatText, xmrWalletService, preferences).show();
         log.debug("onWithdraw onSuccess tx IDs:{}", txIds);
+        reset(); // the draft is kept across navigation, so clear it once txs are sent
     }
 
     private static BigInteger getReceiverAmount(List<MoneroTxWallet> txs) {

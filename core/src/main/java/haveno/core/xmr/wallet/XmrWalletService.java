@@ -903,6 +903,22 @@ public class XmrWalletService extends XmrWalletBase {
         }
     }
 
+    public List<MoneroTxWallet> createTxs(MoneroTxConfig txConfig) {
+        synchronized (walletLock) {
+            synchronized (HavenoUtils.getWalletFunctionLock()) {
+                List<MoneroTxWallet> txs = wallet.createTxs(txConfig);
+                if (Boolean.TRUE.equals(txConfig.getRelay())) {
+                    List<MoneroTxWallet> updatedTxs = new ArrayList<>(cachedTxs);
+                    for (MoneroTxWallet tx : txs) updatedTxs.addFirst(tx);
+                    cachedTxs = updatedTxs;
+                    cacheWalletInfo();
+                    saveWallet();
+                }
+                return txs;
+            }
+        }
+    }
+
     public List<MoneroTxWallet> createSweepTxs(String address) {
         return createSweepTxs(new MoneroTxConfig().setAccountIndex(0).setAddress(address).setRelay(false));
     }
