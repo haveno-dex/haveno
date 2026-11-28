@@ -32,8 +32,8 @@ echo "[*] Preparing Haveno init script for monitoring"
 for file in "${SYSTEMD_ENV_HOME}/haveno.env" "${SYSTEMD_ENV_HOME}/haveno-pricenode.env"
 do
     if [ -f "$file" ];then
-        sudo -H -i -u "${ROOT_USER}" sed -i -e 's/-Dcom.sun.management.jmxremote //g' -e 's/-Dcom.sun.management.jmxremote.local.only=true//g' -e 's/ -Dcom.sun.management.jmxremote.host=127.0.0.1//g' -e 's/ -Dcom.sun.management.jmxremote.port=6969//g' -e 's/ -Dcom.sun.management.jmxremote.rmi.port=6969//g' -e 's/ -Dcom.sun.management.jmxremote.ssl=false//g' -e 's/ -Dcom.sun.management.jmxremote.authenticate=false//g' "${file}"
-        sudo -H -i -u "${ROOT_USER}" sed -i -e '/JAVA_OPTS/ s/"$/ -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.port=6969 -Dcom.sun.management.jmxremote.rmi.port=6969 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"/' "${file}"
+        sudo -H -i -u "${ROOT_USER}" sed -i -e 's/-Dcom.sun.management.jmxremote //g' -e 's/-Dcom.sun.management.jmxremote.local.only=true//g' -e 's/ -Dcom.sun.management.jmxremote.host=127.0.0.1//g' -e 's/ -Djava.rmi.server.hostname=127.0.0.1//g' -e 's/ -Dcom.sun.management.jmxremote.port=6969//g' -e 's/ -Dcom.sun.management.jmxremote.rmi.port=6969//g' -e 's/ -Dcom.sun.management.jmxremote.ssl=false//g' -e 's/ -Dcom.sun.management.jmxremote.authenticate=false//g' "${file}"
+        sudo -H -i -u "${ROOT_USER}" sed -i -e '/JAVA_OPTS/ s/"$/ -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.host=127.0.0.1 -Djava.rmi.server.hostname=127.0.0.1 -Dcom.sun.management.jmxremote.port=6969 -Dcom.sun.management.jmxremote.rmi.port=6969 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"/' "${file}"
     fi
 done
 
