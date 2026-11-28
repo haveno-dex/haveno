@@ -173,16 +173,6 @@
     -jfx-unselected-color: -bs-color-gray-6;
 }
 
-/* limit the lighter gray to buttons */
-.jfx-button {
-    -bs-color-gray-bbb: #e2e6eb;
-}
-
-/* the offer book filter toggles sit on the page, so they are a step darker to stand out from it */
-.toggle-button-no-slider {
-    -bs-color-gray-bbb: -bs-color-gray-2;
-}
-
 /* keep trailing zeros and offer form glyphs legible on light surfaces */
 .zero-decimals {
     -bs-color-gray-3: #8b96a8;
