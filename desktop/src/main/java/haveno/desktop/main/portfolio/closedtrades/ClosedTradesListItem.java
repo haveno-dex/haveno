@@ -29,6 +29,7 @@ import haveno.core.trade.Trade;
 import haveno.desktop.util.DisplayUtils;
 import haveno.desktop.util.filtering.FilterableListItem;
 import haveno.desktop.util.filtering.FilteringUtils;
+import haveno.network.p2p.NodeAddress;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 
@@ -130,6 +131,18 @@ public class ClosedTradesListItem implements FilterableListItem {
 
     public String getState() {
         return closedTradableFormatter.getStateAsString(tradable);
+    }
+
+    public String getBuyerOnionAddress() {
+        return tradable instanceof Trade trade ? getOnionAddress(trade.getBuyer().getNodeAddress()) : "";
+    }
+
+    public String getSellerOnionAddress() {
+        return tradable instanceof Trade trade ? getOnionAddress(trade.getSeller().getNodeAddress()) : "";
+    }
+
+    private static String getOnionAddress(NodeAddress nodeAddress) {
+        return nodeAddress == null ? "" : nodeAddress.getFullAddress();
     }
 
     public int getNumPastTrades() {
