@@ -112,7 +112,9 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
         SELLER_SEC(Res.get("shared.sellerSecurityDeposit")),
         PAYMENT_METHOD(Res.get("shared.paymentMethod")),
         OFFER_TYPE(Res.get("shared.offerType")),
-        STATUS(Res.get("shared.state"));
+        STATUS(Res.get("shared.state")),
+        BUYER_ONION(Res.get("shared.buyerOnionAddress")),
+        SELLER_ONION(Res.get("shared.sellerOnionAddress"));
 
         private final String text;
 
@@ -342,6 +344,8 @@ public class ClosedTradesView extends ActivatableViewAndModel<VBox, ClosedTrades
                 columns[ColumnNames.PAYMENT_METHOD.ordinal()] = item.getPaymentMethod();
                 columns[ColumnNames.OFFER_TYPE.ordinal()] = item.getDirectionLabel();
                 columns[ColumnNames.STATUS.ordinal()] = item.getState();
+                columns[ColumnNames.BUYER_ONION.ordinal()] = item.getBuyerOnionAddress();
+                columns[ColumnNames.SELLER_ONION.ordinal()] = item.getSellerOnionAddress();
                 return columns;
             };
 
