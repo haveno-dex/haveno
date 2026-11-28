@@ -29,6 +29,7 @@ import haveno.common.util.Tuple4;
 import haveno.common.util.Utilities;
 import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
+import haveno.core.monetary.Volume;
 import haveno.core.offer.Offer;
 import haveno.core.payment.FasterPaymentsAccount;
 import haveno.core.payment.PaymentAccount;
@@ -385,6 +386,11 @@ public class TakeOfferView extends ActivatableViewAndModel<AnchorPane, TakeOffer
                 GridPane.setMargin(extraInfoTextArea.getParent(), new Insets(15, 0, 0, 0)); // separate from funding buttons
             }
         }
+    }
+
+    // called after initWithData, to trade the amount closest to the volume
+    public void setVolume(Volume volume) {
+        model.applyVolume(volume);
     }
 
     @Override

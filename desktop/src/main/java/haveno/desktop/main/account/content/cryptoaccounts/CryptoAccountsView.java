@@ -18,30 +18,18 @@
 package haveno.desktop.main.account.content.cryptoaccounts;
 
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import haveno.asset.Asset;
-import haveno.asset.CryptoAccountDisclaimer;
-import haveno.asset.coins.Monero;
 import haveno.common.util.Tuple2;
 import haveno.common.util.Tuple3;
 import haveno.core.account.witness.AccountAgeWitnessService;
-import haveno.core.filter.FilterManager;
-import haveno.core.locale.CryptoCurrency;
-import haveno.core.locale.CurrencyUtil;
 import haveno.core.locale.Res;
-import haveno.core.locale.TradeCurrency;
 import haveno.core.payment.PaymentAccount;
 import haveno.core.payment.PaymentAccountFactory;
 import haveno.core.payment.payload.PaymentMethod;
-import haveno.core.payment.validation.CryptoAddressValidator;
 import haveno.core.user.Preferences;
-import haveno.core.util.FormattingUtils;
-import haveno.core.util.coin.CoinFormatter;
-import haveno.core.util.validation.InputValidator;
 import haveno.desktop.common.view.FxmlView;
 import haveno.desktop.components.TitledGroupBg;
-import haveno.desktop.components.paymentmethods.AssetsForm;
 import static haveno.desktop.components.paymentmethods.AssetsForm.INSTANT_TRADE_NEWS;
+import haveno.desktop.components.paymentmethods.PaymentAccountForms;
 import haveno.desktop.components.paymentmethods.PaymentMethodForm;
 import haveno.desktop.main.account.content.PaymentAccountsView;
 import haveno.desktop.main.overlays.popups.Popup;
@@ -51,7 +39,6 @@ import static haveno.desktop.util.FormBuilder.add3ButtonsAfterGroup;
 import static haveno.desktop.util.FormBuilder.addTitledGroupBg;
 import static haveno.desktop.util.FormBuilder.addTopLabelListView;
 import haveno.desktop.util.Layout;
-import java.util.Optional;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -63,10 +50,7 @@ import javafx.stage.Stage;
 @FxmlView
 public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAccountsViewModel> {
 
-    private final InputValidator inputValidator;
-    private final CryptoAddressValidator altCoinAddressValidator;
-    private final FilterManager filterManager;
-    private final CoinFormatter formatter;
+    private final PaymentAccountForms paymentAccountForms;
     private final Preferences preferences;
 
     private PaymentMethodForm paymentMethodForm;
@@ -76,18 +60,12 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
 
     @Inject
     public CryptoAccountsView(CryptoAccountsViewModel model,
-                               InputValidator inputValidator,
-                               CryptoAddressValidator altCoinAddressValidator,
+                               PaymentAccountForms paymentAccountForms,
                                AccountAgeWitnessService accountAgeWitnessService,
-                               FilterManager filterManager,
-                               @Named(FormattingUtils.BTC_FORMATTER_KEY) CoinFormatter formatter,
                                Preferences preferences) {
         super(model, accountAgeWitnessService);
 
-        this.inputValidator = inputValidator;
-        this.altCoinAddressValidator = altCoinAddressValidator;
-        this.filterManager = filterManager;
-        this.formatter = formatter;
+        this.paymentAccountForms = paymentAccountForms;
         this.preferences = preferences;
     }
 
@@ -112,31 +90,7 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     private void onSaveNewAccount(PaymentAccount paymentAccount) {
-        TradeCurrency selectedTradeCurrency = paymentAccount.getSelectedTradeCurrency();
-        if (selectedTradeCurrency != null) {
-            if (selectedTradeCurrency instanceof CryptoCurrency && ((CryptoCurrency) selectedTradeCurrency).isAsset()) {
-                String name = selectedTradeCurrency.getName();
-                new Popup().information(Res.get("account.crypto.popup.wallet.msg",
-                        selectedTradeCurrency.getCodeAndName(),
-                        name,
-                        name))
-                        .closeButtonText(Res.get("account.crypto.popup.wallet.confirm"))
-                        .show();
-            }
-
-            final Optional<Asset> asset = CurrencyUtil.findAsset(selectedTradeCurrency.getCode());
-            if (asset.isPresent()) {
-                final CryptoAccountDisclaimer disclaimerAnnotation = asset.get().getClass().getAnnotation(CryptoAccountDisclaimer.class);
-                if (disclaimerAnnotation != null) {
-                    new Popup()
-                            .width(asset.get() instanceof Monero ? 1000 : 669)
-                            .maxMessageLength(2500)
-                            .information(Res.get(disclaimerAnnotation.value()))
-                            .useIUnderstandButton()
-                            .show();
-                }
-            }
-
+        paymentAccountForms.confirmNewAccount(paymentAccount, () -> {
             if (model.getPaymentAccounts().stream().noneMatch(e -> e.getAccountName() != null &&
                     e.getAccountName().equals(paymentAccount.getAccountName()))) {
                 model.onSaveNewAccount(paymentAccount);
@@ -146,7 +100,7 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
             }
 
             preferences.dontShowAgain(INSTANT_TRADE_NEWS, true);
-        }
+        });
     }
 
     private void onCancelNewAccount() {
@@ -250,8 +204,7 @@ public class CryptoAccountsView extends PaymentAccountsView<GridPane, CryptoAcco
     }
 
     private PaymentMethodForm getPaymentMethodForm(PaymentAccount paymentAccount) {
-        return new AssetsForm(paymentAccount, accountAgeWitnessService, altCoinAddressValidator,
-                inputValidator, root, gridRow, formatter, filterManager);
+        return paymentAccountForms.getForm(paymentAccount, root, gridRow);
     }
 
     private void removeNewAccountForm() {

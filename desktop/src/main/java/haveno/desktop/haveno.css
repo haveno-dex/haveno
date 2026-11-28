@@ -1510,12 +1510,14 @@ tree-table-view:focused {
     -fx-padding: 6 10 6 10;
 }
 
-.tac-agreement-root {
+.tac-agreement-root,
+.quick-trade-root {
     -fx-background-color: transparent;
 }
 
 /* the card draws its own shadow; keep the light-mode popup shadow off the logo above it */
-.tac-agreement-root.popup-dropshadow {
+.tac-agreement-root.popup-dropshadow,
+.quick-trade-root.popup-dropshadow {
     -fx-effect: none;
 }
 
@@ -1655,8 +1657,8 @@ tree-table-view:focused {
 }
 
 /* the .list-view prefix outranks the theme rules that would re-add a square border */
-.list-view.wizard-currency-list,
-.list-view.wizard-currency-list:focused {
+.list-view.wizard-list,
+.list-view.wizard-list:focused {
     -fx-background-color: -bs-color-gray-0;
     -fx-background-radius: 8;
     -fx-background-insets: 0;
@@ -1667,9 +1669,9 @@ tree-table-view:focused {
     -fx-faint-focus-color: transparent;
 }
 
-.list-view.wizard-currency-list .list-cell,
-.list-view.wizard-currency-list .list-cell:odd,
-.list-view.wizard-currency-list .list-cell:even {
+.list-view.wizard-list .list-cell,
+.list-view.wizard-list .list-cell:odd,
+.list-view.wizard-list .list-cell:even {
     -fx-background-color: transparent;
     -fx-background-radius: 6;
     -fx-padding: 7 14 7 14;
@@ -1677,37 +1679,105 @@ tree-table-view:focused {
     -fx-cursor: hand;
 }
 
-.list-view.wizard-currency-list .list-cell:filled:hover {
+.list-view.wizard-list .list-cell:filled:hover {
     -fx-background-color: -bs-color-gray-1;
 }
 
-.list-view.wizard-currency-list .list-cell:filled:selected,
-.list-view.wizard-currency-list .list-cell:filled:selected:hover {
+.list-view.wizard-list .list-cell:filled:selected,
+.list-view.wizard-list .list-cell:filled:selected:hover {
     -fx-background-color: rgba(28, 96, 220, 0.12);
     -fx-text-fill: -bs-color-primary;
     -fx-font-family: "IBM Plex Sans Medium";
 }
 
-.wizard-currency-list .scroll-bar,
-.wizard-currency-list .scroll-bar .track,
-.wizard-currency-list .scroll-bar .track-background,
-.wizard-currency-list .scroll-bar .increment-button,
-.wizard-currency-list .scroll-bar .decrement-button {
+.wizard-list .scroll-bar,
+.wizard-list .scroll-bar .track,
+.wizard-list .scroll-bar .track-background,
+.wizard-list .scroll-bar .increment-button,
+.wizard-list .scroll-bar .decrement-button {
     -fx-background-color: -bs-color-gray-0;
     -fx-border-color: -bs-color-gray-0;
 }
 
-.wizard-currency-list .scroll-bar .thumb {
+.wizard-list .scroll-bar .thumb {
     -fx-background-color: -bs-color-gray-3;
 }
 
-.wizard-currency-list .scroll-bar .thumb:hover {
+.wizard-list .scroll-bar .thumb:hover {
     -fx-background-color: -bs-color-gray-4;
 }
 
-.wizard-currency-list .scroll-bar .increment-arrow,
-.wizard-currency-list .scroll-bar .decrement-arrow {
+.wizard-list .scroll-bar .increment-arrow,
+.wizard-list .scroll-bar .decrement-arrow {
     -fx-background-color: -bs-color-gray-0;
+}
+
+/* quick trade wizard: its button in the offer book's tool row, and the values and details in its list rows */
+.jfx-button.quick-trade-button {
+    -fx-font-size: 1em;
+    -fx-background-color: transparent;
+    -fx-border-color: -bs-hero-primary;
+    -fx-border-width: 1;
+    -fx-padding: 0 18 0 14;
+    -fx-text-fill: -bs-hero-primary;
+    -fx-effect: null;
+}
+
+.jfx-button.quick-trade-button:hover, .jfx-button.quick-trade-button:focus-visible {
+    -fx-background-color: -bs-blue-transparent;
+}
+
+.quick-trade-button .glyph-icon {
+    -fx-fill: -bs-hero-primary;
+}
+
+.quick-trade-value {
+    -fx-font-family: "IBM Plex Sans Medium";
+    -fx-text-fill: -bs-rd-font-dark;
+}
+
+.quick-trade-detail {
+    -fx-font-size: 0.85em;
+    -fx-text-fill: -bs-rd-font-lighter;
+}
+
+.quick-trade-in-favor {
+    -fx-font-size: 0.85em;
+    -fx-text-fill: -bs-buy;
+}
+
+.quick-trade-icon {
+    -fx-fill: -bs-rd-font-lighter;
+}
+
+.quick-trade-link {
+    -fx-font-size: 0.92em;
+}
+
+/* the account form scrolls in a panel like the lists of the other pages */
+.scroll-pane.quick-trade-form {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-background-radius: 8;
+    -fx-padding: 4;
+}
+
+.quick-trade-form > .viewport {
+    -fx-background-color: transparent;
+}
+
+.quick-trade-form > .scroll-bar,
+.quick-trade-form > .scroll-bar .track,
+.quick-trade-form > .scroll-bar .track-background,
+.quick-trade-form > .scroll-bar .increment-button,
+.quick-trade-form > .scroll-bar .decrement-button,
+.quick-trade-form > .scroll-bar .increment-arrow,
+.quick-trade-form > .scroll-bar .decrement-arrow {
+    -fx-background-color: -bs-color-gray-0;
+    -fx-border-color: -bs-color-gray-0;
+}
+
+.quick-trade-form > .scroll-bar .thumb {
+    -fx-background-color: -bs-color-gray-3;
 }
 
 .tac-agreement-risk-detail-row {

@@ -93,6 +93,8 @@ public class AssetsForm extends PaymentMethodForm {
 
         addTradeCurrencyComboBox();
         currencyComboBox.setPrefWidth(250);
+        // an account created for a currency shows it selected
+        if (paymentAccount.getSingleTradeCurrency() != null) currencyComboBox.getSelectionModel().select(paymentAccount.getSingleTradeCurrency());
 
         tradeInstantCheckBox = addLabelCheckBox(gridPane, ++gridRow,
                 Res.get("payment.crypto.tradeInstantCheckbox"), 10);
